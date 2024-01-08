@@ -12,7 +12,7 @@ namespace OnlineVideos.Sites
 {
     public static class Updater
     {
-        public const string UpdateXmlUrl = "http://raw.githubusercontent.com/offbyoneBB/mp-onlinevideos2/master/MPEI/update.xml";
+        public const string UpdateXmlUrl = "http://raw.githubusercontent.com/MediaPortal/mp-onlinevideos2/master/MPEI/update.xml";
 
         public delegate bool ProgressReport(string action, byte? percent);
 

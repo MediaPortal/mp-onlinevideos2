@@ -6,8 +6,8 @@
         <title>OnlineVideos Core</title>
         <authors>offbyone</authors>
         <owners>offbyone</owners>
-        <licenseUrl>https://github.com/offbyoneBB/mp-onlinevideos2</licenseUrl>
-        <projectUrl>https://github.com/offbyoneBB/mp-onlinevideos2</projectUrl>
+        <licenseUrl>https://github.com/MediaPortal/mp-onlinevideos2</licenseUrl>
+        <projectUrl>https://github.com/MediaPortal/mp-onlinevideos2</projectUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>The OnlineVideos Core Library provides the API for a unified access to the video content of websites. The discovery or scraping of playback links is very flexible and can be done by reading rss feeds, parsing html with regular expressions or even programming against APIs provided by websites. The API will unify the user experience from all the different websites into one simple structure. Every site will span a hierarchical tree of categories, each showing a set of videos with descriptions and thumbnails. Support for searching, filtering, bookmarking favorites and downloading is included as well.</description>
         <summary>OnlineVideos Core Library</summary>
