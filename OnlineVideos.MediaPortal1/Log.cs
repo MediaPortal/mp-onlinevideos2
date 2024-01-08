@@ -97,11 +97,15 @@ namespace OnlineVideos.MediaPortal1
 
 		public void Error(Exception ex)
 		{
-			MePo.Log.Error("[OnlineVideos] " + ex.ToString());
+            logger.Error(ex.ToString());
+            MePo.Log.Error("[OnlineVideos] " + ex.ToString());
 		}
 
 		public void Error(string format, params object[] arg)
 		{
+            if (arg == null || arg.Length == 0) logger.Error(format);
+            else logger.Error(string.Format(format, arg));
+
             MePo.Log.Error("[OnlineVideos] " + string.Format(format, arg));
 		}
     }
