@@ -254,7 +254,6 @@
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.errorProvider1 = new System.Windows.Forms.ErrorProvider(this.components);
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
-            this.onlineVideosService1 = new OnlineVideos.WebService.OnlineVideosService();
             this.chkUseMPUrlSourceSplitter = new System.Windows.Forms.CheckBox();
             siteNameIconPanel = new System.Windows.Forms.Panel();
             siteColumnName = ((BrightIdeasSoftware.OLVColumn)(new BrightIdeasSoftware.OLVColumn()));
@@ -2793,26 +2792,6 @@
             // 
             this.openFileDialog1.Filter = "Image File|*.jpg;*.jpeg;*.png;*.gif";
             // 
-            // onlineVideosService1
-            // 
-            this.onlineVideosService1.Credentials = null;
-            //this.onlineVideosService1.Url = "http://onlinevideos.nocrosshair.de/OnlineVideos.asmx";
-            this.onlineVideosService1.UseDefaultCredentials = false;
-            // 
-            // chkUseMPUrlSourceSplitter
-            // 
-            this.chkUseMPUrlSourceSplitter.AutoSize = true;
-            this.chkUseMPUrlSourceSplitter.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.chkUseMPUrlSourceSplitter.Location = new System.Drawing.Point(545, 24);
-            this.chkUseMPUrlSourceSplitter.Name = "chkUseMPUrlSourceSplitter";
-            this.chkUseMPUrlSourceSplitter.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.chkUseMPUrlSourceSplitter.Size = new System.Drawing.Size(143, 17);
-            this.chkUseMPUrlSourceSplitter.TabIndex = 52;
-            this.chkUseMPUrlSourceSplitter.Text = "Use MPUrlSourceSplitter";
-            this.toolTip1.SetToolTip(this.chkUseMPUrlSourceSplitter, "If checked, MPUrlSourceSplitter will be used as source for building graph\r\nIf unc" +
-        "hecked, LAV Splitter Source will be used");
-            this.chkUseMPUrlSourceSplitter.UseVisualStyleBackColor = true;
-            // 
             // Configuration
             // 
             this.AcceptButton = this.btnSave;
@@ -3022,7 +3001,6 @@
 		private System.Windows.Forms.TextBox tbxLatestVideosOnlineRefresh;
 		private System.Windows.Forms.TextBox tbxLatestVideosAmount;
 		private System.Windows.Forms.CheckBox chkLatestVideosRandomize;
-		private WebService.OnlineVideosService onlineVideosService1;
         private System.Windows.Forms.TabPage tabSites;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.ToolStrip toolStripSites;
