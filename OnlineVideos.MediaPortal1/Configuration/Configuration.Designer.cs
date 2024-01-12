@@ -1707,6 +1707,7 @@
             // 
             this.listViewSitesNotInGroup.BackColor = System.Drawing.Color.AliceBlue;
             this.listViewSitesNotInGroup.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listViewSitesNotInGroup.HideSelection = false;
             this.listViewSitesNotInGroup.LargeImageList = this.imageListSiteIcons;
             this.listViewSitesNotInGroup.Location = new System.Drawing.Point(0, 23);
             this.listViewSitesNotInGroup.Name = "listViewSitesNotInGroup";
@@ -1730,6 +1731,7 @@
             // 
             this.listViewSitesInGroup.BackColor = System.Drawing.Color.AliceBlue;
             this.listViewSitesInGroup.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listViewSitesInGroup.HideSelection = false;
             this.listViewSitesInGroup.LargeImageList = this.imageListSiteIcons;
             this.listViewSitesInGroup.Location = new System.Drawing.Point(0, 23);
             this.listViewSitesInGroup.Name = "listViewSitesInGroup";
