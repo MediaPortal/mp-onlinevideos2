@@ -1215,6 +1215,20 @@
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "      Playback";
             // 
+            // chkUseMPUrlSourceSplitter
+            // 
+            this.chkUseMPUrlSourceSplitter.AutoSize = true;
+            this.chkUseMPUrlSourceSplitter.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.chkUseMPUrlSourceSplitter.Location = new System.Drawing.Point(545, 24);
+            this.chkUseMPUrlSourceSplitter.Name = "chkUseMPUrlSourceSplitter";
+            this.chkUseMPUrlSourceSplitter.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.chkUseMPUrlSourceSplitter.Size = new System.Drawing.Size(143, 17);
+            this.chkUseMPUrlSourceSplitter.TabIndex = 52;
+            this.chkUseMPUrlSourceSplitter.Text = "Use MPUrlSourceSplitter";
+            this.toolTip1.SetToolTip(this.chkUseMPUrlSourceSplitter, "If checked, MPUrlSourceSplitter will be used as source for building graph\r\nIf unc" +
+        "hecked, LAV Splitter Source will be used");
+            this.chkUseMPUrlSourceSplitter.UseVisualStyleBackColor = true;
+            // 
             // chkAdaptRefreshRate
             // 
             this.chkAdaptRefreshRate.AutoSize = true;
