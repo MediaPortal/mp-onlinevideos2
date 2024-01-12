@@ -4,9 +4,7 @@ OnlineVideos is a plug-in for the open-source media center application [MediaPor
 
 The plug-in interface will unify the user experience from all the different websites into one simple structure. Every site will span a hierarchical tree of categories, each showing a set of videos with descriptions and thumbnails. Support for searching, filtering, bookmarking favorites and downloading is included as well.
 
-# Screenshots
-![](https://raw.githubusercontent.com/wiki/MediaPortal/mp-onlinevideos2/Screenshots/Screenshot_B3W_Sites_SmallIcons.jpg)
-![](https://raw.githubusercontent.com/wiki/MediaPortal/mp-onlinevideos2/Screenshots/Screenshot_B3W_Videos_LargeIcons.jpg)
+# [Screenshots](https://github.com/MediaPortal/mp-onlinevideos2/wiki/ScreenShots)
 
 # Supported Sites
 
@@ -16,15 +14,7 @@ This short list gives a first impression of what you can expect inside OnlineVid
         YouTube 
     German
         Das Erste, ZDF, Arte, 3sat, ORF, SF1, MyVideo.de 
-    Spanish
-        TVE 
-    Swedish
-        SVTPlay, Viasat, TV4 Play 
     Dutch
-        TVGemist, NOS 
+        NPO Start
     English
-        iTunes Movie Trailers, GameTrailers, CNN, MSNBC, TEDTalks, NASA, BBC iPlayer 
-    Danish
-        dr.dk 
-    Norwegian
-        nrk.no 
+        BBC iPlayer 

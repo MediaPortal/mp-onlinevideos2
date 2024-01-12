@@ -169,29 +169,6 @@
             this.label9 = new System.Windows.Forms.Label();
             this.splitter1 = new System.Windows.Forms.Splitter();
             this.listBoxHosters = new System.Windows.Forms.ListBox();
-            this.tabPageCodecs = new System.Windows.Forms.TabPage();
-            this.videopanel = new System.Windows.Forms.Panel();
-            this.groupBoxSplitter = new System.Windows.Forms.GroupBox();
-            this.btnTestAvi = new System.Windows.Forms.Button();
-            this.btnTestWmv = new System.Windows.Forms.Button();
-            this.btnTestMp4 = new System.Windows.Forms.Button();
-            this.btnTestMov = new System.Windows.Forms.Button();
-            this.tbxMOVSplitter = new System.Windows.Forms.TextBox();
-            this.chkMOVSplitterInstalled = new System.Windows.Forms.CheckBox();
-            this.label46 = new System.Windows.Forms.Label();
-            this.btnTestFlv = new System.Windows.Forms.Button();
-            this.tbxWMVSplitter = new System.Windows.Forms.TextBox();
-            this.tbxAVISplitter = new System.Windows.Forms.TextBox();
-            this.tbxMP4Splitter = new System.Windows.Forms.TextBox();
-            this.tbxFLVSplitter = new System.Windows.Forms.TextBox();
-            this.chkWMVSplitterInstalled = new System.Windows.Forms.CheckBox();
-            this.chkAVISplitterInstalled = new System.Windows.Forms.CheckBox();
-            this.chkMP4SplitterInstalled = new System.Windows.Forms.CheckBox();
-            this.label14 = new System.Windows.Forms.Label();
-            this.label13 = new System.Windows.Forms.Label();
-            this.label12 = new System.Windows.Forms.Label();
-            this.chkFLVSplitterInstalled = new System.Windows.Forms.CheckBox();
-            this.label11 = new System.Windows.Forms.Label();
             this.tabSourceFilter = new System.Windows.Forms.TabPage();
             this.tabProtocols = new System.Windows.Forms.TabControl();
             this.tabPageNotDetectedFilter = new System.Windows.Forms.TabPage();
@@ -327,8 +304,6 @@
             this.toolStripSites.SuspendLayout();
             this.tabHosters.SuspendLayout();
             this.panel2.SuspendLayout();
-            this.tabPageCodecs.SuspendLayout();
-            this.groupBoxSplitter.SuspendLayout();
             this.tabSourceFilter.SuspendLayout();
             this.tabProtocols.SuspendLayout();
             this.tabPageNotDetectedFilter.SuspendLayout();
@@ -662,7 +637,6 @@
             this.mainTabControl.Controls.Add(this.tabGroups);
             this.mainTabControl.Controls.Add(this.tabSites);
             this.mainTabControl.Controls.Add(this.tabHosters);
-            this.mainTabControl.Controls.Add(this.tabPageCodecs);
             this.mainTabControl.Controls.Add(this.tabSourceFilter);
             this.mainTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainTabControl.Location = new System.Drawing.Point(0, 0);
@@ -2000,292 +1974,6 @@
             this.listBoxHosters.TabIndex = 0;
             this.listBoxHosters.SelectedValueChanged += new System.EventHandler(this.listBoxHosters_SelectedValueChanged);
             // 
-            // tabPageCodecs
-            // 
-            this.tabPageCodecs.Controls.Add(this.videopanel);
-            this.tabPageCodecs.Controls.Add(this.groupBoxSplitter);
-            this.tabPageCodecs.Location = new System.Drawing.Point(4, 22);
-            this.tabPageCodecs.Margin = new System.Windows.Forms.Padding(2);
-            this.tabPageCodecs.Name = "tabPageCodecs";
-            this.tabPageCodecs.Padding = new System.Windows.Forms.Padding(2);
-            this.tabPageCodecs.Size = new System.Drawing.Size(704, 542);
-            this.tabPageCodecs.TabIndex = 2;
-            this.tabPageCodecs.Text = "Codecs";
-            this.tabPageCodecs.UseVisualStyleBackColor = true;
-            // 
-            // videopanel
-            // 
-            this.videopanel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.videopanel.Location = new System.Drawing.Point(6, 157);
-            this.videopanel.Name = "videopanel";
-            this.videopanel.Size = new System.Drawing.Size(691, 377);
-            this.videopanel.TabIndex = 3;
-            // 
-            // groupBoxSplitter
-            // 
-            this.groupBoxSplitter.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.groupBoxSplitter.Controls.Add(this.btnTestAvi);
-            this.groupBoxSplitter.Controls.Add(this.btnTestWmv);
-            this.groupBoxSplitter.Controls.Add(this.btnTestMp4);
-            this.groupBoxSplitter.Controls.Add(this.btnTestMov);
-            this.groupBoxSplitter.Controls.Add(this.tbxMOVSplitter);
-            this.groupBoxSplitter.Controls.Add(this.chkMOVSplitterInstalled);
-            this.groupBoxSplitter.Controls.Add(this.label46);
-            this.groupBoxSplitter.Controls.Add(this.btnTestFlv);
-            this.groupBoxSplitter.Controls.Add(this.tbxWMVSplitter);
-            this.groupBoxSplitter.Controls.Add(this.tbxAVISplitter);
-            this.groupBoxSplitter.Controls.Add(this.tbxMP4Splitter);
-            this.groupBoxSplitter.Controls.Add(this.tbxFLVSplitter);
-            this.groupBoxSplitter.Controls.Add(this.chkWMVSplitterInstalled);
-            this.groupBoxSplitter.Controls.Add(this.chkAVISplitterInstalled);
-            this.groupBoxSplitter.Controls.Add(this.chkMP4SplitterInstalled);
-            this.groupBoxSplitter.Controls.Add(this.label14);
-            this.groupBoxSplitter.Controls.Add(this.label13);
-            this.groupBoxSplitter.Controls.Add(this.label12);
-            this.groupBoxSplitter.Controls.Add(this.chkFLVSplitterInstalled);
-            this.groupBoxSplitter.Controls.Add(this.label11);
-            this.groupBoxSplitter.Location = new System.Drawing.Point(6, 10);
-            this.groupBoxSplitter.Margin = new System.Windows.Forms.Padding(2);
-            this.groupBoxSplitter.Name = "groupBoxSplitter";
-            this.groupBoxSplitter.Padding = new System.Windows.Forms.Padding(2);
-            this.groupBoxSplitter.Size = new System.Drawing.Size(691, 142);
-            this.groupBoxSplitter.TabIndex = 1;
-            this.groupBoxSplitter.TabStop = false;
-            this.groupBoxSplitter.Text = "Filetypes";
-            // 
-            // btnTestAvi
-            // 
-            this.btnTestAvi.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnTestAvi.Location = new System.Drawing.Point(641, 62);
-            this.btnTestAvi.Name = "btnTestAvi";
-            this.btnTestAvi.Size = new System.Drawing.Size(45, 23);
-            this.btnTestAvi.TabIndex = 18;
-            this.btnTestAvi.Text = "Test";
-            this.btnTestAvi.UseVisualStyleBackColor = true;
-            this.btnTestAvi.Click += new System.EventHandler(this.btnTestAvi_Click);
-            // 
-            // btnTestWmv
-            // 
-            this.btnTestWmv.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnTestWmv.Location = new System.Drawing.Point(641, 87);
-            this.btnTestWmv.Name = "btnTestWmv";
-            this.btnTestWmv.Size = new System.Drawing.Size(45, 23);
-            this.btnTestWmv.TabIndex = 17;
-            this.btnTestWmv.Text = "Test";
-            this.btnTestWmv.UseVisualStyleBackColor = true;
-            this.btnTestWmv.Click += new System.EventHandler(this.btnTestWmv_Click);
-            // 
-            // btnTestMp4
-            // 
-            this.btnTestMp4.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnTestMp4.Location = new System.Drawing.Point(641, 38);
-            this.btnTestMp4.Name = "btnTestMp4";
-            this.btnTestMp4.Size = new System.Drawing.Size(45, 23);
-            this.btnTestMp4.TabIndex = 16;
-            this.btnTestMp4.Text = "Test";
-            this.btnTestMp4.UseVisualStyleBackColor = true;
-            this.btnTestMp4.Click += new System.EventHandler(this.btnTestMp4_Click);
-            // 
-            // btnTestMov
-            // 
-            this.btnTestMov.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnTestMov.Location = new System.Drawing.Point(641, 111);
-            this.btnTestMov.Name = "btnTestMov";
-            this.btnTestMov.Size = new System.Drawing.Size(45, 23);
-            this.btnTestMov.TabIndex = 14;
-            this.btnTestMov.Text = "Test";
-            this.btnTestMov.UseVisualStyleBackColor = true;
-            this.btnTestMov.Click += new System.EventHandler(this.btnTestMov_Click);
-            // 
-            // tbxMOVSplitter
-            // 
-            this.tbxMOVSplitter.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.tbxMOVSplitter.Location = new System.Drawing.Point(118, 112);
-            this.tbxMOVSplitter.Margin = new System.Windows.Forms.Padding(2);
-            this.tbxMOVSplitter.Name = "tbxMOVSplitter";
-            this.tbxMOVSplitter.ReadOnly = true;
-            this.tbxMOVSplitter.Size = new System.Drawing.Size(518, 20);
-            this.tbxMOVSplitter.TabIndex = 15;
-            // 
-            // chkMOVSplitterInstalled
-            // 
-            this.chkMOVSplitterInstalled.AutoSize = true;
-            this.chkMOVSplitterInstalled.Checked = true;
-            this.chkMOVSplitterInstalled.CheckState = System.Windows.Forms.CheckState.Indeterminate;
-            this.chkMOVSplitterInstalled.Enabled = false;
-            this.chkMOVSplitterInstalled.Location = new System.Drawing.Point(100, 116);
-            this.chkMOVSplitterInstalled.Margin = new System.Windows.Forms.Padding(2);
-            this.chkMOVSplitterInstalled.Name = "chkMOVSplitterInstalled";
-            this.chkMOVSplitterInstalled.Size = new System.Drawing.Size(15, 14);
-            this.chkMOVSplitterInstalled.TabIndex = 13;
-            this.chkMOVSplitterInstalled.ThreeState = true;
-            this.chkMOVSplitterInstalled.UseVisualStyleBackColor = true;
-            // 
-            // label46
-            // 
-            this.label46.AutoSize = true;
-            this.label46.Location = new System.Drawing.Point(4, 115);
-            this.label46.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label46.Name = "label46";
-            this.label46.Size = new System.Drawing.Size(27, 13);
-            this.label46.TabIndex = 12;
-            this.label46.Text = "mov";
-            // 
-            // btnTestFlv
-            // 
-            this.btnTestFlv.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnTestFlv.Location = new System.Drawing.Point(641, 13);
-            this.btnTestFlv.Name = "btnTestFlv";
-            this.btnTestFlv.Size = new System.Drawing.Size(45, 23);
-            this.btnTestFlv.TabIndex = 3;
-            this.btnTestFlv.Text = "Test";
-            this.btnTestFlv.UseVisualStyleBackColor = true;
-            this.btnTestFlv.Click += new System.EventHandler(this.btnTestFlv_Click);
-            // 
-            // tbxWMVSplitter
-            // 
-            this.tbxWMVSplitter.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.tbxWMVSplitter.Location = new System.Drawing.Point(118, 88);
-            this.tbxWMVSplitter.Margin = new System.Windows.Forms.Padding(2);
-            this.tbxWMVSplitter.Name = "tbxWMVSplitter";
-            this.tbxWMVSplitter.ReadOnly = true;
-            this.tbxWMVSplitter.Size = new System.Drawing.Size(518, 20);
-            this.tbxWMVSplitter.TabIndex = 11;
-            // 
-            // tbxAVISplitter
-            // 
-            this.tbxAVISplitter.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.tbxAVISplitter.Location = new System.Drawing.Point(118, 64);
-            this.tbxAVISplitter.Margin = new System.Windows.Forms.Padding(2);
-            this.tbxAVISplitter.Name = "tbxAVISplitter";
-            this.tbxAVISplitter.ReadOnly = true;
-            this.tbxAVISplitter.Size = new System.Drawing.Size(518, 20);
-            this.tbxAVISplitter.TabIndex = 10;
-            // 
-            // tbxMP4Splitter
-            // 
-            this.tbxMP4Splitter.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.tbxMP4Splitter.Location = new System.Drawing.Point(118, 40);
-            this.tbxMP4Splitter.Margin = new System.Windows.Forms.Padding(2);
-            this.tbxMP4Splitter.Name = "tbxMP4Splitter";
-            this.tbxMP4Splitter.ReadOnly = true;
-            this.tbxMP4Splitter.Size = new System.Drawing.Size(518, 20);
-            this.tbxMP4Splitter.TabIndex = 9;
-            // 
-            // tbxFLVSplitter
-            // 
-            this.tbxFLVSplitter.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.tbxFLVSplitter.Location = new System.Drawing.Point(118, 16);
-            this.tbxFLVSplitter.Margin = new System.Windows.Forms.Padding(2);
-            this.tbxFLVSplitter.Name = "tbxFLVSplitter";
-            this.tbxFLVSplitter.ReadOnly = true;
-            this.tbxFLVSplitter.Size = new System.Drawing.Size(518, 20);
-            this.tbxFLVSplitter.TabIndex = 8;
-            // 
-            // chkWMVSplitterInstalled
-            // 
-            this.chkWMVSplitterInstalled.AutoSize = true;
-            this.chkWMVSplitterInstalled.Checked = true;
-            this.chkWMVSplitterInstalled.CheckState = System.Windows.Forms.CheckState.Indeterminate;
-            this.chkWMVSplitterInstalled.Enabled = false;
-            this.chkWMVSplitterInstalled.Location = new System.Drawing.Point(100, 92);
-            this.chkWMVSplitterInstalled.Margin = new System.Windows.Forms.Padding(2);
-            this.chkWMVSplitterInstalled.Name = "chkWMVSplitterInstalled";
-            this.chkWMVSplitterInstalled.Size = new System.Drawing.Size(15, 14);
-            this.chkWMVSplitterInstalled.TabIndex = 7;
-            this.chkWMVSplitterInstalled.ThreeState = true;
-            this.chkWMVSplitterInstalled.UseVisualStyleBackColor = true;
-            // 
-            // chkAVISplitterInstalled
-            // 
-            this.chkAVISplitterInstalled.AutoSize = true;
-            this.chkAVISplitterInstalled.Checked = true;
-            this.chkAVISplitterInstalled.CheckState = System.Windows.Forms.CheckState.Indeterminate;
-            this.chkAVISplitterInstalled.Enabled = false;
-            this.chkAVISplitterInstalled.Location = new System.Drawing.Point(100, 67);
-            this.chkAVISplitterInstalled.Margin = new System.Windows.Forms.Padding(2);
-            this.chkAVISplitterInstalled.Name = "chkAVISplitterInstalled";
-            this.chkAVISplitterInstalled.Size = new System.Drawing.Size(15, 14);
-            this.chkAVISplitterInstalled.TabIndex = 6;
-            this.chkAVISplitterInstalled.ThreeState = true;
-            this.chkAVISplitterInstalled.UseVisualStyleBackColor = true;
-            // 
-            // chkMP4SplitterInstalled
-            // 
-            this.chkMP4SplitterInstalled.AutoSize = true;
-            this.chkMP4SplitterInstalled.Checked = true;
-            this.chkMP4SplitterInstalled.CheckState = System.Windows.Forms.CheckState.Indeterminate;
-            this.chkMP4SplitterInstalled.Enabled = false;
-            this.chkMP4SplitterInstalled.Location = new System.Drawing.Point(100, 43);
-            this.chkMP4SplitterInstalled.Margin = new System.Windows.Forms.Padding(2);
-            this.chkMP4SplitterInstalled.Name = "chkMP4SplitterInstalled";
-            this.chkMP4SplitterInstalled.Size = new System.Drawing.Size(15, 14);
-            this.chkMP4SplitterInstalled.TabIndex = 5;
-            this.chkMP4SplitterInstalled.ThreeState = true;
-            this.chkMP4SplitterInstalled.UseVisualStyleBackColor = true;
-            // 
-            // label14
-            // 
-            this.label14.AutoSize = true;
-            this.label14.Location = new System.Drawing.Point(4, 91);
-            this.label14.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label14.Name = "label14";
-            this.label14.Size = new System.Drawing.Size(29, 13);
-            this.label14.TabIndex = 4;
-            this.label14.Text = "wmv";
-            // 
-            // label13
-            // 
-            this.label13.AutoSize = true;
-            this.label13.Location = new System.Drawing.Point(4, 66);
-            this.label13.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label13.Name = "label13";
-            this.label13.Size = new System.Drawing.Size(21, 13);
-            this.label13.TabIndex = 3;
-            this.label13.Text = "avi";
-            // 
-            // label12
-            // 
-            this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(4, 42);
-            this.label12.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label12.Name = "label12";
-            this.label12.Size = new System.Drawing.Size(27, 13);
-            this.label12.TabIndex = 2;
-            this.label12.Text = "mp4";
-            // 
-            // chkFLVSplitterInstalled
-            // 
-            this.chkFLVSplitterInstalled.AutoSize = true;
-            this.chkFLVSplitterInstalled.Checked = true;
-            this.chkFLVSplitterInstalled.CheckState = System.Windows.Forms.CheckState.Indeterminate;
-            this.chkFLVSplitterInstalled.Enabled = false;
-            this.chkFLVSplitterInstalled.Location = new System.Drawing.Point(100, 20);
-            this.chkFLVSplitterInstalled.Margin = new System.Windows.Forms.Padding(2);
-            this.chkFLVSplitterInstalled.Name = "chkFLVSplitterInstalled";
-            this.chkFLVSplitterInstalled.Size = new System.Drawing.Size(15, 14);
-            this.chkFLVSplitterInstalled.TabIndex = 1;
-            this.chkFLVSplitterInstalled.ThreeState = true;
-            this.chkFLVSplitterInstalled.UseVisualStyleBackColor = true;
-            // 
-            // label11
-            // 
-            this.label11.AutoSize = true;
-            this.label11.Location = new System.Drawing.Point(4, 19);
-            this.label11.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
-            this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(18, 13);
-            this.label11.TabIndex = 0;
-            this.label11.Text = "flv";
-            // 
             // tabSourceFilter
             // 
             this.tabSourceFilter.Controls.Add(this.tabProtocols);
@@ -3195,9 +2883,6 @@
             this.tabHosters.ResumeLayout(false);
             this.panel2.ResumeLayout(false);
             this.panel2.PerformLayout();
-            this.tabPageCodecs.ResumeLayout(false);
-            this.groupBoxSplitter.ResumeLayout(false);
-            this.groupBoxSplitter.PerformLayout();
             this.tabSourceFilter.ResumeLayout(false);
             this.tabProtocols.ResumeLayout(false);
             this.tabPageNotDetectedFilter.ResumeLayout(false);
@@ -3246,20 +2931,6 @@
         private System.Windows.Forms.Button btnBrowseForDlFolder;
         private System.Windows.Forms.TabControl mainTabControl;
         private System.Windows.Forms.TabPage tabGeneral;
-        private System.Windows.Forms.TabPage tabPageCodecs;
-        private System.Windows.Forms.GroupBox groupBoxSplitter;
-        private System.Windows.Forms.Label label11;
-        private System.Windows.Forms.CheckBox chkFLVSplitterInstalled;
-        private System.Windows.Forms.Label label12;
-        private System.Windows.Forms.Label label14;
-        private System.Windows.Forms.Label label13;
-        private System.Windows.Forms.CheckBox chkWMVSplitterInstalled;
-        private System.Windows.Forms.CheckBox chkAVISplitterInstalled;
-        private System.Windows.Forms.CheckBox chkMP4SplitterInstalled;
-        private System.Windows.Forms.TextBox tbxFLVSplitter;
-        private System.Windows.Forms.TextBox tbxWMVSplitter;
-        private System.Windows.Forms.TextBox tbxAVISplitter;
-        private System.Windows.Forms.TextBox tbxMP4Splitter;
         private System.Windows.Forms.Label lblVersion;
         private System.Windows.Forms.BindingSource bindingSourceSiteSettings;
         private System.Windows.Forms.Button btnCancel;
@@ -3333,15 +3004,6 @@
         private System.Windows.Forms.Label label45;
         private System.Windows.Forms.Label label44;
         private System.Windows.Forms.CheckBox chkFavFirst;
-        private System.Windows.Forms.Button btnTestFlv;
-        private System.Windows.Forms.Panel videopanel;
-        private System.Windows.Forms.Button btnTestMov;
-        private System.Windows.Forms.TextBox tbxMOVSplitter;
-        private System.Windows.Forms.CheckBox chkMOVSplitterInstalled;
-        private System.Windows.Forms.Label label46;
-        private System.Windows.Forms.Button btnTestAvi;
-        private System.Windows.Forms.Button btnTestWmv;
-        private System.Windows.Forms.Button btnTestMp4;
         private System.Windows.Forms.TabPage tabHosters;
         private System.Windows.Forms.ListBox listBoxHosters;
         private System.Windows.Forms.Splitter splitter1;
