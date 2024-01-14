@@ -14,7 +14,7 @@ using System.Windows.Forms;
 
 namespace OnlineVideos.Helpers
 {
-    public class WebViewHelper : MarshalByRefObject, IAsyncDisposable
+    public class WebViewHelper : MarshalByRefObject, IDisposable
     {
         protected static WebViewHelper _instance = null;
         protected static readonly ManualResetEvent _readyEvent = new ManualResetEvent(false);
@@ -81,7 +81,7 @@ namespace OnlineVideos.Helpers
             }
 
             if (instance != null)
-                await instance.DisposeAsync().ConfigureAwait(false);
+                instance.Dispose();
         }
 
         public override object InitializeLifetimeService()
@@ -90,7 +90,7 @@ namespace OnlineVideos.Helpers
             return null;
         }
 
-        public async ValueTask DisposeAsync()
+        public void Dispose()
         {
             Log.Debug("WebView: DisposeAsync");
             _form.Closed -= FormOnClosed;
