@@ -31,6 +31,7 @@
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <LangVersion>latest</LangVersion>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -62,6 +63,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Ard\ArdMediathekUtil.cs" />
+    <Compile Include="Ard\ArdPartner.cs" />
+    <Compile Include="Ard\ArdWidgetTeaserDeserializerBase.cs" />
+    <Compile Include="Ard\CollectionExtensions.cs" />
+    <Compile Include="Ard\Services.cs" />
+    <Compile Include="Ard\Dto.cs" />
     <Compile Include="DumpertUtil.cs" />
     <Compile Include="..\..\Build\Version.cs">
       <Link>Properties\Version.cs</Link>
@@ -117,6 +124,8 @@
     <Compile Include="TVEUtil.cs" />
     <Compile Include="VRTUtil.cs" />
     <Compile Include="WebDAVUtil.cs" />
+    <Compile Include="Zdf\ZdfApiTokenProvider.cs" />
+    <Compile Include="Zdf\ZDFMediathekUtil.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\OnlineVideos\OnlineVideos.csproj">

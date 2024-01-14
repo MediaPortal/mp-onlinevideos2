@@ -79,12 +79,6 @@
     <Compile Include="..\..\Build\Version.cs">
       <Link>Properties\Version.cs</Link>
     </Compile>
-    <Compile Include="Ard\ArdMediathekUtil.cs" />
-    <Compile Include="Ard\ArdPartner.cs" />
-    <Compile Include="Ard\ArdWidgetTeaserDeserializerBase.cs" />
-    <Compile Include="Ard\CollectionExtensions.cs" />
-    <Compile Include="Ard\Services.cs" />
-    <Compile Include="Ard\Dto.cs" />
     <Compile Include="ArtePlus7Util.cs" />
     <Compile Include="BeegUtil.cs" />
     <Compile Include="CNNUtil.cs" />
@@ -314,8 +308,6 @@
     <Compile Include="WDRUtil.cs" />
     <Compile Include="YouTubeUtil.cs" />
     <Compile Include="YouTubeV3Util.cs" />
-    <Compile Include="Zdf\ZdfApiTokenProvider.cs" />
-    <Compile Include="Zdf\ZDFMediathekUtil.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\OnlineVideos\OnlineVideos.csproj">
