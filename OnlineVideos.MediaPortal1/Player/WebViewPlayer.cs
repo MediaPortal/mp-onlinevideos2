@@ -44,7 +44,7 @@ namespace OnlineVideos.MediaPortal1.Player
         {
             try
             {
-                wvHelper = WebViewHelper.Instance;
+                wvHelper = WebViewHelper.GetInstance();
                 webView = wvHelper.GetWebViewForPlayer;
                 webView.Location = new Point(0, 0);
                 webView.Size = GUIGraphicsContext.form.Size;

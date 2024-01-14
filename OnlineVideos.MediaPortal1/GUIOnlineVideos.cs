@@ -1386,7 +1386,7 @@ namespace OnlineVideos.MediaPortal1
                 {
                     if (SelectedSite is INeedsWebView)
                     {
-                        ((INeedsWebView)SelectedSite).SetWebviewHelper(WebViewHelper.Instance);
+                        ((INeedsWebView)SelectedSite).SetWebviewHelper(WebViewHelper.GetInstance());
                     }
                     Gui2UtilConnector.Instance.ExecuteInBackgroundAndCallback(delegate ()
                     {
@@ -1434,7 +1434,7 @@ namespace OnlineVideos.MediaPortal1
                     if (SelectedSite is FavoriteUtil)
                     {
                         if (((FavoriteUtil)SelectedSite).NeedsWebView(parentCategory))
-                            ((FavoriteUtil)SelectedSite).SetWebviewHelper(parentCategory, WebViewHelper.Instance);
+                            ((FavoriteUtil)SelectedSite).SetWebviewHelper(parentCategory, WebViewHelper.GetInstance());
                     }
 
                     SetCategoriesToFacade(parentCategory, parentCategory.SubCategories, diveDownOrUpIfSingle);
