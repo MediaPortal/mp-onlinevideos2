@@ -15,7 +15,7 @@ This is also done through pull-requests.
 
 ### Adding a new site.
 
-It depends a bit on the complexity of the site, if the structure more or less fits max. 3 levels of hierarchy (Categories, Subcategories, Videos) you start with [SiteParser](https://github.com/offbyoneBB/mp-onlinevideos2/wiki/SiteParser) and see how far you get.
+It depends a bit on the complexity of the site, if the structure more or less fits max. 3 levels of hierarchy (Categories, Subcategories, Videos) you start with [SiteParser](https://github.com/MediaPortal/mp-onlinevideos2/wiki/SiteParser) and see how far you get.
 If more work is needed (some special hoops to jump through to get the playable url) You will need to create a small siteutil and override the GetVideoUrl
 ```
 namespace OnlineVideos.Sites
@@ -60,4 +60,4 @@ namespace OnlineVideos.Sites
 ```
 
 After you have tested it and approved the new website, you can publish it in the MediaPortal Configuration tool.
-Select Plugins, OnlineVideos, Config, Sites. Then select your site, press Publish to Web ![Publish to Web](https://raw.githubusercontent.com/offbyoneBB/mp-onlinevideos2/master/OnlineVideos.MediaPortal1/Resources/PublishToWeb.png) and follow the instructions there.
+Select Plugins, OnlineVideos, Config, Sites. Then select your site, press Publish to Web ![Publish to Web](https://raw.githubusercontent.com/MediaPortal/mp-onlinevideos2/master/OnlineVideos.MediaPortal1/Resources/PublishToWeb.png) and follow the instructions there.

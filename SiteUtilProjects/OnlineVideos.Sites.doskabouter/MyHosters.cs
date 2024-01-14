@@ -259,7 +259,7 @@ namespace OnlineVideos.Hoster
         public override string GetVideoUrl(string url)
         {
             UriBuilder ub = new UriBuilder(url.Replace("/d/", "/e/"));
-            ub.Host = "dood.yt";
+            ub.Host = "ds2play.com";
             url = ub.Uri.ToString();
             var data = wv.GetHtml(url);
             var m = Regex.Match(data, @"\$\.get\('(?<url>/pass[^']*)'");
@@ -327,6 +327,23 @@ namespace OnlineVideos.Hoster
                 return finalUrl.ToString();
             }
             return null;
+        }
+    }
+
+    public class DropLoad : HosterBase
+    {
+        public override string GetHosterUrl()
+        {
+            return "dropload.io";
+        }
+        public override string GetVideoUrl(string url)
+        {
+            var data = GetWebData(url);
+            string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
+            string unpacked = Helpers.StringUtils.UnPack(packed);
+            var m3u8url = Helpers.StringUtils.GetSubString(unpacked, @"file:""", @"""");
+            var m3u8data = GetWebData(m3u8url);
+            return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value;
         }
     }
 
@@ -435,6 +452,24 @@ namespace OnlineVideos.Hoster
         }
     }
 
+    public class FileLions : MyHosterBase
+    {
+        public override string GetHosterUrl()
+        {
+            return "filelions.to";
+        }
+        public override string GetVideoUrl(string url)
+        {
+
+            string data = WebCache.Instance.GetWebData(url);
+            string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
+            string unpacked = Helpers.StringUtils.UnPack(packed);
+            var m3u8url = Helpers.StringUtils.GetSubString(unpacked, @"file:""", @"""");
+            var m3u8data = GetWebData(m3u8url);
+            return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value;
+        }
+    }
+
     public class FileNuke : MyHosterBase
     {
         public override string GetHosterUrl()
@@ -522,7 +557,7 @@ namespace OnlineVideos.Hoster
                             string resUrl;
                             if (!String.IsNullOrEmpty(packed))
                             {
-                                string unpacked = MyStringUtils.MyUnPack(packed);
+                                string unpacked = Helpers.StringUtils.UnPack(packed);
                                 string res = Helpers.StringUtils.GetSubString(unpacked, @"'file','", @"'");
                                 if (!String.IsNullOrEmpty(res))
                                     resUrl = res;
@@ -585,7 +620,7 @@ namespace OnlineVideos.Hoster
                 var m2 = Regex.Match(data, @"return\sp(?<data>.*?)</script", DefaultRegexOptions);
                 if (m2.Success)
                 {
-                    var res = MyStringUtils.MyUnPack(m2.Groups["data"].Value);
+                    var res = Helpers.StringUtils.UnPack(m2.Groups["data"].Value);
                     m2 = Regex.Match(res, @"{file:""(?<url>[^""]*)"",flashplayer");
                 }
                 if (m2.Success)
@@ -635,7 +670,7 @@ namespace OnlineVideos.Hoster
             }
             var data = GetWebData(url);
             string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
-            string unpacked = MyStringUtils.MyUnPack(packed);
+            string unpacked = Helpers.StringUtils.UnPack(packed);
             Match m = Regex.Match(unpacked, @"MDCore\.wurl=""(?<url>[^""]*)""");
             if (m.Success)
             {
@@ -645,6 +680,14 @@ namespace OnlineVideos.Hoster
                 return finalUrl;
             }
             return String.Empty;
+        }
+    }
+
+    public class MixdropAg : Mixdrop
+    {
+        public override string GetHosterUrl()
+        {
+            return "mixdrop.ag";
         }
     }
 
@@ -672,7 +715,7 @@ namespace OnlineVideos.Hoster
                 }
                 if (!String.IsNullOrEmpty(packed))
                 {
-                    string unpacked = MyStringUtils.MyUnPack(packed);
+                    string unpacked = Helpers.StringUtils.UnPack(packed);
                     return Helpers.StringUtils.GetSubString(unpacked, @"name=""src""value=""", @"""");
                 }
                 return String.Empty;
@@ -922,7 +965,7 @@ namespace OnlineVideos.Hoster
                             string resUrl;
                             if (!String.IsNullOrEmpty(packed))
                             {
-                                string unpacked = MyStringUtils.MyUnPack(packed);
+                                string unpacked = Helpers.StringUtils.UnPack(packed);
                                 string res = Helpers.StringUtils.GetSubString(unpacked, @"'file','", @"'");
                                 if (!String.IsNullOrEmpty(res))
                                     resUrl = res;
@@ -1055,6 +1098,22 @@ namespace OnlineVideos.Hoster
         }
     }
 
+    public class StreamHide : HosterBase
+    {
+        public override string GetHosterUrl()
+        {
+            return "streamhide.to";
+        }
+        public override string GetVideoUrl(string url)
+        {
+            var data = GetWebData(url);
+            string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
+            string unpacked = Helpers.StringUtils.UnPack(packed);
+            var m3u8url = Helpers.StringUtils.GetSubString(unpacked, @"file:""", @"""");
+            var m3u8data = GetWebData(m3u8url);
+            return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value;
+        }
+    }
     public class StreamIn : MyHosterBase
     {
         public override string GetHosterUrl()
@@ -1078,7 +1137,7 @@ namespace OnlineVideos.Hoster
             if (String.IsNullOrEmpty(streamer))
             {
                 string packed = Helpers.StringUtils.GetSubString(webdata, @"return p}", @"</script>");
-                string unpacked = MyStringUtils.MyUnPack(packed);
+                string unpacked = Helpers.StringUtils.UnPack(packed);
 
                 Match m = Regex.Match(unpacked, @"file:\s*""(?<url>[^""]*)""");
                 if (m.Success)
@@ -1094,6 +1153,23 @@ namespace OnlineVideos.Hoster
             };
             return rtmpUrl.ToString();
 
+        }
+    }
+
+    public class StreamVid : HosterBase
+    {
+        public override string GetHosterUrl()
+        {
+            return "streamvid.net";
+        }
+        public override string GetVideoUrl(string url)
+        {
+            string data = WebCache.Instance.GetWebData(url);
+            string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
+            string unpacked = Helpers.StringUtils.UnPack(packed);
+            var m3u8url = Helpers.StringUtils.GetSubString(unpacked, @"src:""", @"""");
+            var m3u8data = GetWebData(m3u8url);
+            return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value;
         }
     }
 
@@ -1199,7 +1275,7 @@ namespace OnlineVideos.Hoster
             string url1 = null;
             while (m.Success && url1 == null)
             {
-                var unpacked = MyStringUtils.MyUnPack(m.Groups["pack"].Value);
+                var unpacked = Helpers.StringUtils.UnPack(m.Groups["pack"].Value);
                 if (unpacked != null)
                 {
                     Match m2 = Regex.Match(unpacked, @"src:\\'(?<p1>https://[^/]+)/getl1nk'\.split");
@@ -1232,7 +1308,7 @@ namespace OnlineVideos.Hoster
             webData = GetFromPost(url, webData, false, new[] { "method_free=Free+Download" }, new[] { "op=login" });
             webData = Helpers.StringUtils.GetSubString(webData, @"id=""player_code""", "</html>");
             string packed = Helpers.StringUtils.GetSubString(webData, @"return p}", @"</script>");
-            string unpacked = MyStringUtils.MyUnPack(packed);
+            string unpacked = Helpers.StringUtils.UnPack(packed);
 
             Match m = Regex.Match(unpacked, @"file:\s*""(?<url>[^""]*)""");
             if (m.Success)
@@ -1354,7 +1430,7 @@ namespace OnlineVideos.Hoster
 
             webData = WebCache.Instance.GetWebData(url, postData);
             string packed = Helpers.StringUtils.GetSubString(webData, @"return p}", @"</script>");
-            string unpacked = MyStringUtils.MyUnPack(packed);
+            string unpacked = Helpers.StringUtils.UnPack(packed);
             return Helpers.StringUtils.GetSubString(unpacked, @"'file','", @"'");
         }
     }
@@ -1369,11 +1445,11 @@ namespace OnlineVideos.Hoster
 
         public override string GetVideoUrl(string url)
         {
-            string data = wv.GetHtml(url);
+            string data = wv.GetHtml(url, blockOtherRequests: false);
             string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
             if (!String.IsNullOrEmpty(packed))
             {
-                string unpacked = MyStringUtils.MyUnPack(packed);
+                string unpacked = Helpers.StringUtils.UnPack(packed);
                 var resUrl = Helpers.StringUtils.GetSubString(unpacked, @"file:""", @"""");
 
                 Uri uri = new Uri(resUrl);
@@ -1456,7 +1532,7 @@ namespace OnlineVideos.Hoster
             string webData = WebCache.Instance.GetWebData(url);
             string sub = Helpers.StringUtils.GetSubString(webData, "id='flvplayer'", null);
             string packed = Helpers.StringUtils.GetSubString(sub, @"return p}", @"</script>");
-            string unpacked = MyStringUtils.MyUnPack(packed);
+            string unpacked = Helpers.StringUtils.UnPack(packed);
             string res = Helpers.StringUtils.GetSubString(unpacked, @"{file:""", @"""");
             if (res.StartsWith(@"http://"))
                 return res;
@@ -1688,7 +1764,7 @@ namespace OnlineVideos.Hoster
 
             var data = GetWebData(newUrl, referer: url);
             string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
-            string unpacked = MyStringUtils.MyUnPack(packed);
+            string unpacked = Helpers.StringUtils.UnPack(packed);
             string res = Helpers.StringUtils.GetSubString(unpacked, @"file:""", @"""");
             if (!String.IsNullOrEmpty(res))
                 return res;
@@ -1724,7 +1800,7 @@ namespace OnlineVideos.Hoster
             string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
             if (!String.IsNullOrEmpty(packed))
             {
-                string unpacked = MyStringUtils.MyUnPack(packed);
+                string unpacked = Helpers.StringUtils.UnPack(packed);
                 var rgx = new Regex(@"file:""(?<url>[^""]*?.mp4[^""]*)");
                 var m = rgx.Match(unpacked);
                 if (m.Success)
@@ -1747,6 +1823,8 @@ namespace OnlineVideos.Hoster
         {
             var data = GetWebData(url);
             Match m = Regex.Match(data, @"""hls"":\s""(?<url>[^""]*)""");
+            if (!m.Success)
+                m = Regex.Match(data, @"'hls':\s'(?<url>[^']*)'");
             if (m.Success)
             {
                 var data2 = GetWebData(m.Groups["url"].Value);
@@ -1859,6 +1937,22 @@ namespace OnlineVideos.Hoster
                 TcUrl = streamer
             };
             return rtmpUrl.ToString();
+        }
+    }
+
+    public class YoudBoox : HosterBase
+    {
+        public override string GetHosterUrl()
+        {
+            return "youdboox.com";
+        }
+        public override string GetVideoUrl(string url)
+        {
+            var data = GetWebData(url);
+            var m = Regex.Match(data, @"<source\ssrc=""(?<url>[^""]*)""\stype=""video/mp4""\s*/>");
+            if (m.Success)
+                return m.Groups["url"].Value;
+            return null;
         }
     }
 

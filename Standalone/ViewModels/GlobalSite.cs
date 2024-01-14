@@ -18,7 +18,7 @@ namespace Standalone.ViewModels
             Language = Util.GetLocalizedLanguageDisplayName(site.Language);
 
             ThumbnailImage = Path.Combine(OnlineVideos.OnlineVideoSettings.Instance.ThumbsDir, @"Icons\" + site.Name + ".png");
-            Thumb = "http://onlinevideos.nocrosshair.de/Icons/" + site.Name + ".png";
+            Thumb = "https://ov2.team-mediaportal.com/" + site.Name + ".png";
         }
 
         public OnlineVideos.OnlineVideosWebservice.Site Model { get; protected set; }
