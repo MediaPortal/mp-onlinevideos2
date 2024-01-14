@@ -108,7 +108,7 @@ namespace OnlineVideos.MediaPortal2
             {
                 try
                 {
-                    List<OnlineVideosWebservice.Site> sitesToUpdate = null;
+                    List<WebService.Site> sitesToUpdate = null;
                     bool onlyUpdateNoAdd = true;
                     bool isManualUpdate = context.DisplayLabel == "[OnlineVideos.UpdateAll]";
                     if (isManualUpdate)

@@ -71,17 +71,17 @@ namespace OnlineVideos.MediaPortal2
         {
             result = null;
             if (value == null) return false;
-            if (!Enum.IsDefined(typeof(OnlineVideosWebservice.SiteState), value)) return false;
-            var state = (OnlineVideosWebservice.SiteState)value;
+            if (!Enum.IsDefined(typeof(WebService.SiteState), value)) return false;
+            var state = (WebService.SiteState)value;
             switch (state)
             {
-                case OnlineVideosWebservice.SiteState.Broken:
+                case WebService.SiteState.Broken:
                     result = Color.FromArgb(255, 53, 87).FromDrawingColor();
                     break;
-                case OnlineVideosWebservice.SiteState.Reported:
+                case WebService.SiteState.Reported:
                     result = Color.FromArgb(255, 220, 96).FromDrawingColor();
                     break;
-                case OnlineVideosWebservice.SiteState.Working:
+                case WebService.SiteState.Working:
                     result = Color.FromArgb(55, 194, 48).FromDrawingColor();
                     break;
             }

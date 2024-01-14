@@ -210,13 +210,13 @@ namespace OnlineVideos.MediaPortal2
 
             var localSitesDic = OnlineVideoSettings.Instance.SiteSettingsList.ToDictionary(s => s.Name, s => s);
             var onlyLocalSites = OnlineVideoSettings.Instance.SiteSettingsList.ToDictionary(s => s.Name, s => s);
-            List<OnlineVideosWebservice.Site> filteredsortedSites = new List<OnlineVideos.OnlineVideosWebservice.Site>(Sites.Updater.OnlineSites);
+            List<WebService.Site> filteredsortedSites = new List<WebService.Site>(Sites.Updater.OnlineSites);
             filteredsortedSites.ForEach(os => { if (localSitesDic.ContainsKey(os.Name)) onlyLocalSites.Remove(os.Name); });
-            filteredsortedSites.AddRange(onlyLocalSites.Select(ls => new OnlineVideosWebservice.Site() { Name = ls.Value.Name, IsAdult = ls.Value.ConfirmAge, Description = ls.Value.Description, Language = ls.Value.Language, LastUpdated = ls.Value.LastUpdated }));
+            filteredsortedSites.AddRange(onlyLocalSites.Select(ls => new WebService.Site() { Name = ls.Value.Name, IsAdult = ls.Value.ConfirmAge, Description = ls.Value.Description, Language = ls.Value.Language, LastUpdated = ls.Value.LastUpdated }));
             filteredsortedSites = filteredsortedSites.FindAll(SitePassesFilter);
             filteredsortedSites.Sort(CompareSiteForSort);
 
-            foreach (OnlineVideosWebservice.Site site in filteredsortedSites)
+            foreach (WebService.Site site in filteredsortedSites)
             {
                 if (!site.IsAdult || !OnlineVideoSettings.Instance.UseAgeConfirmation || OnlineVideoSettings.Instance.AgeConfirmed)
                 {
@@ -230,25 +230,25 @@ namespace OnlineVideos.MediaPortal2
             SitesList.FireChange();
         }
 
-        bool SitePassesFilter(OnlineVideosWebservice.Site site)
+        bool SitePassesFilter(WebService.Site site)
         {
             // language
             if (!string.IsNullOrEmpty(Filter_Language) && site.Language != Filter_Language) return false;
             // owner
             if (!string.IsNullOrEmpty(Filter_Owner))
             {
-                string owner = site.Owner_FK != null ? site.Owner_FK.Substring(0, site.Owner_FK.IndexOf('@')) : "";
+                string owner = site.OwnerId != null ? site.OwnerId.Substring(0, site.OwnerId.IndexOf('@')) : "";
                 if (owner != Filter_Owner) return false;
             }
             // state
             switch (Filter_State)
             {
                 case FilterStateOption.Working:
-                    return site.State == OnlineVideos.OnlineVideosWebservice.SiteState.Working;
+                    return site.State == WebService.SiteState.Working;
                 case FilterStateOption.Reported:
-                    return site.State == OnlineVideos.OnlineVideosWebservice.SiteState.Reported;
+                    return site.State == WebService.SiteState.Reported;
                 case FilterStateOption.Broken:
-                    return site.State == OnlineVideos.OnlineVideosWebservice.SiteState.Broken;
+                    return site.State == WebService.SiteState.Broken;
                 case FilterStateOption.Updatable:
                     SiteSettings localSite = null;
                     if (OnlineVideoSettings.Instance.GetSiteByName(site.Name, out localSite) >= 0)
@@ -265,7 +265,7 @@ namespace OnlineVideos.MediaPortal2
             }
         }
 
-        int CompareSiteForSort(OnlineVideosWebservice.Site site1, OnlineVideosWebservice.Site site2)
+        int CompareSiteForSort(WebService.Site site1, WebService.Site site2)
         {
             switch (Sort)
             {
@@ -364,7 +364,7 @@ namespace OnlineVideos.MediaPortal2
             var allItem = new ListItem(Consts.KEY_NAME, "[OnlineVideos.All]");
             allItem.AdditionalProperties[Constants.KEY_VALUE] = null;
             items.Add(allItem);
-            foreach (var owner in Sites.Updater.OnlineSites.Select(s => s.Owner_FK != null ? s.Owner_FK.Substring(0, s.Owner_FK.IndexOf('@')) : "").Distinct().OrderBy(s => s))
+            foreach (var owner in Sites.Updater.OnlineSites.Select(s => s.OwnerId != null ? s.OwnerId.Substring(0, s.OwnerId.IndexOf('@')) : "").Distinct().OrderBy(s => s))
             {
                 var ownerItem = new ListItem(Consts.KEY_NAME, owner);
                 ownerItem.AdditionalProperties[Constants.KEY_VALUE] = owner;
@@ -396,7 +396,7 @@ namespace OnlineVideos.MediaPortal2
         {
             var items = new ItemsList();
 
-            if (item.LocalSite == null && item.Site.State != OnlineVideosWebservice.SiteState.Broken)
+            if (item.LocalSite == null && item.Site.State != WebService.SiteState.Broken)
             {
                 var option = new ListItem(Consts.KEY_NAME, "[OnlineVideos.AddToMySites]");
                 option.AdditionalProperties[Constants.KEY_VALUE] = "AddToMySites";
@@ -404,7 +404,7 @@ namespace OnlineVideos.MediaPortal2
             }
             else
             {
-                if ((item.Site.LastUpdated - item.LocalSite.LastUpdated).TotalMinutes > 2 && item.Site.State != OnlineVideosWebservice.SiteState.Broken)
+                if ((item.Site.LastUpdated - item.LocalSite.LastUpdated).TotalMinutes > 2 && item.Site.State != WebService.SiteState.Broken)
                 {
                     var option = new ListItem(Consts.KEY_NAME, "[OnlineVideos.UpdateMySite]");
                     option.AdditionalProperties[Constants.KEY_VALUE] = "UpdateMySite";
@@ -415,13 +415,13 @@ namespace OnlineVideos.MediaPortal2
                 items.Add(optionR);
             }
 
-            if (!string.IsNullOrEmpty(item.Site.Owner_FK) && item.LocalSite != null) // !only local && ! only global
+            if (!string.IsNullOrEmpty(item.Site.OwnerId) && item.LocalSite != null) // !only local && ! only global
             {
                 var option = new ListItem(Consts.KEY_NAME, "[OnlineVideos.ShowReports]");
                 option.AdditionalProperties[Constants.KEY_VALUE] = "ShowReports";
                 items.Add(option);
 
-                if (item.Site.State != OnlineVideosWebservice.SiteState.Broken)
+                if (item.Site.State != WebService.SiteState.Broken)
                 {
                     var optionR = new ListItem(Consts.KEY_NAME, "[OnlineVideos.ReportBroken]");
                     optionR.AdditionalProperties[Constants.KEY_VALUE] = "ReportBroken";
@@ -439,7 +439,7 @@ namespace OnlineVideos.MediaPortal2
         {
             var items = new ItemsList();
 
-            OnlineVideosWebservice.OnlineVideosService ws = new OnlineVideosWebservice.OnlineVideosService();
+            WebService.OnlineVideosService ws = new WebService.OnlineVideosService();
             var reports = ws.GetReports(item.Site.Name);
             foreach (var report in reports.OrderByDescending(r => r.Date))
             {
@@ -458,7 +458,7 @@ namespace OnlineVideos.MediaPortal2
             {
                 case "AddToMySites":
                 case "UpdateMySite":
-                    bool? updateResult = OnlineVideos.Sites.Updater.UpdateSites(null, new List<OnlineVideosWebservice.Site> { site.Site }, false, false);
+                    bool? updateResult = OnlineVideos.Sites.Updater.UpdateSites(null, new List<WebService.Site> { site.Site }, false, false);
                     if (updateResult == true) newDllsDownloaded = true;
                     else if (updateResult == null) newDataSaved = true;
                     break;
@@ -494,7 +494,7 @@ namespace OnlineVideos.MediaPortal2
                             NavigationContextDisplayLabel = site.Site.Name,
                             AdditionalContextVariables = new Dictionary<string, object>
 							{
-								{ Constants.CONTEXT_VAR_COMMAND, new CommandContainer<string, OnlineVideosWebservice.Site>(ReportSite, site.Site) }
+								{ Constants.CONTEXT_VAR_COMMAND, new CommandContainer<string, WebService.Site>(ReportSite, site.Site) }
 							}
                         });
                     }
@@ -502,7 +502,7 @@ namespace OnlineVideos.MediaPortal2
             }
         }
 
-        void ReportSite(string userReason, OnlineVideosWebservice.Site site)
+        void ReportSite(string userReason, WebService.Site site)
         {
             if (userReason.Length < 15)
             {
@@ -510,9 +510,9 @@ namespace OnlineVideos.MediaPortal2
             }
             else
             {
-                OnlineVideosWebservice.OnlineVideosService ws = new OnlineVideosWebservice.OnlineVideosService();
+                WebService.OnlineVideosService ws = new WebService.OnlineVideosService();
                 string message = "";
-                bool success = ws.SubmitReport(site.Name, userReason, OnlineVideosWebservice.ReportType.Broken, out message);
+                bool success = ws.SubmitReport(site.Name, userReason, WebService.ReportType.Broken, out message);
                 ServiceRegistration.Get<IDialogManager>().ShowDialog(success ? "[OnlineVideos.Done]" : "[OnlineVideos.Error]", message, DialogType.OkDialog, false, DialogButtonType.Ok);
                 if (success)
                 {

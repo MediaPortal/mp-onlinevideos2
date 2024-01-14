@@ -7,7 +7,7 @@ namespace OnlineVideos.MediaPortal2
 {
     public class OnlineSiteViewModel : ListItem
     {
-        public OnlineVideosWebservice.Site Site { get; protected set; }
+        public WebService.Site Site { get; protected set; }
         public string Owner { get; protected set; }
         public SiteSettings LocalSite { get; protected set; }
 
@@ -19,14 +19,14 @@ namespace OnlineVideos.MediaPortal2
             set { _lastUpdatedProperty.SetValue(value); }
         }
 
-        public OnlineSiteViewModel(OnlineVideosWebservice.Site site, SiteSettings localSite)
+        public OnlineSiteViewModel(WebService.Site site, SiteSettings localSite)
             : base(Consts.KEY_NAME, site.Name)
         {
             _lastUpdatedProperty = new WProperty(typeof(DateTime), default(DateTime));
 
             Site = site;
             LocalSite = localSite;
-            Owner = !string.IsNullOrEmpty(site.Owner_FK) ? site.Owner_FK.Substring(0, site.Owner_FK.IndexOf('@')) : string.Empty;
+            Owner = !string.IsNullOrEmpty(site.OwnerId) ? site.OwnerId.Substring(0, site.OwnerId.IndexOf('@')) : string.Empty;
             LastUpdated = site.LastUpdated.ToLocalTime();
         }
     }
