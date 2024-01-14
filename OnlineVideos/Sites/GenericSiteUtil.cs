@@ -548,7 +548,16 @@ namespace OnlineVideos.Sites
                         ParseHosterLinks(value, video);
                 }
             }
-
+            if (Settings.Player != PlayerType.Internal_LAV && video.PlaybackOptions == null && new Uri(resultUrl).AbsolutePath.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase))
+            {
+                string data = GetWebData(resultUrl);
+                video.PlaybackOptions = Helpers.HlsPlaylistParser.GetPlaybackOptions(data, resultUrl);
+                resultUrl = video.PlaybackOptions.First().Value;
+                if (video.PlaybackOptions.Count == 1)
+                {
+                    video.PlaybackOptions = null;
+                }
+            }
             return resultUrl;
         }
 
