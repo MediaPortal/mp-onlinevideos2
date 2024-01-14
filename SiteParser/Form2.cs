@@ -53,6 +53,7 @@ namespace SiteParser
                 insertComboBox.Items.Add(new RegexPart(s, @"(?<" + s + @">[^@@@]*)"));
             insertComboBox.Items.Add(new RegexPart("skip to", @"(?:(?!@@).)*"));
             insertComboBox.Items.Add(new RegexPart("skip to single char", @"[^@@@]*"));
+            insertComboBox.Items.Add(new RegexPart("skip to next close", @"[^@@@]*"));
             insertComboBox.Items.Add(new RegexPart("optional", @"(?:@@@@)?"));
             insertComboBox.Items.Add(new RegexPart("match after", @"(?<=@@.*)"));
             insertComboBox.Items.Add(new RegexPart("match before", @"(?<!@@.*)"));
@@ -220,9 +221,14 @@ namespace SiteParser
                 replaceWithLast = p >= 0;
                 if (p < 0) p = strToInsert.IndexOf(@"@@");
             }
+            string regexRichTextString = regexRichText.Text;
+            if (((RegexPart)insertComboBox.SelectedItem).Name == "skip to next close")
+            {
+                int ind = regexRichTextString.IndexOf('>', regexRichText.SelectionStart);
+                regexRichText.SelectionLength = ind - regexRichText.SelectionStart;
+            }
             int nextInd = regexRichText.SelectionStart + regexRichText.SelectionLength;
             string nextChar = String.Empty;
-            string regexRichTextString = regexRichText.Text;
             if (nextInd < regexRichTextString.Length)
             {
                 nextChar = new String(regexRichTextString[nextInd], 1);
