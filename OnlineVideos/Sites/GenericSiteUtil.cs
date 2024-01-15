@@ -13,7 +13,7 @@ namespace OnlineVideos.Sites
 {
     public class GenericSiteUtil : SiteUtilBase
     {
-        public enum HosterResolving { None, FromUrl, ByRequest };
+        public enum HosterResolving { None, FromUrl, ByRequest, FromM3u8 };
         public enum UrlDecoding { None, HtmlDecode, UrlDecode };
 
         [Category("OnlineVideosConfiguration"), Description("Regular Expression used to parse the baseUrl for dynamic categories. Group names: 'url', 'title', 'thumb', 'description'. Will not be used if not set.")]
@@ -548,7 +548,7 @@ namespace OnlineVideos.Sites
                         ParseHosterLinks(value, video);
                 }
             }
-            if (Settings.Player != PlayerType.Internal_LAV && video.PlaybackOptions == null && new Uri(resultUrl).AbsolutePath.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase))
+            if (resolveHoster == HosterResolving.FromM3u8 && video.PlaybackOptions == null && new Uri(resultUrl).AbsolutePath.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase))
             {
                 string data = GetWebData(resultUrl);
                 video.PlaybackOptions = Helpers.HlsPlaylistParser.GetPlaybackOptions(data, resultUrl);
