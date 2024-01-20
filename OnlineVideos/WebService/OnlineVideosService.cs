@@ -188,7 +188,10 @@ namespace OnlineVideos.WebService
             HttpWebResponse webResponse = null;
             try
             {
-                webResponse = (HttpWebResponse)ex.Response;
+                webResponse = ex.Response as HttpWebResponse;
+                // Response can be null if the exception occured before receiving the response
+                if (webResponse == null)
+                    return false;
                 // The API will return a user readable message with specific details for these status codes so try and read and return it
                 if (webResponse.StatusCode == HttpStatusCode.Unauthorized || webResponse.StatusCode == HttpStatusCode.BadRequest)
                 {

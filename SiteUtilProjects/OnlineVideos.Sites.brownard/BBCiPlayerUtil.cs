@@ -383,37 +383,23 @@ namespace OnlineVideos.Sites
             List<Category> categories = new List<Category>();
 
             var document = GetWebData<HtmlDocument>(url).DocumentNode;
-
             int pageCount = getPageCount(document);
             int currentPage = 1;
 
-            while (true)
-            {
-                var scriptNode = document.SelectSingleNode(@"//script[@id='tvip-script-app-store']");
-                if (scriptNode != null)
-                {
-                    int index = scriptNode.InnerText.IndexOf('=');
-                    if (index > -1)
-                    {
-                        string json = scriptNode.InnerText.Substring(index + 1).Trim().TrimEnd(';');
-                        addCategoriesFromJSON(json, categories, parentCategory);
-                    }
-                }
+            // current page
+            if (tryGetJsonFromScript(document, out JObject json))
+                addCategoriesFromJSON(json, categories, parentCategory);
+            // following pages
+            for (int i = currentPage + 1; i <= pageCount; i++)
+                if (tryGetJson(url + "?page=" + i, out json))
+                    addCategoriesFromJSON(json, categories, parentCategory);
 
-                currentPage++;
-                if (currentPage > pageCount)
-                    break;
-
-                document = GetWebData<HtmlDocument>(url + "?page=" + currentPage).DocumentNode;
-            }
             return categories;
         }
 
-        void addCategoriesFromJSON(string json, List<Category> categories, Category parentCategory)
+        void addCategoriesFromJSON(JObject json, List<Category> categories, Category parentCategory)
         {
-            JObject data = JObject.Parse(json);
-
-            var entities = data["entities"]?["elements"];
+            var entities = (JArray)json.SelectToken("entities.elements");
             if (entities != null)
             {
                 foreach (var entity in entities)
@@ -431,6 +417,29 @@ namespace OnlineVideos.Sites
             }
         }
 
+        bool tryGetJson(string url, out JObject json)
+        {
+            var document = GetWebData<HtmlDocument>(url).DocumentNode;
+            return tryGetJsonFromScript(document, out json);
+        }
+
+        bool tryGetJsonFromScript(HtmlNode node, out JObject json)
+        {
+            // The iplayer pages have a json object on the page containing the current series/episodes.
+            // It's in a script tag with the single line: window.__IPLAYER_REDUX_STATE__ = {..JSON };
+            // Try and parse out just the json object.            
+            json = null;
+            string scriptText = node?.SelectSingleNode(@"//script[@id='tvip-script-app-store']")?.InnerText;
+            if (scriptText == null)
+                return false;
+            int index = scriptText.IndexOf("=");
+            if (index < 0)
+                return false;
+            string jsonString = scriptText.Substring(index + 1).Trim().TrimEnd(';');
+            json = JObject.Parse(jsonString);
+            return true;
+        }
+
         string getUrl(JToken element)
         {
             string url = element["type"].ToString() == "episode" ? "/iplayer/episode/" : "/iplayer/episodes/";
@@ -439,12 +448,19 @@ namespace OnlineVideos.Sites
 
         string getSynopsis(JToken synopsesToken)
         {
+            if (synopsesToken == null)
+                return null;
             return (synopsesToken["large"] ?? synopsesToken["medium"] ?? synopsesToken["small"])?.ToString();
         }
 
         string getImage(JToken imageToken)
         {
-            return (imageToken["standard"] ?? imageToken.FirstOrDefault())?.ToString().Replace("{recipe}", "432x243");
+            if (imageToken == null)
+                return null;
+            var token = imageToken["default"];
+            var first = imageToken.First;
+
+            return (imageToken["standard"] ?? ((JProperty)imageToken.First)?.Value)?.ToString()?.Replace("{recipe}", "432x243");
         }
 
         #endregion
@@ -467,6 +483,7 @@ namespace OnlineVideos.Sites
 
             var document = GetWebData<HtmlDocument>(url).DocumentNode;
             List<HtmlNode> videoNodes = null;
+            string videoNodeXPath = @"//li[contains(@class, 'gel-layout__item')]";
 
             // Check for an 'all episdoes' link if not currently on the episodes page
             if (!url.Contains("/iplayer/episodes/"))
@@ -475,24 +492,25 @@ namespace OnlineVideos.Sites
                 if (allEpisodes != null)
                 {
                     document = GetWebData<HtmlDocument>(BASE_URL + allEpisodes.GetAttributeValue("href", "")).DocumentNode;
-                    videoNodes = document.SelectNodes(@"//div[contains(@class, 'content-item--')]")?.ToList();
+                    videoNodes = document.SelectNodes(videoNodeXPath)?.ToList();
                 }
             }
 
             if (videoNodes == null)
-                videoNodes = document.SelectNodes(@"//div[contains(@class, 'content-item--')]")?.ToList();
+                videoNodes = document.SelectNodes(videoNodeXPath)?.ToList();
 
             if (videoNodes != null)
             {
                 // If we've found episodes, look for additional series
-                HtmlNodeCollection additionalSeriesNodes = document.SelectNodes(@"//a[contains(@class, 'series-nav__button')]");
+                var additionalSeriesNodes = document.SelectNodes(@"//a[contains(@class, 'series-nav__button')]")?
+                    .Where(a => a.GetCleanInnerText().StartsWith("Series"));
                 if (additionalSeriesNodes != null)
                 {
                     foreach (HtmlNode seriesNode in additionalSeriesNodes)
                     {
                         // Load page for the series and get all episodes
                         var seriesEpisodeNodes = GetWebData<HtmlDocument>(GetAbsoluteUri(seriesNode.Attributes["href"].Value, BASE_URL).ToString())?
-                            .DocumentNode?.SelectNodes(@"//div[contains(@class, 'content-item--')]");
+                            .DocumentNode?.SelectNodes(videoNodeXPath);
                         if (seriesEpisodeNodes != null)
                             videoNodes.AddRange(seriesEpisodeNodes);
                     }
@@ -541,7 +559,7 @@ namespace OnlineVideos.Sites
             {
                 currentPage++;
                 document = GetWebData<HtmlDocument>(url + "?page=" + currentPage).DocumentNode;
-                videoNodes = document.SelectNodes(@"//div[contains(@class, 'content-item--')]")?.ToList();
+                videoNodes = document.SelectNodes(videoNodeXPath)?.ToList();
                 if (videoNodes == null)
                     break;
                 videos.AddRange(videoNodes.Select(v => createVideo(v, category.Name)).Where(v => v != null));
@@ -555,18 +573,19 @@ namespace OnlineVideos.Sites
             if (urlNode == null)
                 return null;
 
-            string title = videoNode.SelectSingleNode(@".//div[contains(@class, 'content-item__title')]").GetCleanInnerText();
-            if (string.IsNullOrEmpty(title))
-                title = defaultTitle;
-
-            return new VideoInfo()
+            VideoInfo videoInfo = new VideoInfo()
             {
                 VideoUrl = GetAbsoluteUri(urlNode.GetAttributeValue("href", ""), BASE_URL).ToString(),
-                Title = title,
-                Description = videoNode.SelectSingleNode(@".//div[contains(@class, 'content-item__description')]").GetCleanInnerText(),
-                Length = videoNode.SelectSingleNode(@".//div[contains(@class, 'content-item__sublabels')]/span").GetCleanInnerText(),
-                Thumb = getImageUrl(videoNode.SelectSingleNode(@".//img"))                
+                Thumb = getImageUrl(videoNode.SelectSingleNode(@".//img"))
             };
+
+            var metaNodes = videoNode.SelectNodes(@".//div[contains(@class, 'content-item-root__meta')]");
+            videoInfo.Title = metaNodes.Count > 0 ? metaNodes[0].GetCleanInnerText() : defaultTitle;
+            if (metaNodes.Count > 1)
+                videoInfo.Description = metaNodes[1].GetCleanInnerText();
+            if (metaNodes.Count > 2)
+                videoInfo.Length = metaNodes[2].GetCleanInnerText();
+            return videoInfo;
         }
 
         VideoInfo createSingleVideo(HtmlNode videoNode, string url, string defaultTitle)

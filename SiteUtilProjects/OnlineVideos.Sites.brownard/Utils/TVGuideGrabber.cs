@@ -26,7 +26,8 @@ namespace OnlineVideos.Sites.Utils
             {
                 id = match.Groups[1].Value;
                 url = url.Remove(match.Index, match.Length);
-                return true;
+                // Need to fing a new working epg source
+                return false;
             }
             id = null;
             return false;
