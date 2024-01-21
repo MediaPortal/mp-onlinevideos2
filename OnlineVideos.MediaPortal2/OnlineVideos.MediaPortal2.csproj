@@ -44,7 +44,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="FFMpegLib">
-      <HintPath>..\..\MediaPortal\Bin\MP2-Client\bin\Debug\net48\Plugins\FFMpegLib\FFMpegLib.dll</HintPath>
+      <HintPath>..\..\MediaPortal\Bin\MP2-Client\bin\$(Configuration)\net48\Plugins\FFMpegLib\FFMpegLib.dll</HintPath>
     </Reference>
     <Reference Include="Media">
       <HintPath>..\..\MediaPortal\Bin\MP2-Client\bin\$(Configuration)\net48\Plugins\Media\Media.dll</HintPath>
