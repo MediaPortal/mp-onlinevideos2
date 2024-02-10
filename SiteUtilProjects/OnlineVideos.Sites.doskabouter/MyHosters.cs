@@ -1180,66 +1180,6 @@ namespace OnlineVideos.Hoster
             return "streamzz.to";
         }
 
-        public string MyGetRedirectedUrl(string url, string referer, CookieContainer cc, NameValueCollection headers)
-        {
-            HttpWebResponse httpWebresponse = null;
-            try
-            {
-                HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
-                if (request == null) return url;
-                foreach (var headerName in headers.AllKeys)
-                {
-                    switch (headerName.ToLowerInvariant())
-                    {
-                        case "accept":
-                            request.Accept = headers[headerName];
-                            break;
-                        case "user-agent":
-                            request.UserAgent = headers[headerName];
-                            break;
-                        case "referer":
-                            request.Referer = headers[headerName];
-                            break;
-                        default:
-                            request.Headers.Set(headerName, headers[headerName]);
-                            break;
-                    }
-                }
-
-                request.AllowAutoRedirect = true;
-                request.CookieContainer = cc;
-                request.Timeout = 15000;
-                if (!string.IsNullOrEmpty(referer)) request.Referer = referer;
-                var result = request.BeginGetResponse((ar) => request.Abort(), null);
-                while (!result.IsCompleted) Thread.Sleep(10);
-                httpWebresponse = request.EndGetResponse(result) as HttpWebResponse;
-                if (httpWebresponse == null) return url;
-                if (request.RequestUri.Equals(httpWebresponse.ResponseUri))
-                    return url;
-                else
-                    return httpWebresponse.ResponseUri.OriginalString;
-            }
-            catch (Exception ex)
-            {
-                Log.Warn(ex.ToString());
-            }
-            finally
-            {
-                if (httpWebresponse != null)
-                {
-                    try
-                    {
-                        httpWebresponse.Close();
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warn(ex.ToString());
-                    }
-                }
-            }
-            return url;
-        }
-
         public override string GetVideoUrl(string url)
         {
             const string uagent = @"Mozilla/5.0 (Windows NT 6.1; rv:90.0) Gecko/20100101 Firefox/90.0";
@@ -1249,7 +1189,7 @@ namespace OnlineVideos.Hoster
             headers.Set("Accept-Language", "en-US,en;q=0.5");
             headers.Set("Accept-Encoding", "gzip, deflate, br");
             headers.Set("User-Agent", uagent);
-            var newUrl = MyGetRedirectedUrl(url, null, cc, headers);
+            var newUrl = WebCache.Instance.GetRedirectedUrl(url, cc, headers, true);
 
             var data = GetWebData(newUrl, cookies: cc, headers: headers);
             headers.Set("Accept", "*/*");
@@ -1289,7 +1229,7 @@ namespace OnlineVideos.Hoster
             if (m.Success)
             {
                 url1 = url1 + "/getlink-" + m.Groups["code"].Value + ".dll";
-                var finalUrl = WebCache.Instance.GetRedirectedUrl(url1, @"https://streamzz.to/");
+                var finalUrl = WebCache.Instance.GetRedirectedUrl(url1, headers: new NameValueCollection { { "Referer", @"https://streamzz.to/" } } );
                 return finalUrl;
             }
             return null;

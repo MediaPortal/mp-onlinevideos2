@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using OnlineVideos.Hoster;
@@ -25,7 +26,7 @@ namespace OnlineVideos.Hoster
                 if (n.Success)
                 {
                     string referer = n.Groups["url"].Value;
-                    string link = WebCache.Instance.GetRedirectedUrl(referer, url);
+                    string link = WebCache.Instance.GetRedirectedUrl(referer, headers: new NameValueCollection { { "Referer", url } });
                     if (referer.CompareTo(link) != 0)
                     {
 						var resultUrl = new OnlineVideos.MPUrlSourceFilter.HttpUrl(link);
