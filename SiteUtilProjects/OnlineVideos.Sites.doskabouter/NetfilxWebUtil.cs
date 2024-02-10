@@ -1,28 +1,22 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using OnlineVideos.Sites.Interfaces;
-using OnlineVideos.Sites.Utils;
+using OnlineVideos.Helpers;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 
 namespace OnlineVideos.Sites
 {
 
-    public class NetfilxWebUtil : SiteUtilBase
+    public class NetfilxWebUtil : SiteUtilBase, IWebViewSiteUtil
     {
 
-        [DllImport("wininet.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        static extern bool InternetGetCookie(string lpszUrl, string lpszCookieName,
-                         StringBuilder lpszCookieData, ref int lpdwSize);
-        [DllImport("wininet.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        static extern bool InternetSetCookie(string lpszUrlName, string lpszCookieName, string lpszCookieData);
 
         #region Helper classes
 
@@ -59,6 +53,7 @@ namespace OnlineVideos.Sites
         #region Urls
 
         private string homeUrl = @"https://www.netflix.com/";
+        private string loginUrl = @"https://www.netflix.com/login";
         private string playerUrl = @"http://www.netflix.com/watch/{0}";
         private string searchUrl = @"https://www.netflix.com/search?q={0}";
         private string switchProfileUrl = @"{0}{1}profiles/switch?switchProfileGuid={2}&authURL={3}";
@@ -70,7 +65,11 @@ namespace OnlineVideos.Sites
         private string MyGetWebData(string url, string postData = null, string referer = null, string contentType = null, bool forceUTF8 = true)
         {
             //Never cache, problems with profiles sometimes
-            string data = Utils.ExtendedWebCache.Instance.GetWebData(url, postData: postData, cookies: Cookies, referer: referer, contentType: contentType, cache: false, forceUTF8: forceUTF8);
+            string data = GetWebData(url, postData: postData, cookies: Cookies, headers: new NameValueCollection
+                {
+                    { "Content-Type", contentType },
+                    { "Referer", referer }
+                }, cache: false, forceUTF8: forceUTF8);
             if (enableVerboseLog) Log.Debug(data);
             //Side effects
             //AuthUrl
@@ -435,25 +434,14 @@ namespace OnlineVideos.Sites
                 if (_cc == null)
                 {
                     _cc = new CookieContainer();
-                    int size = 0;
-                    InternetGetCookie(homeUrl, null, null, ref size);
+                    var cookies = wvh.GetCookies(homeUrl);
 
-                    StringBuilder lpszCookieData = new StringBuilder(size);
-                    InternetGetCookie(homeUrl, null, lpszCookieData, ref size);
-
-                    string cooks = lpszCookieData.ToString();
-                    if (!(String.IsNullOrEmpty(cooks)))
+                    foreach (var cook in cookies.Values)
                     {
-                        var cookarr = cooks.Split(';');
-                        foreach (var cook in cookarr)
-                        {
-                            int p = cook.IndexOf('=');
-                            Cookie c = new Cookie(cook.Substring(0, p).Trim(), cook.Substring(p + 1));
-                            c.Domain = new Uri(homeUrl).Host;
-                            _cc.Add(c);
-                        }
+                        Cookie c = new Cookie(cook.Name, cook.Value);
+                        _cc.Add(cook);
                     }
-                    string data = ExtendedWebCache.Instance.GetWebData<string>(homeUrl, cookies: _cc, cache: false);
+                    string data = GetWebData<string>(homeUrl, cookies: _cc, cache: false);
 
                     Regex rgx = new Regex(@"""authURL"":""(?<authURL>[^""]*)");
                     Match m = rgx.Match(data);
@@ -552,7 +540,7 @@ namespace OnlineVideos.Sites
             {
                 foreach (Cookie cookie in _cc.GetCookies(new Uri(homeUrl)))
                 {
-                    InternetSetCookie(homeUrl, cookie.Name, cookie.Value);
+                    wvh.SetCookie(cookie);
                 }
             }
             List<Category> cats = new List<Category>();
@@ -1042,7 +1030,7 @@ namespace OnlineVideos.Sites
         private List<VideoInfo> GetLoginVideo(Category category)
         {
             List<VideoInfo> videos = new List<VideoInfo>();
-            videos.Add(new VideoInfo() { Title = "Login", VideoUrl = "LOGIN" });
+            videos.Add(new VideoInfo() { Title = "Login", VideoUrl = loginUrl });
             return videos;
         }
 
@@ -1142,6 +1130,63 @@ namespace OnlineVideos.Sites
 
         #endregion
 
+        #endregion
+
+        #region IWebViewSiteUtil
+        string savUrl;
+        WebViewHelper wvh = null;
+        void INeedsWebView.SetWebviewHelper(WebViewHelper webViewHelper)
+        {
+            wvh = webViewHelper;
+        }
+
+        public void StartPlayback()
+        {
+            if (Settings.Categories.Count == 1)
+            {
+                wvh.SetEnabled(true);
+            }
+            else
+            {
+                wvh.Execute(@"document.querySelector('.inactive').click();");
+                wvh.Execute(@"document.querySelector('div.ltr-1bt0omd:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > button:nth-child(1)').click();");
+            }
+        }
+
+        public string VideoElementSelector
+        {
+            get
+            {
+                return @"document.getElementsByTagName(""video"")[0]";
+            }
+        }
+
+        public void OnPageLoaded(ref bool doStopPlayback)
+        {
+            if (Settings.Categories.Count == 1 && wvh.GetUrl().ToLowerInvariant().Contains("/browse"))
+            {
+                doStopPlayback = true;
+            }
+            else
+            {
+                if (!String.IsNullOrEmpty(savUrl))
+                {
+                    wvh.SetUrl(savUrl);
+                    savUrl = null;
+                }
+                int i = 0;
+            }
+        }
+
+        public void DoPause()
+        {
+            wvh.Execute(VideoElementSelector + ".pause();");
+        }
+
+        public void DoPlay()
+        {
+            wvh.Execute(VideoElementSelector + ".play();");
+        }
         #endregion
 
     }
