@@ -318,7 +318,7 @@ namespace OnlineVideos.Hoster
                         tmpUrl = uri.ToString();
                     }
                 }
-                data = GetWebData(tmpUrl, referer: url);
+                data = GetWebData(tmpUrl, headers: new NameValueCollection { { "Referer", url } });
                 int i = tmpUrl.LastIndexOf('/');
                 TimeSpan span = DateTime.Now.Subtract(new DateTime(1970, 1, 1, 0, 0, 0));
                 var newurl = data + "SQPPQsSXKD?token=" + tmpUrl.Substring(i + 1) + "&expiry=" + Math.Truncate(span.TotalMilliseconds);
@@ -542,7 +542,7 @@ namespace OnlineVideos.Hoster
 
                         System.Threading.Thread.Sleep(Convert.ToInt32(timeToWait) * 1001);
 
-                        string page2 = WebCache.Instance.GetWebData(url, postdata, cc, url);
+                        string page2 = WebCache.Instance.GetWebData(url, postdata, cc, headers: new NameValueCollection { { "Referer", url } });
 
                         if (!string.IsNullOrEmpty(page2))
                         {
@@ -950,7 +950,7 @@ namespace OnlineVideos.Hoster
 
                         //System.Threading.Thread.Sleep(Convert.ToInt32(timeToWait) * 1001);
 
-                        string page2 = WebCache.Instance.GetWebData(url, postdata, cc, url);
+                        string page2 = WebCache.Instance.GetWebData(url, postdata, cc, headers: new NameValueCollection { { "Referer", url } });
 
                         if (!string.IsNullOrEmpty(page2))
                         {
@@ -1248,27 +1248,28 @@ namespace OnlineVideos.Hoster
             headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,* /*;q=0.8");
             headers.Set("Accept-Language", "en-US,en;q=0.5");
             headers.Set("Accept-Encoding", "gzip, deflate, br");
+            headers.Set("User-Agent", uagent);
             var newUrl = MyGetRedirectedUrl(url, null, cc, headers);
 
-            var data = GetWebData(newUrl, cookies: cc, userAgent: uagent);
+            var data = GetWebData(newUrl, cookies: cc, headers: headers);
             headers.Set("Accept", "*/*");
 
             Match m = Regex.Match(data, @"history\.pushState\(stateObj,\s*""[^""]*"",\s""(?<url>[^""]*)""\);");
-            string referer = null;
             if (m.Success)
             {
-                referer = m.Groups["url"].Value;
+                string referer = m.Groups["url"].Value;
                 if (!Uri.IsWellFormedUriString(referer, UriKind.Absolute))
                 {
                     Uri uri = null;
                     if (Uri.TryCreate(new Uri(url), referer, out uri))
                         referer = uri.ToString();
                 }
+                headers.Set("Referer", referer);
             }
 
             m = Regex.Match(data, @"<script\stype='text/javascript'\ssrc='[^']*?(?<ppu_main>[^\./']*)\.js'></script>");
             cc.Add(new Cookie("ppu_main_" + m.Groups["ppu_main"].Value, "1", "", @".streamzz.to"));
-            GetWebData(@"https://cnt.streamzz.to/count.php?xyz=1", referer: referer, cookies: cc, userAgent: uagent, headers: headers);
+            GetWebData(@"https://cnt.streamzz.to/count.php?xyz=1", cookies: cc, headers: headers);
 
             m = Regex.Match(data, @"return\sp(?<pack>[^<]*)</script");
             var l = new List<String>();
@@ -1457,7 +1458,7 @@ namespace OnlineVideos.Hoster
 
                 if (extension == ".m3u8")
                 {
-                    var m3u8Data = GetWebData(resUrl, referer: "https://upstream.to/");
+                    var m3u8Data = GetWebData(resUrl, headers: new NameValueCollection { { "Referer", "https://upstream.to/" } });
                     var res = Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8Data, resUrl);
                     var finalUrl = res.LastOrDefault().Value;
                     HttpUrl ress = new HttpUrl(finalUrl);
@@ -1717,7 +1718,7 @@ namespace OnlineVideos.Hoster
                 subUrl = null;
 
             url = url.Replace(@"http://", @"https://");
-            var data = GetWebData(url, referer: "http://google.com");
+            var data = GetWebData(url, headers: new NameValueCollection { { "Referer", "http://google.com" } });
             m = Regex.Match(data, @"sources:\s*\[{file:\s*['""](?<url>[^'""]*)['""]\s*,\s*label");
             if (m.Success)
             {
@@ -1762,7 +1763,7 @@ namespace OnlineVideos.Hoster
             HttpWebResponse httpWebresponse = (HttpWebResponse)request.GetResponse();
             string newUrl = httpWebresponse.Headers.Get("Location");
 
-            var data = GetWebData(newUrl, referer: url);
+            var data = GetWebData(newUrl, headers: new NameValueCollection { { "Referer", url } });
             string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
             string unpacked = Helpers.StringUtils.UnPack(packed);
             string res = Helpers.StringUtils.GetSubString(unpacked, @"file:""", @"""");
@@ -1886,7 +1887,7 @@ namespace OnlineVideos.Hoster
         public override string GetVideoUrl(string url)
         {
             CookieContainer cc = new CookieContainer();
-            string webData = WebCache.Instance.GetWebData(url, cookies: cc, referer: @"http://www.wisevid.com/");
+            string webData = WebCache.Instance.GetWebData(url, cookies: cc, headers: new NameValueCollection { { "Referer", @"http://www.wisevid.com/" } });
 
             CookieCollection ccol = cc.GetCookies(new Uri("http://www.wisevid.com/"));
             CookieContainer newcc = new CookieContainer();

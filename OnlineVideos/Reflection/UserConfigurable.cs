@@ -229,9 +229,9 @@ namespace OnlineVideos
         /// </list>
         /// </typeparam>
         /// <returns>The data returned by a <see cref="HttpWebResponse"/> converted to the specified type.</returns>
-        protected virtual T GetWebData<T>(string url, string postData = null, CookieContainer cookies = null, string referer = null, IWebProxy proxy = null, bool forceUTF8 = false, bool allowUnsafeHeader = false, string userAgent = null, Encoding encoding = null, NameValueCollection headers = null, bool cache = true)
+        protected virtual T GetWebData<T>(string url, string postData = null, CookieContainer cookies = null, IWebProxy proxy = null, bool forceUTF8 = false, bool allowUnsafeHeader = false, Encoding encoding = null, NameValueCollection headers = null, bool cache = true)
         {
-            return WebCache.Instance.GetWebData<T>(url, postData, cookies, referer, proxy, forceUTF8, allowUnsafeHeader, userAgent, encoding, headers, cache);
+            return WebCache.Instance.GetWebData<T>(url, postData, cookies, proxy, forceUTF8, allowUnsafeHeader, encoding, headers, cache);
         }
 
         /// <summary>
@@ -252,9 +252,9 @@ namespace OnlineVideos
         /// <param name="headers">Allows to set your own custom headers for the request</param>
         /// <param name="cache">Controls if the result should be cached - default true</param>
         /// <returns>The data returned by a <see cref="HttpWebResponse"/>.</returns>
-        protected virtual string GetWebData(string url, string postData = null, CookieContainer cookies = null, string referer = null, IWebProxy proxy = null, bool forceUTF8 = false, bool allowUnsafeHeader = false, string userAgent = null, Encoding encoding = null, NameValueCollection headers = null, bool cache = true)
+        protected virtual string GetWebData(string url, string postData = null, CookieContainer cookies = null, IWebProxy proxy = null, bool forceUTF8 = false, bool allowUnsafeHeader = false, Encoding encoding = null, NameValueCollection headers = null, bool cache = true)
         {
-            return WebCache.Instance.GetWebData(url, postData, cookies, referer, proxy, forceUTF8, allowUnsafeHeader, userAgent, encoding, headers, cache);
+            return WebCache.Instance.GetWebData(url, postData, cookies, proxy, forceUTF8, allowUnsafeHeader, encoding, headers, cache);
         }
 
         #endregion

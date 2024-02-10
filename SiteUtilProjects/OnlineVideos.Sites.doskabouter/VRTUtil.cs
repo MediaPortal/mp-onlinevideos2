@@ -86,9 +86,10 @@ namespace OnlineVideos.Sites
             headers["Content-Type"] = "application/json";
             headers["Accept"] = "*/*";
             headers["User-Agent"] = OnlineVideoSettings.Instance.UserAgent;
+            headers["Referer"] = "https://www.vrt.be/vrtnu/";
 
             var cc = new CookieContainer();
-            GetWebData(@"https://token.vrt.be", postData, referer: "https://www.vrt.be/vrtnu/", headers: headers, cookies: cc);
+            GetWebData(@"https://token.vrt.be", postData, headers: headers, cookies: cc);
             var url = video.VideoUrl.TrimEnd('/') + ".mssecurevideo.json";
             var resp = GetWebData<JToken>(url, cookies: cc);
             url = @"https://mediazone.vrt.be/api/v1/vrtvideo/assets/" + resp.First.First.Value<String>("videoid");

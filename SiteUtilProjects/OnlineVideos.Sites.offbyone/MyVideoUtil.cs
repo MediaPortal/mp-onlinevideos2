@@ -373,7 +373,7 @@ namespace OnlineVideos.Sites
             else
             {
                 // decode the xml
-                string enc_data = GetWebData(url + "?" + parameters.ToString(), referer: video.VideoUrl).Split('=')[1];
+                string enc_data = GetWebData(url + "?" + parameters.ToString(), headers: new NameValueCollection { { "Referer", video.VideoUrl } }).Split('=')[1];
                 var enc_data_b = ArrayFromHexstring(enc_data);
                 var p1 = ASCIIEncoding.ASCII.GetString(Convert.FromBase64String(ASCIIEncoding.ASCII.GetString(Convert.FromBase64String("WXpnME1EZGhNRGhpTTJNM01XVmhOREU0WldNNVpHTTJOakptTW1FMU5tVTBNR05pWkRaa05XRXhNVFJoWVRVd1ptSXhaVEV3TnpsbA0KTVRkbU1tSTRNdz09"))));
                 var p2 = Helpers.EncryptionUtils.GetMD5Hash(videoId.ToString());

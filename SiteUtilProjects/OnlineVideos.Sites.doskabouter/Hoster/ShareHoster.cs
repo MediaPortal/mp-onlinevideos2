@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using OnlineVideos.Hoster;
@@ -24,7 +25,7 @@ namespace OnlineVideos.Hoster
             string file = url.Substring(url.LastIndexOf(@"/") + 1);
             string wait = Regex.Match(page, @"name=""wait""\svalue=""(?<wait>[^""]+)""").Groups["wait"].Value;
             string postdata = string.Format("continue=Fortfahren&open=show_wait&file={0}&wait={1}", file, wait);
-            page = WebCache.Instance.GetWebData("http://www.sharehoster.com/vid/" + file, postdata, cc, url);
+            page = WebCache.Instance.GetWebData("http://www.sharehoster.com/vid/" + file, postdata, cc, headers: new NameValueCollection { { "Referer", url } });
 
             Match n = Regex.Match(page, @"name=""stream""\svalue=""(?<url>[^""]+)""");
             if (n.Success)

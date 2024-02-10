@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using OnlineVideos.Hoster;
@@ -26,7 +27,7 @@ namespace OnlineVideos.Hoster
             CookieContainer cc = new CookieContainer();
             string page = WebCache.Instance.GetWebData(url, cookies: cc);
             System.Threading.Thread.Sleep(10001);
-            page = WebCache.Instance.GetWebData(url, "secret=&next=true", cc, url);
+            page = WebCache.Instance.GetWebData(url, "secret=&next=true", cc, headers: new NameValueCollection { { "Referer", url } });
 
             if (!string.IsNullOrEmpty(page))
             {
