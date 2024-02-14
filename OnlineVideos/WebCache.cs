@@ -76,9 +76,9 @@ namespace OnlineVideos
             }
         }
 
-        public T GetWebData<T>(string url, string postData = null, CookieContainer cookies = null, IWebProxy proxy = null, bool forceUTF8 = false, bool allowUnsafeHeader = false, Encoding encoding = null, NameValueCollection headers = null, bool cache = true)
+        public T GetWebData<T>(string url, string postData = null, CookieContainer cookies = null, string referer = null, IWebProxy proxy = null, bool forceUTF8 = false, bool allowUnsafeHeader = false, string userAgent = null, Encoding encoding = null, NameValueCollection headers = null, bool cache = true)
         {
-            string webData = GetWebData(url, postData, cookies, proxy, forceUTF8, allowUnsafeHeader, encoding, headers, cache);
+            string webData = GetWebData(url, postData, cookies, referer, proxy, forceUTF8, allowUnsafeHeader, userAgent, encoding, headers, cache);
             if (typeof(T) == typeof(string))
             {
                 return (T)(object)webData;
@@ -115,15 +115,15 @@ namespace OnlineVideos
             return default(T);
         }
 
-        public string GetWebData(string url, string postData = null, CookieContainer cookies = null, IWebProxy proxy = null, bool forceUTF8 = false, bool allowUnsafeHeader = false, Encoding encoding = null, NameValueCollection headers = null, bool cache = true)
+        public string GetWebData(string url, string postData = null, CookieContainer cookies = null, string referer = null, IWebProxy proxy = null, bool forceUTF8 = false, bool allowUnsafeHeader = false, string userAgent = null, Encoding encoding = null, NameValueCollection headers = null, bool cache = true)
         {
-            return GetWebData(new Uri(url), postData, cookies, proxy, forceUTF8, allowUnsafeHeader, encoding, headers, cache);
+            return GetWebData(new Uri(url), postData, cookies, referer, proxy, forceUTF8, allowUnsafeHeader, userAgent, encoding, headers, cache);
         }
 
         private void SetRequestProperties(HttpWebRequest request, NameValueCollection headers, bool isPost)
         {
             //Set some defaults. If new values are passed in the headers property they will be overwritten
-            request.UserAgent = "OnlineVideoSettings.Instance.UserAgent";
+            request.UserAgent = OnlineVideoSettings.Instance.UserAgent;
             request.Accept = "*/*";
             if (isPost)
                 request.ContentType = "application/x-www-form-urlencoded";
@@ -151,7 +151,7 @@ namespace OnlineVideos
             }
         }
 
-        public string GetWebData(Uri uri, string postData = null, CookieContainer cookies = null, IWebProxy proxy = null, bool forceUTF8 = false, bool allowUnsafeHeader = false, Encoding encoding = null, NameValueCollection headers = null, bool cache = true)
+        public string GetWebData(Uri uri, string postData = null, CookieContainer cookies = null, string referer = null, IWebProxy proxy = null, bool forceUTF8 = false, bool allowUnsafeHeader = false, string userAgent = null, Encoding encoding = null, NameValueCollection headers = null, bool cache = true)
         {
             // do not use the cache when doing a POST
             if (postData != null) cache = false;
@@ -159,6 +159,9 @@ namespace OnlineVideos
             {
                 headers = new NameValueCollection();
             }
+            if (referer != null) headers.Add("referer", referer);
+            if (userAgent != null) headers.Add("user-agent", userAgent);
+
             HttpWebResponse response = null;
             try
             {

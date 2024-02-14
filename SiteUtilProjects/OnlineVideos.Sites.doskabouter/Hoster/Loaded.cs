@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using OnlineVideos.Hoster;
@@ -22,7 +21,7 @@ namespace OnlineVideos.Hoster
             CookieContainer cc = new CookieContainer();
             string first = WebCache.Instance.GetWebData(url, cookies: cc);
             string code = Regex.Match(first, @"name=""code""\svalue=""(?<value>[^""]+)""").Groups["value"].Value;
-            string second = WebCache.Instance.GetWebData(url, "code=" + code, cc, headers: new NameValueCollection { { "Referer", url } });
+            string second = WebCache.Instance.GetWebData(url, "code=" + code, cc, url);
             Match n = Regex.Match(second, @"url:\s'(?<url>.*/get/[^']+)'");
             if (n.Success)
             {

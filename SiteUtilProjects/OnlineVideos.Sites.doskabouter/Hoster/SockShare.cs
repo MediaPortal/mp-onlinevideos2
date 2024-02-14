@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Specialized;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -53,7 +52,7 @@ namespace OnlineVideos.Hoster
                 if (!string.IsNullOrEmpty(dlLink))
                 {
                     string tempLink = new Uri(new Uri(string.Format("{0}{1}", "http://www.", GetHosterUrl())), dlLink).AbsoluteUri;
-                    string webData = WebCache.Instance.GetWebData(tempLink, cookies: cc, headers: new NameValueCollection { { "Referer", referer } } );
+                    string webData = WebCache.Instance.GetWebData(tempLink, cookies: cc, referer: referer);
                     if (!string.IsNullOrEmpty(webData))
                     {
                         XmlDocument doc = new XmlDocument();
@@ -107,7 +106,7 @@ namespace OnlineVideos.Hoster
 
             Thread.Sleep(iWaitTime * 1001);
 
-            string webDataLink = WebCache.Instance.GetWebData(url, postData, cc, headers: new NameValueCollection { { "Referer", url } });
+            string webDataLink = WebCache.Instance.GetWebData(url, postData, cc, url);
 
             string dlLink = getDlLink(webDataLink, cc, url);
             if (string.IsNullOrEmpty(dlLink)) return string.Empty;

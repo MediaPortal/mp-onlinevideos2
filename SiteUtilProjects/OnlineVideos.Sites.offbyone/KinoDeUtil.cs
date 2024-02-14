@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
@@ -26,7 +25,7 @@ namespace OnlineVideos.Sites
         public override List<SearchResultItem> Search(string query, string category = null)
         {
             nextPageAvailable = false;
-            string data = GetWebData(searchUrl, string.Format(searchPostString, query), headers: new NameValueCollection { { "Referer", "http://www.kino.de/showroom/" } }, allowUnsafeHeader: allowUnsafeHeaders);
+            string data = GetWebData(searchUrl, string.Format(searchPostString, query), referer: "http://www.kino.de/showroom/", allowUnsafeHeader: allowUnsafeHeaders);
 
             var results = new List<SearchResultItem>();
 

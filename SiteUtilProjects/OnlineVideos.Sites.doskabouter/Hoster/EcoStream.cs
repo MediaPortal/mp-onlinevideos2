@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Specialized;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -23,7 +22,7 @@ namespace OnlineVideos.Hoster
             {
                 string newUrl = String.Format(@"http://www.ecostream.tv/lo/mq.php?s={0}&k={1}&t={2}&key={3}",
                     m.Groups["s"].Value, m.Groups["k"].Value, m.Groups["t"].Value, m.Groups["key"].Value);
-                webData = WebCache.Instance.GetWebData(newUrl, "", cc, headers: new NameValueCollection { { "Referer", fullUrl } });
+                webData = WebCache.Instance.GetWebData(newUrl, "", cc, referer: fullUrl);
                 m = Regex.Match(webData, @"<param\sname=""flashvars""\svalue=""file=(?<url>[^&]*)&[^>]*>");
                 if (m.Success)
                 {

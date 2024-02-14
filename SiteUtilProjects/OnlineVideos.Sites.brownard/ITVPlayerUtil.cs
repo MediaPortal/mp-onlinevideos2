@@ -702,8 +702,7 @@ namespace OnlineVideos.Sites
                 headers["Content-Type"] = "application/json";
                 headers["Accept"] = "application/vnd.itv.vod.playlist.v2+json";
                 headers["hmac"] = hmac.ToUpperInvariant();
-                headers["User-Agent"] = userAgent;
-                return WebCache.Instance.GetWebData<JObject>(url, HLS_JSON_TEMPLATE, proxy: getProxy(), headers: headers, cache: false);
+                return WebCache.Instance.GetWebData<JObject>(url, HLS_JSON_TEMPLATE, proxy: getProxy(), userAgent: userAgent, headers: headers, cache: false);
             }
             catch (Exception ex)
             {
@@ -722,7 +721,7 @@ namespace OnlineVideos.Sites
                 try
                 {
                     ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072 | SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls;
-                    return WebCache.Instance.GetWebData(url, cookies: cookies, proxy: null, headers: new NameValueCollection { { "User-Agent", userAgent } }, cache: false);
+                    return WebCache.Instance.GetWebData(url, cookies: cookies, proxy: null, userAgent: userAgent, cache: false);
                 }
                 finally
                 {

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using OnlineVideos.Hoster;
@@ -58,7 +57,7 @@ namespace OnlineVideos.Hoster
 
                         System.Threading.Thread.Sleep(Convert.ToInt32(timeToWait) * 1001);
 
-                        string page2 = WebCache.Instance.GetWebData(url, postdata, cc, headers: new NameValueCollection { { "Referer", url } });
+                        string page2 = WebCache.Instance.GetWebData(url, postdata, cc, url);
 
                         if (!string.IsNullOrEmpty(page2))
                         {

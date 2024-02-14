@@ -318,7 +318,7 @@ namespace OnlineVideos.Hoster
                         tmpUrl = uri.ToString();
                     }
                 }
-                data = GetWebData(tmpUrl, headers: new NameValueCollection { { "Referer", url } });
+                data = GetWebData(tmpUrl, referer: url);
                 int i = tmpUrl.LastIndexOf('/');
                 TimeSpan span = DateTime.Now.Subtract(new DateTime(1970, 1, 1, 0, 0, 0));
                 var newurl = data + "SQPPQsSXKD?token=" + tmpUrl.Substring(i + 1) + "&expiry=" + Math.Truncate(span.TotalMilliseconds);
@@ -542,7 +542,7 @@ namespace OnlineVideos.Hoster
 
                         System.Threading.Thread.Sleep(Convert.ToInt32(timeToWait) * 1001);
 
-                        string page2 = WebCache.Instance.GetWebData(url, postdata, cc, headers: new NameValueCollection { { "Referer", url } });
+                        string page2 = WebCache.Instance.GetWebData(url, postdata, cc, url);
 
                         if (!string.IsNullOrEmpty(page2))
                         {
@@ -950,7 +950,7 @@ namespace OnlineVideos.Hoster
 
                         //System.Threading.Thread.Sleep(Convert.ToInt32(timeToWait) * 1001);
 
-                        string page2 = WebCache.Instance.GetWebData(url, postdata, cc, headers: new NameValueCollection { { "Referer", url } });
+                        string page2 = WebCache.Instance.GetWebData(url, postdata, cc, url);
 
                         if (!string.IsNullOrEmpty(page2))
                         {
@@ -1398,7 +1398,7 @@ namespace OnlineVideos.Hoster
 
                 if (extension == ".m3u8")
                 {
-                    var m3u8Data = GetWebData(resUrl, headers: new NameValueCollection { { "Referer", "https://upstream.to/" } });
+                    var m3u8Data = GetWebData(resUrl, referer: "https://upstream.to/");
                     var res = Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8Data, resUrl);
                     var finalUrl = res.LastOrDefault().Value;
                     HttpUrl ress = new HttpUrl(finalUrl);
@@ -1658,7 +1658,7 @@ namespace OnlineVideos.Hoster
                 subUrl = null;
 
             url = url.Replace(@"http://", @"https://");
-            var data = GetWebData(url, headers: new NameValueCollection { { "Referer", "http://google.com" } });
+            var data = GetWebData(url, referer: "http://google.com");
             m = Regex.Match(data, @"sources:\s*\[{file:\s*['""](?<url>[^'""]*)['""]\s*,\s*label");
             if (m.Success)
             {
@@ -1703,7 +1703,7 @@ namespace OnlineVideos.Hoster
             HttpWebResponse httpWebresponse = (HttpWebResponse)request.GetResponse();
             string newUrl = httpWebresponse.Headers.Get("Location");
 
-            var data = GetWebData(newUrl, headers: new NameValueCollection { { "Referer", url } });
+            var data = GetWebData(newUrl, referer: url);
             string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
             string unpacked = Helpers.StringUtils.UnPack(packed);
             string res = Helpers.StringUtils.GetSubString(unpacked, @"file:""", @"""");
@@ -1827,7 +1827,7 @@ namespace OnlineVideos.Hoster
         public override string GetVideoUrl(string url)
         {
             CookieContainer cc = new CookieContainer();
-            string webData = WebCache.Instance.GetWebData(url, cookies: cc, headers: new NameValueCollection { { "Referer", @"http://www.wisevid.com/" } });
+            string webData = WebCache.Instance.GetWebData(url, cookies: cc, referer: @"http://www.wisevid.com/");
 
             CookieCollection ccol = cc.GetCookies(new Uri("http://www.wisevid.com/"));
             CookieContainer newcc = new CookieContainer();

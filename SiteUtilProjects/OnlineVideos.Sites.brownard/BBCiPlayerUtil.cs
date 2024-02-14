@@ -1,10 +1,9 @@
-﻿using System.Collections.Specialized;using HtmlAgilityPack;
+﻿using HtmlAgilityPack;
 using Newtonsoft.Json.Linq;
 using OnlineVideos.Sites.Brownard.Extensions;
 using OnlineVideos.Sites.Utils;
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Net;
@@ -53,7 +52,7 @@ namespace OnlineVideos.Sites
         #endregion
 
         #region Regex
-
+        
         static readonly Regex srcsetRegex = new Regex(@"http[^\s""]*");
         static readonly Regex videoJsonRegex = new Regex(@"__IPLAYER_REDUX_STATE__ = (.*?);</script>");
 
@@ -236,7 +235,7 @@ namespace OnlineVideos.Sites
                         connectionElem.Attributes["href"] == null)
                         continue;
                     string playlistUrl = connectionElem.Attributes["href"].Value;
-                    string playlistStr = GetWebData(playlistUrl, proxy: proxyObj, headers: new NameValueCollection { { "User-Agent", HlsPlaylistParser.APPLE_USER_AGENT } });
+                    string playlistStr = GetWebData(playlistUrl, proxy: proxyObj, userAgent: HlsPlaylistParser.APPLE_USER_AGENT);
                     HlsPlaylistParser playlist = new HlsPlaylistParser(playlistStr, playlistUrl);
                     if (playlist.StreamInfos.Count > 0)
                         return populateHlsPlaybackOptions(video, playlist.StreamInfos);
