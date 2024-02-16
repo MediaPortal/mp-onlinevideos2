@@ -60,6 +60,7 @@ namespace OnlineVideos.MediaPortal1.Player
 
                 webView.Source = new Uri(strFile);
                 if (GoFullscreen) GUIWindowManager.ActivateWindow(GUIOnlineVideoFullscreen.WINDOW_FULLSCREEN_ONLINEVIDEO);
+                webView.KeyDown += WebView_KeyDown;
 #if OSDForDevTools
                 GUIWindowManager.OnNewAction += GUIWindowManager_OnNewAction;
 #endif
@@ -71,6 +72,12 @@ namespace OnlineVideos.MediaPortal1.Player
                 OnlineVideos.Log.Error("Error playing " + strFile + ": " + e.Message);
                 return false;
             }
+        }
+
+        private void WebView_KeyDown(object sender, System.Windows.Forms.KeyEventArgs e)
+        {
+            if (e.KeyData == System.Windows.Forms.Keys.Escape && webView.Enabled)
+                Stop();
         }
 
 #if OSDForDevTools
