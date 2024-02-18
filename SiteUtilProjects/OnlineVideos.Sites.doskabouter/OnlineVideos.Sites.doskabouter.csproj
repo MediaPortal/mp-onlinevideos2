@@ -69,6 +69,7 @@
     <Compile Include="Ard\CollectionExtensions.cs" />
     <Compile Include="Ard\Services.cs" />
     <Compile Include="Ard\Dto.cs" />
+    <Compile Include="DailyMotionUtil.cs" />
     <Compile Include="DumpertUtil.cs" />
     <Compile Include="NetfilxWebUtil.cs" />
     <Compile Include="..\..\Build\Version.cs">
