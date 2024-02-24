@@ -255,6 +255,34 @@
               <ZipFileName>Installer{CopyFile}\{4ebcd473-2cc5-42e3-827b-4eb4c146ab97}-Netflix.png</ZipFileName>
               <DestinationFilename>%Thumbs%\OnlineVideos\Icons\Netflix.png</DestinationFilename>
             </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\SiteImages\Banners\DownloadedVideo.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{ef9b412d-7fca-40fb-a3ef-acb39c1bad77}-DownloadedVideo.png</ZipFileName>
+              <DestinationFilename>%Thumbs%\OnlineVideos\Banners\DownloadedVideo.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\SiteImages\Banners\Favorite.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{1b218f68-6c93-4eec-be57-0bccc055aa66}-Favorite.png</ZipFileName>
+              <DestinationFilename>%Thumbs%\OnlineVideos\Banners\Favorite.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\SiteImages\Icons\DownloadedVideo.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{a2fc5dc5-23af-4771-b5c2-de05765113e5}-DownloadedVideo.png</ZipFileName>
+              <DestinationFilename>%Thumbs%\OnlineVideos\Icons\DownloadedVideo.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\SiteImages\Icons\Favorite.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{6204dad4-c796-4116-b531-cf703e068994}-Favorite.png</ZipFileName>
+              <DestinationFilename>%Thumbs%\OnlineVideos\Icons\Favorite.png</DestinationFilename>
+            </FileItem>
           </Items>
         </Files>
       </GroupItem>
@@ -1859,6 +1887,34 @@ public class Script
         <LocalFileName>..\SiteImages\Icons\Netflix.png</LocalFileName>
         <ZipFileName>Installer{CopyFile}\{4ebcd473-2cc5-42e3-827b-4eb4c146ab97}-Netflix.png</ZipFileName>
         <DestinationFilename>%Thumbs%\OnlineVideos\Icons\Netflix.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\SiteImages\Banners\DownloadedVideo.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{ef9b412d-7fca-40fb-a3ef-acb39c1bad77}-DownloadedVideo.png</ZipFileName>
+        <DestinationFilename>%Thumbs%\OnlineVideos\Banners\DownloadedVideo.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\SiteImages\Banners\Favorite.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{1b218f68-6c93-4eec-be57-0bccc055aa66}-Favorite.png</ZipFileName>
+        <DestinationFilename>%Thumbs%\OnlineVideos\Banners\Favorite.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\SiteImages\Icons\DownloadedVideo.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{a2fc5dc5-23af-4771-b5c2-de05765113e5}-DownloadedVideo.png</ZipFileName>
+        <DestinationFilename>%Thumbs%\OnlineVideos\Icons\DownloadedVideo.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\SiteImages\Icons\Favorite.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{6204dad4-c796-4116-b531-cf703e068994}-Favorite.png</ZipFileName>
+        <DestinationFilename>%Thumbs%\OnlineVideos\Icons\Favorite.png</DestinationFilename>
       </FileItem>
       <FileItem InstallType="CopyFile" SystemFile="false" Modified="true">
         <Param1 />
