@@ -221,6 +221,7 @@ namespace OnlineVideos.Helpers
                 Application.DoEvents();
             }
             while (!navCompleted);
+            webView.NavigationCompleted -= Wv2_NavigationCompleted;
         }
 
         private void Wv2_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
