@@ -116,6 +116,7 @@
     <Compile Include="RuutuUtil.cs" />
     <Compile Include="SBSauUtil.cs" />
     <Compile Include="TVLinkscc.cs" />
+    <Compile Include="TwitchTV.cs" />
     <Compile Include="VimeoUtil.cs" />
     <Compile Include="Vimeo\AuthBase.cs" />
     <Compile Include="VodTvpUtil.cs" />

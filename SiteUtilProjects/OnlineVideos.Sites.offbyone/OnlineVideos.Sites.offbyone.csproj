@@ -301,7 +301,6 @@
     <Compile Include="PervyjKanalRuUtil.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="rbbUtil.cs" />
-    <Compile Include="TwitchTV.cs" />
     <Compile Include="VidiLifeUtil.cs" />
     <Compile Include="WDRUtil.cs" />
     <Compile Include="YouTubeUtil.cs" />
