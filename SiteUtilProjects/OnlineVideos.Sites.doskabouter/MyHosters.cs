@@ -249,6 +249,14 @@ namespace OnlineVideos.Hoster
         }
     }
 
+    public class DoodStream : Dood
+    {
+        public override string GetHosterUrl()
+        {
+            return "doodstream.com";
+        }
+    }
+
     public class Dood : HosterBaseWithWebView
     {
         public override string GetHosterUrl()
