@@ -83,5 +83,8 @@
         <Category xsi:type="RssLink" name="Programmas">https://npo.nl/start/categorie/programmas</Category>
       </Categories>
     </Site>
+    <Site name="Twitch" util="TwitchTV" agecheck="false" enabled="true" lang="en" player="Webview">
+      <Description>Twitch is the leading video platform and community for gamers. We want to connect gamers around the world by allowing them to broadcast, watch, and chat from everywhere they play.</Description>
+    </Site>
   </Sites>
 </OnlineVideoSites>
