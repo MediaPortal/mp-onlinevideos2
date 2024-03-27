@@ -226,6 +226,13 @@ namespace OnlineVideos.Hoster
             return "dood.so";
         }
     }
+    public class Doodre : Dood
+    {
+        public override string GetHosterUrl()
+        {
+            return "dood.re";
+        }
+    }
     public class Doodws : Dood
     {
         public override string GetHosterUrl()
@@ -254,6 +261,13 @@ namespace OnlineVideos.Hoster
         public override string GetHosterUrl()
         {
             return "doodstream.com";
+        }
+    }
+    public class DoodWatch : Dood
+    {
+        public override string GetHosterUrl()
+        {
+            return "dood.watch";
         }
     }
 
@@ -299,41 +313,6 @@ namespace OnlineVideos.Hoster
             m = Regex.Match(data, @"<title>(?<Title>[^<]*)</title>");
             if (m.Success)
                 throw new OnlineVideosException(m.Groups["Title"].Value);
-            return null;
-        }
-    }
-
-    public class DoodWatch : HosterBase
-    {
-        public override string GetHosterUrl()
-        {
-            return "dood.watch";
-        }
-
-        public override string GetVideoUrl(string url)
-        {
-            url = url.Replace("/d/", "/e/");
-            var data = GetWebData(url);
-            var m = Regex.Match(data, @"\$\.get\('(?<url>/pass[^']*)'");
-            if (m.Success)
-            {
-                var tmpUrl = m.Groups["url"].Value;
-                if (!Uri.IsWellFormedUriString(tmpUrl, UriKind.Absolute))
-                {
-                    Uri uri = null;
-                    if (Uri.TryCreate(new Uri(url), tmpUrl, out uri))
-                    {
-                        tmpUrl = uri.ToString();
-                    }
-                }
-                data = GetWebData(tmpUrl, referer: url);
-                int i = tmpUrl.LastIndexOf('/');
-                TimeSpan span = DateTime.Now.Subtract(new DateTime(1970, 1, 1, 0, 0, 0));
-                var newurl = data + "SQPPQsSXKD?token=" + tmpUrl.Substring(i + 1) + "&expiry=" + Math.Truncate(span.TotalMilliseconds);
-                HttpUrl finalUrl = new HttpUrl(newurl);
-                finalUrl.Referer = "https://dood.watch";
-                return finalUrl.ToString();
-            }
             return null;
         }
     }
@@ -696,6 +675,13 @@ namespace OnlineVideos.Hoster
         public override string GetHosterUrl()
         {
             return "mixdrop.ag";
+        }
+    }
+    public class MixdropSi : Mixdrop
+    {
+        public override string GetHosterUrl()
+        {
+            return "mixdrop.si";
         }
     }
 
@@ -1237,7 +1223,7 @@ namespace OnlineVideos.Hoster
             if (m.Success)
             {
                 url1 = url1 + "/getlink-" + m.Groups["code"].Value + ".dll";
-                var finalUrl = WebCache.Instance.GetRedirectedUrl(url1, headers: new NameValueCollection { { "Referer", @"https://streamzz.to/" } } );
+                var finalUrl = WebCache.Instance.GetRedirectedUrl(url1, headers: new NameValueCollection { { "Referer", @"https://streamzz.to/" } });
                 return finalUrl;
             }
             return null;
@@ -1780,7 +1766,7 @@ namespace OnlineVideos.Hoster
                 if (m2.Success)
                 {
                     var m3u8Url = m2.Groups["url"].Value;
-                    m3u8Url = Newtonsoft.Json.JsonConvert.DeserializeObject<string>('"'+m3u8Url+'"');
+                    m3u8Url = Newtonsoft.Json.JsonConvert.DeserializeObject<string>('"' + m3u8Url + '"');
                     data = GetWebData(m3u8Url);
                     var res = Helpers.HlsPlaylistParser.GetPlaybackOptions(data, m3u8Url);
                     return res.FirstOrDefault().Value;
