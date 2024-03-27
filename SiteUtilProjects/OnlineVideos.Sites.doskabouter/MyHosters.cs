@@ -1757,20 +1757,13 @@ namespace OnlineVideos.Hoster
         public override string GetVideoUrl(string url)
         {
             var data = GetWebData(url);
-            Match m2 = Regex.Match(data, @"<script>\s*let\s[^=]*=\s*'(?<encoded>[^']*)';");
+            Match m2 = Regex.Match(data, @"'hls':\s*'(?<url>[^']*)',\s*'video_height':\s*(?<qualiry>[^,]*),");
             if (m2.Success)
             {
-                var decodedBytes = Convert.FromBase64String(m2.Groups["encoded"].Value);
-                var decoded = Encoding.ASCII.GetString(decodedBytes);
-                m2 = Regex.Match(decoded, @"""file"":""(?<url>[^""]*)""");
-                if (m2.Success)
-                {
-                    var m3u8Url = m2.Groups["url"].Value;
-                    m3u8Url = Newtonsoft.Json.JsonConvert.DeserializeObject<string>('"' + m3u8Url + '"');
-                    data = GetWebData(m3u8Url);
-                    var res = Helpers.HlsPlaylistParser.GetPlaybackOptions(data, m3u8Url);
-                    return res.FirstOrDefault().Value;
-                }
+                url = m2.Groups["url"].Value;
+                data = GetWebData(url);
+                var res = Helpers.HlsPlaylistParser.GetPlaybackOptions(data, url);
+                return res.FirstOrDefault().Value;
             }
             return null;
         }
