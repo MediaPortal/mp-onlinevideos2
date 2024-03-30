@@ -141,6 +141,7 @@ namespace OnlineVideos.Sites
         {
             System.Threading.Thread.Sleep(1000);
             wvh.Execute(@"document.querySelectorAll('[data-a-target=""player-mute-unmute-button""]')[0].click()");
+            wvh.Execute(@"document.querySelectorAll('[data-a-target=""content-classification-gate-overlay-start-watching-button""]')[0].click()");
         }
     }
 
