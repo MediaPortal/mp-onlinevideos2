@@ -222,9 +222,12 @@ namespace OnlineVideos.Sites
 
         public override List<String> GetMultipleVideoUrls(VideoInfo video, bool inPlaylist = false)
         {
-            video.PlaybackOptions = Hoster.HosterFactory.GetHoster("Youtube").GetPlaybackOptions(video.VideoUrl);
+            var hoster = Hoster.HosterFactory.GetHoster("Youtube");
+            video.PlaybackOptions = hoster.GetPlaybackOptions(video.VideoUrl);
             if (video.PlaybackOptions != null && video.PlaybackOptions.Count > 0)
             {
+                video.SubtitleText = ((Hoster.ISubtitle) hoster).SubtitleText;
+
                 if (video.PlaybackOptions.Count == 1)
                 {
                     // nothing to chose from, only one option available

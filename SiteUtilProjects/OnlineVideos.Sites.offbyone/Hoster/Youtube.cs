@@ -54,7 +54,6 @@ namespace OnlineVideos.Hoster
                 videoId = videoId.Substring(p, q - p);
             }
 
-            NameValueCollection Items = new NameValueCollection();
             string contents = "";
 
             List<KeyValuePair<string[], string>> qualities = new List<KeyValuePair<string[], string>>();// KeyValuePair.Value is url 
@@ -135,25 +134,28 @@ namespace OnlineVideos.Hoster
                 };
 
                 subtitleText = null;
-                if (!String.IsNullOrEmpty(subtitleLanguages) && !string.IsNullOrEmpty(Items.Get("player_response")))
+                if (!String.IsNullOrEmpty(subtitleLanguages))
                 {
                     try
                     {
-                        var jdata = JToken.Parse(Items.Get("player_response"));
-                        var captions = jdata["captions"]?["playerCaptionsTracklistRenderer"]?["captionTracks"] as JArray;
-
-                        string subUrl = getSubUrl(captions, subtitleLanguages);
-                        if (!String.IsNullOrEmpty(subUrl))
+                        contents = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId), proxy: proxy, cookies: cc);
+                        Match m = Regex.Match(contents, @"ytInitialPlayerResponse\s=\s(?<js>[^<]*?);<", RegexOptions.IgnoreCase);
+                        if (m.Success)
                         {
-                            string data = WebCache.Instance.GetWebData(subUrl + "&fmt=vtt");
-                            subtitleText = Helpers.SubtitleUtils.Webvtt2SRT(data);
-                            if (subtitleText.StartsWith("Kind: captions\r\nLanguage: "))
+                            var jdata = JObject.Parse(m.Groups["js"].Value);
+                            var captions = jdata["captions"]?["playerCaptionsTracklistRenderer"]?["captionTracks"] as JArray;
+
+                            string subUrl = getSubUrl(captions, subtitleLanguages);
+                            if (!String.IsNullOrEmpty(subUrl))
                             {
-                                subtitleText = subtitleText.Substring(30);
+                                string data = WebCache.Instance.GetWebData(subUrl + "&fmt=vtt");
+                                subtitleText = Helpers.SubtitleUtils.Webvtt2SRT(data);
+                                if (subtitleText.StartsWith("Kind: captions\r\nLanguage: "))
+                                {
+                                    subtitleText = subtitleText.Substring(30);
+                                }
                             }
                         }
-
-                        //if (jdata !=)
                     }
                     catch { };
                 }
