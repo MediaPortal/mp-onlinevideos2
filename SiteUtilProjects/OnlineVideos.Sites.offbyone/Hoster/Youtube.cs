@@ -148,12 +148,7 @@ namespace OnlineVideos.Hoster
                             string subUrl = getSubUrl(captions, subtitleLanguages);
                             if (!String.IsNullOrEmpty(subUrl))
                             {
-                                string data = WebCache.Instance.GetWebData(subUrl + "&fmt=vtt");
-                                subtitleText = Helpers.SubtitleUtils.Webvtt2SRT(data);
-                                if (subtitleText.StartsWith("Kind: captions\r\nLanguage: "))
-                                {
-                                    subtitleText = subtitleText.Substring(30);
-                                }
+                                subtitleText = WebCache.Instance.GetWebData(subUrl + "&fmt=vtt");
                             }
                         }
                     }
