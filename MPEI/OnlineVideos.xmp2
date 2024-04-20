@@ -1419,7 +1419,7 @@ public class Script
                     <Description>Global Id of the extension package - it will be downloaded when no file is set.</Description>
                   </SectionParam>
                   <SectionParam Name="Extension Version">
-                    <Value>3.0.16.0</Value>
+                    <Value>3.1.4.0</Value>
                     <ValueType>String</ValueType>
                     <Description>Minimum Version of the extension package - older versions will be updated (only used when downloading via Id).</Description>
                   </SectionParam>
