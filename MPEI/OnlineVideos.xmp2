@@ -283,6 +283,20 @@
               <ZipFileName>Installer{CopyFile}\{6204dad4-c796-4116-b531-cf703e068994}-Favorite.png</ZipFileName>
               <DestinationFilename>%Thumbs%\OnlineVideos\Icons\Favorite.png</DestinationFilename>
             </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\SiteImages\Banners\Twitch.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{a75d6989-8a9f-47b6-827e-ef4ae4dd5b7e}-Twitch.png</ZipFileName>
+              <DestinationFilename>%Thumbs%\OnlineVideos\Banners\Twitch.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\SiteImages\Icons\Twitch.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{00e13a0e-e125-46c6-b630-a484028a02db}-Twitch.png</ZipFileName>
+              <DestinationFilename>%Thumbs%\OnlineVideos\Icons\Twitch.png</DestinationFilename>
+            </FileItem>
           </Items>
         </Files>
       </GroupItem>
@@ -1917,6 +1931,20 @@ public class Script
         <DestinationFilename>%Thumbs%\OnlineVideos\Icons\Favorite.png</DestinationFilename>
       </FileItem>
       <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\SiteImages\Banners\Twitch.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{a75d6989-8a9f-47b6-827e-ef4ae4dd5b7e}-Twitch.png</ZipFileName>
+        <DestinationFilename>%Thumbs%\OnlineVideos\Banners\Twitch.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\SiteImages\Icons\Twitch.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{00e13a0e-e125-46c6-b630-a484028a02db}-Twitch.png</ZipFileName>
+        <DestinationFilename>%Thumbs%\OnlineVideos\Icons\Twitch.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="true" Condition="None">
         <Param1 />
         <UpdateOption>AlwaysOverwrite</UpdateOption>
         <LocalFileName>..\OnlineVideos.MediaPortal1\bin\Release\OnlineVideos.MediaPortal1.dll</LocalFileName>
