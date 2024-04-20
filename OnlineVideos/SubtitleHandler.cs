@@ -155,7 +155,7 @@ namespace OnlineVideos.Subtitles
             }
             else
             {
-                EpisodeSearchQuery qu = new EpisodeSearchQuery(it.Title, (int)it.Season, (int)it.Episode, null);
+                EpisodeSearchQuery qu = new EpisodeSearchQuery(it.Title, (int)it.Season, (int)it.Episode, it.ID_IMDB);
                 qu.LanguageCodes = languagePrios.Keys.ToArray();
                 results = sd.SearchSubtitles(qu);
             }
