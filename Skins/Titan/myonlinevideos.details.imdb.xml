@@ -23,7 +23,7 @@
 		<id>0</id>
 		<posX>565</posX>
 		<posY>496</posY>
-    <visible>string.equals(#OnlineVideos.state, details) + string.equals(#OnlineVideos.selectedSiteUtil,IMDB)</visible>
+        <visible>string.equals(#OnlineVideos.state, details) + string.equals(#OnlineVideos.selectedSiteUtil,IMDB)</visible>
 		<animation effect="fade" time="250">WindowOpen</animation>
 		<animation effect="fade" time="250">WindowClose</animation>
 	</control>
@@ -35,7 +35,7 @@
 		<id>0</id>
 		<posX>818</posX>
 		<posY>496</posY>
-    <visible>string.equals(#OnlineVideos.state, details) + string.equals(#OnlineVideos.selectedSiteUtil,IMDB)</visible>
+        <visible>string.equals(#OnlineVideos.state, details) + string.equals(#OnlineVideos.selectedSiteUtil,IMDB)</visible>
 		<animation effect="fade" time="250">WindowOpen</animation>
 		<animation effect="fade" time="250">WindowClose</animation>
 	</control>
@@ -47,7 +47,7 @@
 		<id>0</id>
 		<posX>565</posX>
 		<posY>456</posY>
-    <visible>string.equals(#OnlineVideos.state, details) + string.equals(#OnlineVideos.selectedSiteUtil,IMDB)</visible>
+        <visible>string.equals(#OnlineVideos.state, details) + string.equals(#OnlineVideos.selectedSiteUtil,IMDB)</visible>
 		<animation effect="fade" time="250">WindowOpen</animation>
 		<animation effect="fade" time="250">WindowClose</animation>
 	</control>
@@ -137,7 +137,7 @@
 		<animation effect="fade" time="250">WindowClose</animation>
 	</control>
 			
-  <control>
+    <control>
 		<type>textboxscrollup</type>
 		<description>Plot value</description>
 		<id>0</id>
@@ -146,12 +146,14 @@
 		<width>555</width>
 		<height>410</height>
 		<lineSpacing>0.92</lineSpacing>
+		<seperator>---------------------------------------------------------------------------------------------------------</seperator>
 		<visible>string.equals(#OnlineVideos.state,details)+string.equals(#OnlineVideos.selectedSiteUtil,IMDB)+!string.equals(#OnlineVideos.DetailsItem.Description,)</visible>
 		<label>#OnlineVideos.DetailsItem.Description</label>
 		<animation effect="fade" time="250">WindowOpen</animation>
 		<animation effect="fade" time="250">WindowClose</animation>
-  </control>
-  <control>
+    </control>
+
+    <control>
 		<type>textboxscrollup</type>
 		<description>Plot value</description>
 		<id>0</id>
@@ -160,10 +162,12 @@
 		<width>555</width>
 		<height>410</height>
 		<lineSpacing>0.92</lineSpacing>
+		<seperator>---------------------------------------------------------------------------------------------------------</seperator>
 		<visible>string.equals(#OnlineVideos.state,details)+string.equals(#OnlineVideos.selectedSiteUtil,IMDB)+string.equals(#selecteditem,..)</visible>
 		<label>#OnlineVideos.Details.Plot</label>
 		<animation effect="fade" time="250">WindowOpen</animation>
 		<animation effect="fade" time="250">WindowClose</animation>
-  </control>      
+    </control>      
+
   </controls>
 </window>
