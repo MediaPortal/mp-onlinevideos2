@@ -319,6 +319,7 @@ namespace OnlineVideos.Hoster
 
     public class DropLoad : HosterBase
     {
+        //bit fuzzy on which headers to provide... didn't find a set of headers that works on all servers
         public override string GetHosterUrl()
         {
             return "dropload.io";
@@ -330,7 +331,10 @@ namespace OnlineVideos.Hoster
             string unpacked = Helpers.StringUtils.UnPack(packed);
             var m3u8url = Helpers.StringUtils.GetSubString(unpacked, @"file:""", @"""");
             var m3u8data = GetWebData(m3u8url);
-            return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value;
+            HttpUrl res = new HttpUrl(Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value);
+            res.CustomHeaders.Add(new MPUrlSourceFilter.Http.HttpHeader("Accept-Language", "en-US,en;q=0.9"));
+            res.UserAgent = OnlineVideoSettings.Instance.UserAgent;
+            return res.ToString();
         }
     }
 
@@ -449,9 +453,16 @@ namespace OnlineVideos.Hoster
         {
 
             string data = WebCache.Instance.GetWebData(url);
-            string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
-            string unpacked = Helpers.StringUtils.UnPack(packed);
-            var m3u8url = Helpers.StringUtils.GetSubString(unpacked, @"file:""", @"""");
+            Match m = Regex.Match(data, @"sources:\s\[{file:""(?<url>[^""]*)""}");
+            string m3u8url = null;
+            if (m.Success)
+                m3u8url = m.Groups["url"].Value;
+            else
+            {
+                string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
+                string unpacked = Helpers.StringUtils.UnPack(packed);
+                m3u8url = Helpers.StringUtils.GetSubString(unpacked, @"file:""", @"""");
+            }
             var m3u8data = GetWebData(m3u8url);
             return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value;
         }
@@ -650,7 +661,7 @@ namespace OnlineVideos.Hoster
                 }
                 else
                 {
-                    m2 = Regex.Match(data2, @"<h2>(?<line1>[^<]*)</h2>\s*<p>(?<line2>[^<]*)</p>");
+                    m2 = Regex.Match(data2, @"<h2>(?<line1>[^<]*)</h2>\s*<h3>(?<line2>[^<]*)</h3>");
                     if (m2.Success)
                         throw new OnlineVideosException(m2.Groups["line1"].Value + "\n" + m2.Groups["line2"].Value);
                 }
@@ -1229,6 +1240,26 @@ namespace OnlineVideos.Hoster
             return null;
         }
     }
+    public class Swhoi : MyHosterBase
+    {
+        public override string GetHosterUrl()
+        {
+            return "swhoi.com";
+        }
+        public override string GetVideoUrl(string url)
+        {
+
+            string data = WebCache.Instance.GetWebData(url);
+            Match m = Regex.Match(data, @"sources:\s\[{file:""(?<url>[^""]*)""}");
+            if (m.Success)
+            {
+                string m3u8url = m.Groups["url"].Value;
+                var m3u8data = GetWebData(m3u8url);
+                return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value;
+            }
+            return null;
+        }
+    }
     public class TheFile : MyHosterBase
     {
         public override string GetHosterUrl()
@@ -1765,6 +1796,9 @@ namespace OnlineVideos.Hoster
                 var res = Helpers.HlsPlaylistParser.GetPlaybackOptions(data, url);
                 return res.FirstOrDefault().Value;
             }
+            m2 = Regex.Match(data, @"<title>(?<message>[^<]*)</title>");
+            if (m2.Success)
+                throw new OnlineVideosException(m2.Groups["message"].Value);
             return null;
         }
     }
