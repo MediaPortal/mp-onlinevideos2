@@ -253,11 +253,16 @@ namespace OnlineVideos.MediaPortal1.Player
         {
             string sourceFilterName = string.Empty;
             Uri uri = new Uri(videoUrl);
-            string protocol = uri.Scheme.Substring(0, Math.Min(uri.Scheme.Length, 4));
-            switch (protocol)
+            switch (uri.Scheme)
             {
+                case "onlinevideos": //always use LAV (for Youtube)
+                    sourceFilterName = "LAV Splitter Source";
+                    break;
+
                 case "http":
+                case "https":
                 case "rtmp":
+                case "rtmps":
                     if (!forceUseLAV)
                         sourceFilterName = OnlineVideos.MPUrlSourceFilter.Downloader.FilterName;
                     else
@@ -282,6 +287,14 @@ namespace OnlineVideos.MediaPortal1.Player
         public bool? PrepareGraph()
         {
             string sourceFilterName = GetSourceFilterName(m_strCurrentFile);
+
+            string strUrlAudio = null;
+            Uri uri = new Uri(m_strCurrentFile);
+            if (uri.Scheme == "onlinevideos")
+            {
+                System.Collections.Specialized.NameValueCollection args = System.Web.HttpUtility.ParseQueryString(uri.Query);
+                strUrlAudio = args.Get("urlAudio");
+            }
 
             if (!string.IsNullOrEmpty(sourceFilterName))
             {
@@ -313,6 +326,7 @@ namespace OnlineVideos.MediaPortal1.Player
 
                 // add the source filter
                 IBaseFilter sourceFilter = null;
+                IBaseFilter sourceFilterAudio = null;
                 try
                 {
                     if (sourceFilterName == OnlineVideos.MPUrlSourceFilter.Downloader.FilterName)
@@ -320,10 +334,20 @@ namespace OnlineVideos.MediaPortal1.Player
                         sourceFilter = FilterFromFile.LoadFilterFromDll("MPUrlSourceSplitter\\MPUrlSourceSplitter.ax", new Guid(OnlineVideos.MPUrlSourceFilter.Downloader.FilterCLSID), true);
                         if (sourceFilter != null)
                             Marshal.ThrowExceptionForHR(graphBuilder.AddFilter(sourceFilter, OnlineVideos.MPUrlSourceFilter.Downloader.FilterName));
+
+                        if (!string.IsNullOrWhiteSpace(strUrlAudio))
+                        {
+                            sourceFilterAudio = FilterFromFile.LoadFilterFromDll("MPUrlSourceSplitter\\MPUrlSourceSplitter.ax", new Guid(OnlineVideos.MPUrlSourceFilter.Downloader.FilterCLSID), true);
+                            if (sourceFilterAudio != null)
+                                Marshal.ThrowExceptionForHR(graphBuilder.AddFilter(sourceFilterAudio, OnlineVideos.MPUrlSourceFilter.Downloader.FilterName));
+                        }
                     }
                     if (sourceFilter == null)
                     {
                         sourceFilter = DirectShowUtil.AddFilterToGraph(graphBuilder, sourceFilterName);
+
+                        if (!string.IsNullOrWhiteSpace(strUrlAudio))
+                            sourceFilterAudio = DirectShowUtil.AddFilterToGraph(graphBuilder, sourceFilterName);
                     }
                 }
                 catch (Exception ex)
@@ -333,7 +357,11 @@ namespace OnlineVideos.MediaPortal1.Player
                 }
                 finally
                 {
-                    if (sourceFilter != null) DirectShowUtil.ReleaseComObject(sourceFilter, 2000);
+                    if (sourceFilter != null)
+                        DirectShowUtil.ReleaseComObject(sourceFilter, 2000);
+
+                    if (sourceFilterAudio != null)
+                        DirectShowUtil.ReleaseComObject(sourceFilterAudio, 2000);
                 }
                 return true;
             }
@@ -356,7 +384,21 @@ namespace OnlineVideos.MediaPortal1.Player
             VideoRendererStatistics.VideoState = VideoRendererStatistics.State.VideoPresent; // prevents the BlackRectangle on first time playback
             bool PlaybackReady = false;
             IBaseFilter sourceFilter = null;
+            IBaseFilter sourceFilterAudio = null;
             string sourceFilterName = null;
+
+            string strUrlVideo = null;
+            string strUrlAudio = null;
+            Uri uri = new Uri(m_strCurrentFile);
+            if (uri.Scheme == "onlinevideos")
+            {
+                System.Collections.Specialized.NameValueCollection args = System.Web.HttpUtility.ParseQueryString(uri.Query);
+                strUrlVideo = args.Get("url");
+                strUrlAudio = args.Get("urlAudio");
+
+                Log.Instance.Info("BufferFile : using onlinevideos scheme: urlVideo:'{0}' urlAudio:'{1}'", strUrlVideo, strUrlAudio);
+            }
+
             try
             {
                 sourceFilterName = GetSourceFilterName(m_strCurrentFile);
@@ -370,6 +412,20 @@ namespace OnlineVideos.MediaPortal1.Player
                     return false;
                 }
 
+                //Explicit audio stream
+                if (!string.IsNullOrWhiteSpace(strUrlAudio))
+                {
+                    result = graphBuilder.FindFilterByName(sourceFilterName + " 0001", out sourceFilterAudio);
+                    if (result != 0)
+                    {
+                        string errorText = DsError.GetErrorText(result);
+                        if (errorText != null) 
+                            errorText = errorText.Trim();
+                        Log.Instance.Warn("BufferFile : FindFilterByName returned '{0}'{1}", "0x" + result.ToString("X8"), !string.IsNullOrEmpty(errorText) ? " : (" + errorText + ")" : "");
+                        return false;
+                    }
+                }
+
                 OnlineVideos.MPUrlSourceFilter.IFilterStateEx filterStateEx = sourceFilter as OnlineVideos.MPUrlSourceFilter.IFilterStateEx;
 
                 if (filterStateEx != null)
@@ -377,7 +433,7 @@ namespace OnlineVideos.MediaPortal1.Player
                     // MediaPortal IPTV filter and url source splitter
                     Log.Instance.Info("BufferFile : using 'MediaPortal IPTV filter and url source splitter' as source filter");
 
-                    String url = OnlineVideos.MPUrlSourceFilter.UrlBuilder.GetFilterUrl(siteUtil, m_strCurrentFile, true);
+                    String url = strUrlVideo ?? OnlineVideos.MPUrlSourceFilter.UrlBuilder.GetFilterUrl(siteUtil, m_strCurrentFile, true);
 
                     Log.Instance.Info("BufferFile : loading url: '{0}'", url);
                     result = filterStateEx.LoadAsync(url);
@@ -451,6 +507,13 @@ namespace OnlineVideos.MediaPortal1.Player
                                         AddPreferredFilters(graphBuilder, sourceFilter);
                                         // connect the pin automatically -> will buffer the full file in cases of bad metadata in the file or request of the audio or video filter
                                         DirectShowUtil.RenderUnconnectedOutputPins(graphBuilder, sourceFilter);
+
+                                        if (sourceFilterAudio != null)
+                                        {
+                                            AddPreferredFilters(graphBuilder, sourceFilterAudio);
+                                            DirectShowUtil.RenderUnconnectedOutputPins(graphBuilder, sourceFilterAudio);
+                                        }
+
                                         Log.Instance.Debug("BufferFile : Playback Ready.");
                                         PlaybackReady = true;
                                     }
@@ -492,8 +555,13 @@ namespace OnlineVideos.MediaPortal1.Player
                     {
                         m_strCurrentFile = MPUrlSourceFilter.UrlBuilder.GetFilterUrl(siteUtil, m_strCurrentFile, false);
                     }
+                    else if (strUrlVideo != null)
+                        m_strCurrentFile = strUrlVideo;
 
                     Marshal.ThrowExceptionForHR(((IFileSourceFilter)sourceFilter).Load(m_strCurrentFile, null));
+
+                    if (sourceFilterAudio != null)
+                        Marshal.ThrowExceptionForHR(((IFileSourceFilter)sourceFilterAudio).Load(strUrlAudio, null));
 
                     Log.Instance.Info("BufferFile : using unknown filter as source filter");
 
@@ -524,6 +592,13 @@ namespace OnlineVideos.MediaPortal1.Player
                                         AddPreferredFilters(graphBuilder, sourceFilter);
                                         // connect the pin automatically -> will buffer the full file in cases of bad metadata in the file or request of the audio or video filter
                                         DirectShowUtil.RenderUnconnectedOutputPins(graphBuilder, sourceFilter);
+
+                                        if (sourceFilterAudio != null)
+                                        {
+                                            AddPreferredFilters(graphBuilder, sourceFilterAudio);
+                                            DirectShowUtil.RenderUnconnectedOutputPins(graphBuilder, sourceFilterAudio);
+                                        }
+                                        
                                         Log.Instance.Debug("BufferFile : Playback Ready.");
                                         PlaybackReady = true;
                                     }
@@ -564,6 +639,13 @@ namespace OnlineVideos.MediaPortal1.Player
                         AddPreferredFilters(graphBuilder, sourceFilter);
                         // connect the pin automatically -> will buffer the full file in cases of bad metadata in the file or request of the audio or video filter
                         DirectShowUtil.RenderUnconnectedOutputPins(graphBuilder, sourceFilter);
+
+                        if (sourceFilterAudio != null)
+                        {
+                            AddPreferredFilters(graphBuilder, sourceFilterAudio);
+                            DirectShowUtil.RenderUnconnectedOutputPins(graphBuilder, sourceFilterAudio);
+                        }
+
                         percentageBuffered = 100.0f; // no progress reporting possible
                         GUIPropertyManager.SetProperty("#TV.Record.percent3", percentageBuffered.ToString());
                         GUIPropertyManager.SetProperty("#OnlineVideos.bufferedenough", "80");
@@ -606,17 +688,28 @@ namespace OnlineVideos.MediaPortal1.Player
                         if (BufferingStopped) renderPinsThread.Abort();
                     }
 
+                    int result;
+
                     // playback is not ready but the source filter is already downloading -> abort the operation
                     if (!PlaybackReady)
                     {
                         Log.Instance.Info("Buffering was aborted.");
                         if (sourceFilter is IAMOpenProgress) ((IAMOpenProgress)sourceFilter).AbortOperation();
+                        if (sourceFilterAudio is IAMOpenProgress) ((IAMOpenProgress)sourceFilterAudio).AbortOperation();
                         Thread.Sleep(100); // give it some time
-                        int result = graphBuilder.RemoveFilter(sourceFilter); // remove the filter from the graph to prevent lockup later in Dispose
+                        result = graphBuilder.RemoveFilter(sourceFilter); // remove the filter from the graph to prevent lockup later in Dispose
                     }
 
                     // release the COM pointer that we created
                     DirectShowUtil.ReleaseComObject(sourceFilter);
+
+                    if (sourceFilterAudio != null)
+                    {
+                        if (!PlaybackReady)
+                            result = graphBuilder.RemoveFilter(sourceFilterAudio);
+
+                        DirectShowUtil.ReleaseComObject(sourceFilterAudio);
+                    }
                 }
             }
 
@@ -663,6 +756,13 @@ namespace OnlineVideos.MediaPortal1.Player
                             LogOutputPinsConnectionRecursive(sourceFilter);
                         }
                         if (sourceFilter != null) DirectShowUtil.ReleaseComObject(sourceFilter);
+
+                        if (graphBuilder.FindFilterByName(sourceFilterName + " 0001", out sourceFilter) == 0 && sourceFilter != null)
+                        {
+                            LogOutputPinsConnectionRecursive(sourceFilter);
+                        }
+                        if (sourceFilter != null) 
+                            DirectShowUtil.ReleaseComObject(sourceFilter);
                     }
                 }
 
@@ -859,6 +959,8 @@ namespace OnlineVideos.MediaPortal1.Player
                     // bool vc1ICodec,vc1Codec,xvidCodec = false; - will come later
                     bool aacCodec = false;
                     bool h264Codec = false;
+                    bool videoCodec = false;
+                    bool audioCodec = false;
 
                     // check the output pins of the splitter for known media types
                     IEnumPins pinEnum = null;
@@ -879,16 +981,25 @@ namespace OnlineVideos.MediaPortal1.Player
                                     int typesFetched;
                                     while (enumMediaTypesVideo.Next(1, mediaTypes, out typesFetched) == 0 && typesFetched > 0)
                                     {
-                                        if (mediaTypes[0].majorType == MediaType.Video &&
-                                            (mediaTypes[0].subType == MediaSubType.H264 || mediaTypes[0].subType == MEDIASUBTYPE_AVC1))
+                                        if (mediaTypes[0].majorType == MediaType.Video)
                                         {
-                                            Log.Instance.Info("found H264 video on output pin");
-                                            h264Codec = true;
+                                            if (mediaTypes[0].subType == MediaSubType.H264 || mediaTypes[0].subType == MEDIASUBTYPE_AVC1)
+                                            {
+                                                Log.Instance.Info("found H264 video on output pin");
+                                                h264Codec = true;
+                                            }
+                                            else
+                                                videoCodec = true;
                                         }
-                                        else if (mediaTypes[0].majorType == MediaType.Audio && mediaTypes[0].subType == MediaSubType.LATMAAC)
+                                        else if (mediaTypes[0].majorType == MediaType.Audio)
                                         {
-                                            Log.Instance.Info("found AAC audio on output pin");
-                                            aacCodec = true;
+                                            if (mediaTypes[0].subType == MediaSubType.LATMAAC)
+                                            {
+                                                Log.Instance.Info("found AAC audio on output pin");
+                                                aacCodec = true;
+                                            }
+                                            else
+                                                audioCodec = true;
                                         }
                                     }
                                     DirectShowUtil.ReleaseComObject(enumMediaTypesVideo);
@@ -905,7 +1016,7 @@ namespace OnlineVideos.MediaPortal1.Player
                         DirectShowUtil.ReleaseComObject(
                             DirectShowUtil.AddFilterToGraph(graphBuilder, xmlreader.GetValueAsString("movieplayer", "h264videocodec", "")));
                     }
-                    else
+                    else if (videoCodec)
                     {
                         DirectShowUtil.ReleaseComObject(
                             DirectShowUtil.AddFilterToGraph(graphBuilder, xmlreader.GetValueAsString("movieplayer", "mpeg2videocodec", "")));
@@ -915,7 +1026,7 @@ namespace OnlineVideos.MediaPortal1.Player
                         DirectShowUtil.ReleaseComObject(
                             DirectShowUtil.AddFilterToGraph(graphBuilder, xmlreader.GetValueAsString("movieplayer", "aacaudiocodec", "")));
                     }
-                    else
+                    else if (audioCodec)
                     {
                         DirectShowUtil.ReleaseComObject(
                             DirectShowUtil.AddFilterToGraph(graphBuilder, xmlreader.GetValueAsString("movieplayer", "mpeg2audiocodec", "")));
