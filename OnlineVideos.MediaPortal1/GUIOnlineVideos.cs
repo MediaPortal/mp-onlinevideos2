@@ -2833,7 +2833,8 @@ namespace OnlineVideos.MediaPortal1
                 try
                 {
                     IDownloader dlHelper = null;
-                    if (dlList.CurrentItem.Url.ToLower().StartsWith("mms://")) dlHelper = new MMSDownloader();
+                    if (YoutubeDownloader.CanHandleUrl(dlList.CurrentItem)) dlHelper = new YoutubeDownloader();
+                    else if (dlList.CurrentItem.Url.ToLower().StartsWith("mms://")) dlHelper = new MMSDownloader();
                     else dlHelper = new OnlineVideos.MPUrlSourceFilter.Downloader();
                     dlList.CurrentItem.Downloader = dlHelper;
                     dlList.CurrentItem.Start = DateTime.Now;

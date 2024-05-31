@@ -247,6 +247,7 @@
     <Compile Include="Downloading\DownloadList.cs" />
     <Compile Include="Downloading\DownloadManager.cs" />
     <Compile Include="Downloading\IDownloader.cs" />
+    <Compile Include="Downloading\YoutubeDownloader.cs" />
     <Compile Include="Helpers\AsxUtils.cs" />
     <Compile Include="Helpers\CursorHelper.cs" />
     <Compile Include="3rdParty\DotNetZip\ComHelper.cs" />
