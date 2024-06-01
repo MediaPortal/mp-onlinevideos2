@@ -8,13 +8,21 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Runtime.InteropServices;
+using OnlineVideos.MPUrlSourceFilter;
 
 namespace OnlineVideos.Downloading
 {
     public class YoutubeDownloader : MarshalByRefObject, IDownloader
     {
-        private class DownloadTask
+        private class DownloadTask: IDownloadCallback
         {
+            /// <summary>
+            /// Defines MediaPortal Url Source Splitter.
+            /// </summary>
+            [ComImport, Guid(Downloader.FilterCLSID)]
+            private class MPUrlSourceSplitter { };
+
             public string FilePath;
             public string Url;
             public long FileSize = 0;
@@ -26,56 +34,51 @@ namespace OnlineVideos.Downloading
             public Exception Result = null;
             public EventHandler Callback;
 
+                                        
+            private int _DownloadResult = 0;
+            private volatile bool _DownloadFinished = false;
+
             public void Download()
             {
                 new Thread(new ThreadStart(() =>
                     {
-                        HttpWebResponse response = null;
+                        //HttpWebResponse response = null;
+                        IDownload sourceFilter = null;
+
                         try
                         {
-                            using (FileStream fs = new FileStream(this.FilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                            this._DownloadResult = 0;
+                            this._DownloadFinished = false;
+
+                            sourceFilter = (IDownload)new MPUrlSourceSplitter();
+                            IDownload downloadFilter = (IDownload)sourceFilter;
+                            int iResult = downloadFilter.DownloadAsync(this.Url, this.FilePath, this);
+                            // throw exception if error occured while initializing download
+                            Marshal.ThrowExceptionForHR(iResult);
+
+                            while (!this._DownloadFinished)
                             {
-                                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(this.Url);
-                                request.Timeout = 15000;
-                                request.UserAgent = OnlineVideoSettings.Instance.UserAgent;
-                                request.Accept = "*/*";
-                                request.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
-                                response = (HttpWebResponse)request.GetResponse();
-
-                                Stream responseStream;
-                                if (response.ContentEncoding.ToLower().Contains("gzip"))
-                                    responseStream = new System.IO.Compression.GZipStream(response.GetResponseStream(), System.IO.Compression.CompressionMode.Decompress);
-                                else if (response.ContentEncoding.ToLower().Contains("deflate"))
-                                    responseStream = new System.IO.Compression.DeflateStream(response.GetResponseStream(), System.IO.Compression.CompressionMode.Decompress);
-                                else
-                                    responseStream = response.GetResponseStream();
-
-                                this.FileSize = response.ContentLength;
-                                this.ContentType = response.ContentType;
-
-                                const int BUFFER_SIZE = 1024 * 16;
-                                byte[] buffer = new byte[BUFFER_SIZE];
-                                this.CurrentRead = 0;
-                                long lRead;
-                                do
+                                if (downloadFilter.QueryProgress(out long lTotal, out long lCurrent) >= 0)
                                 {
-                                    //Read data from response stream
-                                    lRead = responseStream.Read(buffer, 0, BUFFER_SIZE);
-
-                                    //Write received data to the filestream
-                                    fs.Write(buffer, 0, (int)lRead);
-
-                                    //Report
-                                    this.CurrentRead += lRead;
+                                    // succeeded or estimated value
+                                    this.FileSize = lTotal;
+                                    this.CurrentRead = lCurrent;
                                     this.Callback(this, EventArgs.Empty);
                                 }
-                                while (lRead > 0 && !this.Cancelled);
 
-                                fs.Flush();
-                                fs.Close();
+                                // sleep some time
+                                Thread.Sleep(100);
 
-                                return;
+                                if (this.Cancelled)
+                                {
+                                    downloadFilter.AbortOperation();
+                                    this._DownloadFinished = true;
+                                    this._DownloadResult = 0;
+                                }
                             }
+
+                            // throw exception if error occured while downloading
+                            Marshal.ThrowExceptionForHR(this._DownloadResult);
                         }
                         catch (Exception ex)
                         {
@@ -83,15 +86,82 @@ namespace OnlineVideos.Downloading
                         }
                         finally
                         {
-                            if (response != null)
-                            {
-                                try { response.Close(); }
-                                catch { }
-                            }
+                            if (sourceFilter != null)
+                                Marshal.ReleaseComObject(sourceFilter);
 
                             this.Complete.Set();
                         }
+
+                        return;
+
+                        //try
+                        //{
+
+                        //    using (FileStream fs = new FileStream(this.FilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                        //    {
+                        //        HttpWebRequest request = (HttpWebRequest)WebRequest.Create(this.Url);
+                        //        request.Timeout = 15000;
+                        //        request.UserAgent = OnlineVideoSettings.Instance.UserAgent;
+                        //        request.Accept = "*/*";
+                        //        request.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
+                        //        response = (HttpWebResponse)request.GetResponse();
+
+                        //        Stream responseStream;
+                        //        if (response.ContentEncoding.ToLower().Contains("gzip"))
+                        //            responseStream = new System.IO.Compression.GZipStream(response.GetResponseStream(), System.IO.Compression.CompressionMode.Decompress);
+                        //        else if (response.ContentEncoding.ToLower().Contains("deflate"))
+                        //            responseStream = new System.IO.Compression.DeflateStream(response.GetResponseStream(), System.IO.Compression.CompressionMode.Decompress);
+                        //        else
+                        //            responseStream = response.GetResponseStream();
+
+                        //        this.FileSize = response.ContentLength;
+                        //        this.ContentType = response.ContentType;
+
+                        //        const int BUFFER_SIZE = 1024 * 16;
+                        //        byte[] buffer = new byte[BUFFER_SIZE];
+                        //        this.CurrentRead = 0;
+                        //        long lRead;
+                        //        do
+                        //        {
+                        //            //Read data from response stream
+                        //            lRead = responseStream.Read(buffer, 0, BUFFER_SIZE);
+
+                        //            //Write received data to the filestream
+                        //            fs.Write(buffer, 0, (int)lRead);
+
+                        //            //Report
+                        //            this.CurrentRead += lRead;
+                        //            this.Callback(this, EventArgs.Empty);
+                        //        }
+                        //        while (lRead > 0 && !this.Cancelled);
+
+                        //        fs.Flush();
+                        //        fs.Close();
+
+                        //        return;
+                        //    }
+                        //}
+                        //catch (Exception ex)
+                        //{
+                        //    this.Result = ex;
+                        //}
+                        //finally
+                        //{
+                        //    if (response != null)
+                        //    {
+                        //        try { response.Close(); }
+                        //        catch { }
+                        //    }
+
+                        //    this.Complete.Set();
+                        //}
                     })).Start();
+            }
+
+            void IDownloadCallback.OnDownloadCallback(int downloadResult)
+            {
+                this._DownloadResult = downloadResult;
+                this._DownloadFinished = true;
             }
         }
 
@@ -303,22 +373,28 @@ namespace OnlineVideos.Downloading
         /// <param name="e"></param>
         private void cbTask(object sender, EventArgs e)
         {
-            lock (this)
+            if (Monitor.TryEnter(this))
             {
-                //Half second inerval is fine
-                if ((DateTime.Now - this._TsReport).TotalMilliseconds > 500)
+                try
                 {
-                    DownloadTask task = (DownloadTask)sender;
+                    //Half second inerval is fine
+                    if ((DateTime.Now - this._TsReport).TotalMilliseconds > 500)
+                    {
+                        DownloadTask task = (DownloadTask)sender;
 
-                    task.DownloadInfo.DownloadProgressCallback(
-                        this._TaskVideo.FileSize + this._TaskAudio.FileSize,
-                        this._TaskVideo.CurrentRead + this._TaskAudio.CurrentRead
-                        );
+                        task.DownloadInfo.DownloadProgressCallback(
+                            this._TaskVideo.FileSize + this._TaskAudio.FileSize,
+                            this._TaskVideo.CurrentRead + this._TaskAudio.CurrentRead
+                            );
 
-                    this._TsReport = DateTime.Now;
+                        this._TsReport = DateTime.Now;
+                    }
+                }
+                finally
+                {
+                    Monitor.Exit(this);
                 }
             }
         }
-
     }
 }
