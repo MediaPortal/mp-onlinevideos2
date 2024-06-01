@@ -13,7 +13,7 @@ using OnlineVideos.MPUrlSourceFilter;
 
 namespace OnlineVideos.Downloading
 {
-    public class YoutubeDownloader : MarshalByRefObject, IDownloader
+    public class OnlineVideosDownloader : MarshalByRefObject, IDownloader
     {
         private class DownloadTask: IDownloadCallback
         {
@@ -275,7 +275,7 @@ namespace OnlineVideos.Downloading
                             proc.WaitForExit();
 
                             if (!File.Exists(downloadInfo.LocalFile))
-                                return new Exception("[YoutubeDownloader] FFmpeg merge failed.");
+                                return new Exception("[OnlineVideosDownloader] FFmpeg merge failed.");
 
                             //Final callback
                             downloadInfo.DownloadProgressCallback(100);
@@ -287,18 +287,18 @@ namespace OnlineVideos.Downloading
                             //Download failed
 
                             if (this._TaskVideo.Result != null)
-                                Log.Error("[YoutubeDownloader][Download] Error Video: {0} {1} {2}",
+                                Log.Error("[OnlineVideosDownloader][Download] Error Video: {0} {1} {2}",
                                     this._TaskVideo.Result.Message,
                                     this._TaskVideo.Result.Source,
                                     this._TaskVideo.Result.StackTrace);
 
                             if (this._TaskAudio.Result != null)
-                                Log.Error("[YoutubeDownloader][Download] Error Audio: {0} {1} {2}",
+                                Log.Error("[OnlineVideosDownloader][Download] Error Audio: {0} {1} {2}",
                                     this._TaskAudio.Result.Message,
                                     this._TaskAudio.Result.Source,
                                     this._TaskAudio.Result.StackTrace);
 
-                            return new Exception("[YoutubeDownloader] Download failed.");
+                            return new Exception("[OnlineVideosDownloader] Download failed.");
                         }
                     }
                 }
@@ -309,7 +309,7 @@ namespace OnlineVideos.Downloading
             {
                 if (!this._Cancelled)
                 {
-                    Log.Error("[YoutubeDownloader][Download] Error: {0} {1} {2}", ex.Message, ex.Source, ex.StackTrace);
+                    Log.Error("[OnlineVideosDownloader][Download] Error: {0} {1} {2}", ex.Message, ex.Source, ex.StackTrace);
                     return ex;
                 }
                 else
