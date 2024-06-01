@@ -278,9 +278,7 @@ namespace OnlineVideos.Downloading
                                 return new Exception("[YoutubeDownloader] FFmpeg merge failed.");
 
                             //Final callback
-                            downloadInfo.DownloadProgressCallback(
-                                this._TaskVideo.FileSize + this._TaskAudio.FileSize,
-                                this._TaskVideo.CurrentRead + this._TaskAudio.CurrentRead);
+                            downloadInfo.DownloadProgressCallback(100);
 
                             return null;
                         }
