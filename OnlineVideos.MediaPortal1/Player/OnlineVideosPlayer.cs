@@ -255,10 +255,7 @@ namespace OnlineVideos.MediaPortal1.Player
             Uri uri = new Uri(videoUrl);
             switch (uri.Scheme)
             {
-                case MixedUrl.MixedUrlScheme: //always use LAV for mixed urls
-                    sourceFilterName = "LAV Splitter Source";
-                    break;
-
+                case MixedUrl.MixedUrlScheme:
                 case "http":
                 case "https":
                 case "rtmp":
@@ -438,6 +435,9 @@ namespace OnlineVideos.MediaPortal1.Player
                     {
                         throw new OnlineVideosException(FilterError.ErrorDescription(filterStateEx, result));
                     }
+
+                    if (sourceFilterAudio != null)
+                        Marshal.ThrowExceptionForHR(((IFileSourceFilter)sourceFilterAudio).Load(strUrlAudio, null));
 
                     while (!this.BufferingStopped)
                     {
