@@ -16,7 +16,7 @@ namespace OnlineVideos.Hoster
         private class YoutubeQuality
         {
             public string Url;
-            
+
             public int VideoID = -1;
             public string VideoUrl;
             public string VideoType;
@@ -450,14 +450,7 @@ namespace OnlineVideos.Hoster
                                 AudioBitrate = jAudio.Value<int>("bitrate"),
                             };
 
-                            //Specific scheme to hold multiple urls
-                            q.Url = string.Format("onlinevideos://127.0.0.1/VideoLink?idYoutube={0}&url={1}&urlAudio={2}&type={3}&typeAudio={4}",
-                                strVideoId,
-                                HttpUtility.UrlEncode(q.VideoUrl),
-                                HttpUtility.UrlEncode(q.AudioUrl),
-                                HttpUtility.UrlEncode(q.VideoType),
-                                HttpUtility.UrlEncode(q.AudioType)
-                                );
+                            q.Url = new MixedUrl(q.VideoUrl, q.AudioUrl).ToString();
                             qualities.Add(q);
                         }
                     }

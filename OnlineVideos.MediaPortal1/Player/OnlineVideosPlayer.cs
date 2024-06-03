@@ -255,7 +255,7 @@ namespace OnlineVideos.MediaPortal1.Player
             Uri uri = new Uri(videoUrl);
             switch (uri.Scheme)
             {
-                case "onlinevideos": //always use LAV (for Youtube)
+                case MixedUrl.MixedUrlScheme: //always use LAV for mixed urls
                     sourceFilterName = "LAV Splitter Source";
                     break;
 
@@ -289,12 +289,9 @@ namespace OnlineVideos.MediaPortal1.Player
             string sourceFilterName = GetSourceFilterName(m_strCurrentFile);
 
             string strUrlAudio = null;
-            Uri uri = new Uri(m_strCurrentFile);
-            if (uri.Scheme == "onlinevideos")
-            {
-                System.Collections.Specialized.NameValueCollection args = System.Web.HttpUtility.ParseQueryString(uri.Query);
-                strUrlAudio = args.Get("urlAudio");
-            }
+            var uri = new MixedUrl(m_strCurrentFile);
+            if (uri.Valid)
+                strUrlAudio = uri.AudioUrl;
 
             if (!string.IsNullOrEmpty(sourceFilterName))
             {
@@ -389,12 +386,11 @@ namespace OnlineVideos.MediaPortal1.Player
 
             string strUrlVideo = null;
             string strUrlAudio = null;
-            Uri uri = new Uri(m_strCurrentFile);
-            if (uri.Scheme == "onlinevideos")
+            var uri = new MixedUrl(m_strCurrentFile);
+            if (uri.Valid)
             {
-                System.Collections.Specialized.NameValueCollection args = System.Web.HttpUtility.ParseQueryString(uri.Query);
-                strUrlVideo = args.Get("url");
-                strUrlAudio = args.Get("urlAudio");
+                strUrlVideo = uri.VideoUrl;
+                strUrlAudio = uri.AudioUrl;
 
                 Log.Instance.Info("BufferFile : using onlinevideos scheme: urlVideo:'{0}' urlAudio:'{1}'", strUrlVideo, strUrlAudio);
             }
