@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Globalization;
 
 namespace Jurassic.Compiler
 {
@@ -53,50 +52,21 @@ namespace Jurassic.Compiler
                     return string.Format("\"{0}\"", ((string)this.Value).Replace("\"", "\\\""));
                 if (this.Value is bool)
                     return (bool)this.Value ? "true" : "false";
+                if (this.Value is double)
+                    return ((double)this.Value).ToString(CultureInfo.InvariantCulture);
                 return this.Value.ToString();
             }
         }
-    }
-
-    /// <summary>
-    /// Represents a string literal.
-    /// </summary>
-    internal class StringLiteralToken : LiteralToken
-    {
-        public StringLiteralToken(string value, int escapeSequenceCount, int lineContinuationCount)
-            : base(value)
-        {
-            if (value == null)
-                throw new ArgumentNullException("value");
-            this.EscapeSequenceCount = escapeSequenceCount;
-            this.LineContinuationCount = lineContinuationCount;
-        }
 
         /// <summary>
-        /// Gets the number of character escape sequences encounted while parsing the string
-        /// literal.
+        /// Converts this token into a property name.
         /// </summary>
-        public int EscapeSequenceCount
+        /// <returns></returns>
+        public string ToPropertyName()
         {
-            get;
-            private set;
-        }
-
-        /// <summary>
-        /// Gets the number of line continuations encounted while parsing the string literal.
-        /// </summary>
-        public int LineContinuationCount
-        {
-            get;
-            private set;
-        }
-
-        /// <summary>
-        /// Gets the contents of the string literal.
-        /// </summary>
-        public new string Value
-        {
-            get { return (string)base.Value; }
+            if (this.Value is string)
+                return (string)this.Value;
+            return Text;
         }
     }
 

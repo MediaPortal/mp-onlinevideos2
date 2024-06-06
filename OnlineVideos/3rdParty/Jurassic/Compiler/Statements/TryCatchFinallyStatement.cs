@@ -36,18 +36,8 @@ namespace Jurassic.Compiler
         }
 
         /// <summary>
-        /// Gets or sets the scope of the variable to receive the exception.  Can be <c>null</c> but
-        /// only if CatchStatement is also <c>null</c>.
-        /// </summary>
-        public Scope CatchScope
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Gets or sets the name of the variable to receive the exception.  Can be <c>null</c> but
-        /// only if CatchStatement is also <c>null</c>.
+        /// Gets or sets the name of the variable to receive the exception.  Can be <c>null</c> if
+        /// CatchStatement is also <c>null</c> or if the catch variable binding was omitted.
         /// </summary>
         public string CatchVariableName
         {
@@ -86,9 +76,20 @@ namespace Jurassic.Compiler
             var previousInsideTryCatchOrFinally = optimizationInfo.InsideTryCatchOrFinally;
             optimizationInfo.InsideTryCatchOrFinally = true;
 
-            // Finally requires two exception nested blocks.
+            // When we have a finally block, use a temporary variable that stores if the
+            // finally block should be skipped. This will be set to true when an exception was
+            // caught but ScriptEngine.CanCatchException() returns false.
+            // returns true.
+            ILLocalVariable skipFinallyBlock = null;
             if (this.FinallyBlock != null)
+            {
+                // Finally requires two exception nested blocks.
                 generator.BeginExceptionBlock();
+
+                skipFinallyBlock = generator.CreateTemporaryVariable(typeof(bool));
+                generator.LoadBoolean(false);
+                generator.StoreVariable(skipFinallyBlock);
+            }
 
             // Begin the exception block.
             generator.BeginExceptionBlock();
@@ -96,36 +97,71 @@ namespace Jurassic.Compiler
             // Generate code for the try block.
             this.TryBlock.GenerateCode(generator, optimizationInfo);
 
-            // Generate code for the catch block.
-            if (this.CatchBlock != null)
+            // Generate code for the catch block.           
+            
+            // Begin a catch block.  The exception is on the top of the stack.
+            generator.BeginCatchBlock(typeof(object));
+
+            // Check the exception is catchable by calling CanCatchException(ex).
+            // We need to handle the case where JS code calls into .NET code which then throws
+            // a JavaScriptException from a different ScriptEngine.
+            // If CatchBlock is null, we need to rethrow the exception in every case.
+            var endOfIfLabel = generator.CreateLabel();
+            generator.Duplicate();  // ex
+            var exceptionTemporary = generator.CreateTemporaryVariable(typeof(object));
+            generator.StoreVariable(exceptionTemporary);
+            EmitHelpers.LoadScriptEngine(generator);
+            generator.LoadVariable(exceptionTemporary);
+            generator.ReleaseTemporaryVariable(exceptionTemporary);
+            generator.Call(ReflectionHelpers.ScriptEngine_CanCatchException);
+            generator.BranchIfTrue(endOfIfLabel);
+            if (this.FinallyBlock != null)
             {
-                // Begin a catch block.  The exception is on the top of the stack.
-                generator.BeginCatchBlock(typeof(JavaScriptException));
+                generator.LoadBoolean(true);
+                generator.StoreVariable(skipFinallyBlock);
+            }
+            if (this.CatchBlock == null)
+                generator.DefineLabelPosition(endOfIfLabel);
+            generator.Rethrow();
+            if (this.CatchBlock != null)
+                generator.DefineLabelPosition(endOfIfLabel);
 
-                // Create a new DeclarativeScope.
-                this.CatchScope.GenerateScopeCreation(generator, optimizationInfo);
+            if (this.CatchBlock != null) {
 
-                // Store the error object in the variable provided.
-                generator.Call(ReflectionHelpers.JavaScriptException_ErrorObject);
-                var catchVariable = new NameExpression(this.CatchScope, this.CatchVariableName);
-                catchVariable.GenerateSet(generator, optimizationInfo, PrimitiveType.Any, false);
+                // Create a RuntimeScope instance.
+                CatchBlock.Scope.GenerateScopeCreation(generator, optimizationInfo);
 
-                // Make sure the scope is reverted even if an exception is thrown.
-                generator.BeginExceptionBlock();
+                if (this.CatchVariableName != null)
+                {
+                    // Store the error object in the variable provided.
+                    generator.ReinterpretCast(typeof(JavaScriptException));
+                    EmitHelpers.LoadScriptEngine(generator);
+                    generator.Call(ReflectionHelpers.JavaScriptException_GetErrorObject);
+                    var catchVariable = new NameExpression(CatchBlock.Scope, this.CatchVariableName);
+                    catchVariable.GenerateSet(generator, optimizationInfo, PrimitiveType.Any);
+                }
+                else
+                {
+                    // Remove the exception object from the stack.
+                    generator.Pop();
+                }
 
                 // Emit code for the statements within the catch block.
                 this.CatchBlock.GenerateCode(generator, optimizationInfo);
-
-                // Revert the scope.
-                generator.BeginFinallyBlock();
-                this.CatchScope.GenerateScopeDestruction(generator, optimizationInfo);
-                generator.EndExceptionBlock();
             }
 
             // Generate code for the finally block.
             if (this.FinallyBlock != null)
             {
                 generator.BeginFinallyBlock();
+
+                // If an exception was thrown that isn't determined as catchable by the ScriptEngine,
+                // then don't run the finally block either.  This prevents user code from being run
+                // when a non-JavaScriptException is thrown (e.g. to cancel script execution).
+                var endOfFinallyBlock = generator.CreateLabel();                
+                generator.LoadVariable(skipFinallyBlock);
+                generator.ReleaseTemporaryVariable(skipFinallyBlock);
+                generator.BranchIfTrue(endOfFinallyBlock);
 
                 var branches = new List<ILLabel>();
                 var previousStackSize = optimizationInfo.LongJumpStackSizeThreshold;
@@ -146,6 +182,9 @@ namespace Jurassic.Compiler
 
                 // Emit code for the finally block.
                 this.FinallyBlock.GenerateCode(generator, optimizationInfo);
+
+                // Define the position at the end of the finally block.
+                generator.DefineLabelPosition(endOfFinallyBlock);
 
                 // End the main exception block.
                 generator.EndExceptionBlock();
@@ -171,6 +210,10 @@ namespace Jurassic.Compiler
                         generator.DefineLabelPosition(switchLabels[i]);
                         generator.Leave(branches[i]);
                     }
+                }
+                else
+                {
+                    generator.Pop();
                 }
 
                 // Reset the state we clobbered.

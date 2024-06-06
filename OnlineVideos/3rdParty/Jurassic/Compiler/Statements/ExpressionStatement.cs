@@ -18,7 +18,7 @@ namespace Jurassic.Compiler
             : base(null)
         {
             if (expression == null)
-                throw new ArgumentNullException("expression");
+                throw new ArgumentNullException(nameof(expression));
             this.Expression = expression;
         }
 
@@ -32,7 +32,7 @@ namespace Jurassic.Compiler
             : base(labels)
         {
             if (expression == null)
-                throw new ArgumentNullException("expression");
+                throw new ArgumentNullException(nameof(expression));
             this.Expression = expression;
             this.ContributesToEvalResult = true;
         }
@@ -80,8 +80,11 @@ namespace Jurassic.Compiler
             else
             {
                 // Emit the expression.
+                optimizationInfo.IgnoreReturnValue = this.Expression;
+                optimizationInfo.ReturnValueWasNotGenerated = false;
                 this.Expression.GenerateCode(generator, optimizationInfo);
-                generator.Pop();
+                if (!optimizationInfo.ReturnValueWasNotGenerated)
+                    generator.Pop();
             }
 
             // Generate code for the end of the statement.

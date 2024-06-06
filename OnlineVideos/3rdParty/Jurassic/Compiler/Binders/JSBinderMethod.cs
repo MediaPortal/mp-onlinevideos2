@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
 using Jurassic.Library;
 
 namespace Jurassic.Compiler
@@ -11,7 +9,6 @@ namespace Jurassic.Compiler
     /// <summary>
     /// Represents a single method that the JS function binder can call.
     /// </summary>
-    [Serializable]
     internal class JSBinderMethod : BinderMethod
     {
 
@@ -32,7 +29,6 @@ namespace Jurassic.Compiler
         /// <summary>
         /// Creates a new FunctionBinderMethod instance.
         /// </summary>
-        /// <param name="method"> The method to call. </param>
         /// <param name="flags"> Flags that modify the binding process. </param>
         private void Init(JSFunctionFlags flags)
         {
@@ -93,48 +89,6 @@ namespace Jurassic.Compiler
                     throw new NotImplementedException(string.Format("Unsupported parameter type '{0}'.", type));
             }
         }
-
-
-
-        //     SERIALIZATION
-        //_________________________________________________________________________________________
-
-#if !SILVERLIGHT
-
-        /// <summary>
-        /// Initializes a new instance of the FunctionBinderMethod class with serialized data.
-        /// </summary>
-        /// <param name="info"> The SerializationInfo that holds the serialized object data about
-        /// the exception being thrown. </param>
-        /// <param name="context"> The StreamingContext that contains contextual information about
-        /// the source or destination. </param>
-        protected JSBinderMethod(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context)
-            : base(info, context)
-        {
-            // Restore the flags.
-            var flags = (JSFunctionFlags)info.GetInt32("flags");
-
-            // Initialize the object.
-            Init(flags);
-        }
-
-        /// <summary>
-        /// Sets the SerializationInfo with information about the exception.
-        /// </summary>
-        /// <param name="info"> The SerializationInfo that holds the serialized object data about
-        /// the exception being thrown. </param>
-        /// <param name="context"> The StreamingContext that contains contextual information about
-        /// the source or destination. </param>
-        public override void GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context)
-        {
-            // Save the base class state.
-            base.GetObjectData(info, context);
-
-            // Save the object state.
-            info.AddValue("flags", this.Flags);
-        }
-
-#endif
 
 
 

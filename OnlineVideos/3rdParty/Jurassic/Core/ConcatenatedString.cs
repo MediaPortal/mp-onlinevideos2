@@ -12,7 +12,6 @@ namespace Jurassic
     /// intermediary strings and by doing so speeds up string concatenation dramatically
     /// (this change improved sunspider/string-validate-input.js by almost 20x).
     /// </summary>
-    [Serializable]
     public sealed class ConcatenatedString
     {
         private StringBuilder builder;
@@ -26,7 +25,7 @@ namespace Jurassic
         public ConcatenatedString(string initialValue)
         {
             if (initialValue == null)
-                throw new ArgumentNullException("initialValue");
+                throw new ArgumentNullException(nameof(initialValue));
             this.builder = new StringBuilder(initialValue);
             this.length = initialValue.Length;
             this.cachedString = initialValue;
@@ -36,12 +35,13 @@ namespace Jurassic
         /// Creates a new ConcatenatedString instance by concatenating the given strings.
         /// </summary>
         /// <param name="left"> The left-most string to concatenate. </param>
+        /// <param name="right"> The right-most string to concatenate. </param>
         public ConcatenatedString(string left, string right)
         {
             if (left == null)
-                throw new ArgumentNullException("left");
+                throw new ArgumentNullException(nameof(left));
             if (right == null)
-                throw new ArgumentNullException("right");
+                throw new ArgumentNullException(nameof(right));
             this.builder = new StringBuilder(left, left.Length + right.Length);
             this.builder.Append(right);
             this.length = left.Length + right.Length;
@@ -55,7 +55,7 @@ namespace Jurassic
         public ConcatenatedString(string[] strings)
         {
             if (strings == null)
-                throw new ArgumentNullException("strings");
+                throw new ArgumentNullException(nameof(strings));
 
             // Calculate the total length.
             foreach (string str in strings)

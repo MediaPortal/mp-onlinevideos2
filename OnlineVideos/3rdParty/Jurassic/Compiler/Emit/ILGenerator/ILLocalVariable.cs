@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace Jurassic.Compiler
 {
@@ -34,8 +33,8 @@ namespace Jurassic.Compiler
         }
     }
 
-#if !SILVERLIGHT
-    
+#if USE_DYNAMIC_IL_INFO
+
     /// <summary>
     /// Represents a local variable in CIL code.
     /// </summary>
@@ -57,7 +56,7 @@ namespace Jurassic.Compiler
             if (index < 0)
                 throw new ArgumentOutOfRangeException("index");
             if (type == null)
-                throw new ArgumentNullException("type");
+                throw new ArgumentNullException(nameof(type));
             this.ILGenerator = generator;
             this.index = index;
             this.type = type;
@@ -115,11 +114,9 @@ namespace Jurassic.Compiler
         public ReflectionEmitILLocalVariable(System.Reflection.Emit.LocalBuilder local, string name)
         {
             if (local == null)
-                throw new ArgumentNullException("local");
+                throw new ArgumentNullException(nameof(local));
             this.UnderlyingLocal = local;
             this.name = name;
-            //if (name != null)
-            //    local.SetLocalSymInfo(name);
         }
 
         /// <summary>

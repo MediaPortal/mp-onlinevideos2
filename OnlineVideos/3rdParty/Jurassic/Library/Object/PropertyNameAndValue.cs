@@ -1,28 +1,55 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace Jurassic.Library
+﻿namespace Jurassic.Library
 {
     /// <summary>
     /// Represents a property name and value.
     /// </summary>
     public sealed class PropertyNameAndValue
     {
-        private string name;
-        private PropertyDescriptor descriptor;
+        private readonly object key;
+        private readonly PropertyDescriptor descriptor;
 
-        public PropertyNameAndValue(string name, PropertyDescriptor descriptor)
+        /// <summary>
+        /// Initializes a property with any descriptor.
+        /// </summary>
+        /// <param name="key"> The property key (either a string or a Symbol). </param>
+        /// <param name="descriptor"> A descriptor describing the property. </param>
+        public PropertyNameAndValue(object key, PropertyDescriptor descriptor)
         {
-            this.name = name;
+            this.key = key;
             this.descriptor = descriptor;
         }
 
         /// <summary>
-        /// Gets the name of the property.
+        /// Initializes a simple property.
         /// </summary>
-        public string Name
+        /// <param name="key"> The property key (either a string or a Symbol). </param>
+        /// <param name="value"> The property value. </param>
+        /// <param name="attributes"> Indicates whether the property is readable, writable and/or enumerable. </param>
+        public PropertyNameAndValue(object key, object value, PropertyAttributes attributes)
         {
-            get { return this.name; }
+            this.key = key;
+            this.descriptor = new PropertyDescriptor(value, attributes);
+        }
+
+        /// <summary>
+        /// Initializes a getter/setter property.
+        /// </summary>
+        /// <param name="key"> The property key (either a string or a Symbol). </param>
+        /// <param name="getter"> The function to call to retrieve the property value. </param>
+        /// <param name="setter"> The function to call to set the property value. </param>
+        /// <param name="attributes"> Indicates whether the property is readable, writable and/or enumerable. </param>
+        public PropertyNameAndValue(object key, FunctionInstance getter, FunctionInstance setter, PropertyAttributes attributes)
+        {
+            this.key = key;
+            this.descriptor = new PropertyDescriptor(getter, setter, attributes);
+        }
+
+        /// <summary>
+        /// Gets the property key.
+        /// </summary>
+        public object Key
+        {
+            get { return this.key; }
         }
 
         /// <summary>
@@ -65,6 +92,14 @@ namespace Jurassic.Library
         public bool IsConfigurable
         {
             get { return this.descriptor.IsConfigurable; }
+        }
+
+        /// <summary>
+        /// Returns a string that represents the current object.
+        /// </summary>
+        public override string ToString()
+        {
+            return $"{Key}: {Value} (configurable={IsConfigurable}, writable={IsWritable}, enumerable={IsEnumerable})";
         }
     }
 }

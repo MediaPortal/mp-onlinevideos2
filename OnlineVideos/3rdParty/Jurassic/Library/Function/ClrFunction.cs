@@ -11,7 +11,6 @@ namespace Jurassic.Library
     /// <summary>
     /// Represents a JavaScript function implemented by one or more .NET methods.
     /// </summary>
-    [Serializable]
     public class ClrFunction : FunctionInstance
     {
         object thisBinding;
@@ -32,9 +31,9 @@ namespace Jurassic.Library
             : base(prototype)
         {
             if (name == null)
-                throw new ArgumentNullException("name");
+                throw new ArgumentNullException(nameof(name));
             if (instancePrototype == null)
-                throw new ArgumentNullException("instancePrototype");
+                throw new ArgumentNullException(nameof(instancePrototype));
 
             // This is a constructor so ignore the "this" parameter when the function is called.
             thisBinding = this;
@@ -73,18 +72,18 @@ namespace Jurassic.Library
             if (callBinderMethods.Count > 0)
                 this.callBinder = new JSBinder(callBinderMethods);
             else
-                this.callBinder = new JSBinder(new JSBinderMethod(new Func<object>(() => Undefined.Value).Method));
+                this.callBinder = new EmptyBinder();
 
             // Initialize the Construct function.
             if (constructBinderMethods.Count > 0)
                 this.constructBinder = new JSBinder(constructBinderMethods);
             else
-                this.constructBinder = new JSBinder(new JSBinderMethod(new Func<ObjectInstance>(() => this.Engine.Object.Construct()).Method));
+                this.constructBinder = new EmptyBinder();
 
             // Add function properties.
-            this.FastSetProperty("name", name);
-            this.FastSetProperty("length", this.callBinder.FunctionLength);
-            this.FastSetProperty("prototype", instancePrototype);
+            this.FastSetProperty("name", name, PropertyAttributes.Configurable);
+            this.FastSetProperty("length", this.callBinder.FunctionLength, PropertyAttributes.Configurable);
+            this.FastSetProperty("prototype", instancePrototype, PropertyAttributes.Sealed);
             instancePrototype.FastSetProperty("constructor", this, PropertyAttributes.NonEnumerable);
         }
 
@@ -107,8 +106,8 @@ namespace Jurassic.Library
             this.thisBinding = delegateToCall.Target;
 
             // Add function properties.
-            this.FastSetProperty("name", name != null ? name : this.callBinder.Name);
-            this.FastSetProperty("length", length >= 0 ? length : this.callBinder.FunctionLength);
+            this.FastSetProperty("name", name != null ? name : this.callBinder.Name, PropertyAttributes.Configurable);
+            this.FastSetProperty("length", length >= 0 ? length : this.callBinder.FunctionLength, PropertyAttributes.Configurable);
             //this.FastSetProperty("prototype", this.Engine.Object.Construct());
             //this.InstancePrototype.FastSetProperty("constructor", this, PropertyAttributes.NonEnumerable);
         }
@@ -130,8 +129,8 @@ namespace Jurassic.Library
             this.callBinder = new JSBinder(methods);
 
             // Add function properties.
-            this.FastSetProperty("name", name == null ? this.callBinder.Name : name);
-            this.FastSetProperty("length", length >= 0 ? length : this.callBinder.FunctionLength);
+            this.FastSetProperty("name", name == null ? this.callBinder.Name : name, PropertyAttributes.Configurable);
+            this.FastSetProperty("length", length >= 0 ? length : this.callBinder.FunctionLength, PropertyAttributes.Configurable);
             //this.FastSetProperty("prototype", this.Engine.Object.Construct());
             //this.InstancePrototype.FastSetProperty("constructor", this, PropertyAttributes.NonEnumerable);
         }
@@ -147,13 +146,13 @@ namespace Jurassic.Library
             this.callBinder = binder;
 
             // Add function properties.
-            this.FastSetProperty("name", binder.Name);
-            this.FastSetProperty("length", binder.FunctionLength);
+            this.FastSetProperty("name", binder.Name, PropertyAttributes.Configurable);
+            this.FastSetProperty("length", binder.FunctionLength, PropertyAttributes.Configurable);
             //this.FastSetProperty("prototype", this.Engine.Object.Construct());
             //this.InstancePrototype.FastSetProperty("constructor", this, PropertyAttributes.NonEnumerable);
         }
 
-        
+
 
         //     OVERRIDES
         //_________________________________________________________________________________________
@@ -162,7 +161,7 @@ namespace Jurassic.Library
         /// Calls this function, passing in the given "this" value and zero or more arguments.
         /// </summary>
         /// <param name="thisObject"> The value of the "this" keyword within the function. </param>
-        /// <param name="argumentValues"> An array of argument values. </param>
+        /// <param name="arguments"> An array of argument values. </param>
         /// <returns> The value that was returned from the function. </returns>
         public override object CallLateBound(object thisObject, params object[] arguments)
         {
@@ -182,9 +181,9 @@ namespace Jurassic.Library
             {
                 if (ex.FunctionName == null && ex.SourcePath == null && ex.LineNumber == 0)
                 {
-                    ex.FunctionName = this.DisplayName;
+                    ex.FunctionName = this.Name;
                     ex.SourcePath = "native";
-                    ex.PopulateStackTrace();
+                    ex.GetErrorObject(Engine);
                 }
                 throw;
             }
@@ -193,22 +192,14 @@ namespace Jurassic.Library
         /// <summary>
         /// Creates an object, using this function as the constructor.
         /// </summary>
+        /// <param name="newTarget"> The value of 'new.target'. </param>
         /// <param name="argumentValues"> An array of argument values. </param>
         /// <returns> The object that was created. </returns>
-        public override ObjectInstance ConstructLateBound(params object[] argumentValues)
+        public override ObjectInstance ConstructLateBound(FunctionInstance newTarget, params object[] argumentValues)
         {
             if (this.constructBinder == null)
-                throw new JavaScriptException(this.Engine, "TypeError", "Objects cannot be constructed from built-in functions");
+                throw new JavaScriptException(ErrorType.TypeError, "Objects cannot be constructed from built-in functions");
             return (ObjectInstance)this.constructBinder.Call(this.Engine, this, argumentValues);
-        }
-
-        /// <summary>
-        /// Returns a string representing this object.
-        /// </summary>
-        /// <returns> A string representing this object. </returns>
-        public override string ToString()
-        {
-            return string.Format("function {0}() {{ [native code] }}", this.Name);
         }
 
         ///// <summary>
@@ -223,7 +214,7 @@ namespace Jurassic.Library
         //    // Delegate types have an Invoke method containing the relevant parameters.
         //    MethodInfo adapterInvokeMethod = typeof(T).GetMethod("Invoke", BindingFlags.Public | BindingFlags.Instance);
         //    if (adapterInvokeMethod == null)
-        //        throw new ArgumentException("The type parameter T must be delegate type.", "T");
+        //        throw new ArgumentException(nameof(T));
 
         //    // Get the argument types.
         //    Type[] argumentTypes = adapterInvokeMethod.GetParameters().Select(p => p.ParameterType).ToArray();
@@ -233,5 +224,52 @@ namespace Jurassic.Library
         //}
 
 
+        //     HELPER CLASSES
+        //_________________________________________________________________________________________
+
+        /// <summary>
+        /// A binder that merely returns undefined.
+        /// </summary>
+        private class EmptyBinder : Binder
+        {
+            /// <summary>
+            /// Creates a new EmptyBinder instance.
+            /// </summary>
+            public EmptyBinder()
+            {
+            }
+
+            /// <summary>
+            /// Gets the name of the target methods.
+            /// </summary>
+            public override string Name
+            {
+                get { return "undefined"; }
+            }
+
+            /// <summary>
+            /// Gets the full name of the target methods, including the type name.
+            /// </summary>
+            public override string FullName
+            {
+                get { return "undefined"; }
+            }
+
+            /// <summary>
+            /// Generates a method that does type conversion and calls the bound method.
+            /// </summary>
+            /// <param name="generator"> The ILGenerator used to output the body of the method. </param>
+            /// <param name="argumentCount"> The number of arguments that will be passed to the delegate. </param>
+            /// <returns> A delegate that does type conversion and calls the method represented by this
+            /// object. </returns>
+            protected override void GenerateStub(Jurassic.Compiler.ILGenerator generator, int argumentCount)
+            {
+                // Emit undefined.
+                EmitHelpers.EmitUndefined(generator);
+
+                // End the IL.
+                generator.Complete();
+            }
+        }
     }
 }

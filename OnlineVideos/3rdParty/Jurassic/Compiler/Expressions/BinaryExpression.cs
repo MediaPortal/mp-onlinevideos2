@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
+using Jurassic.Library;
 
 namespace Jurassic.Compiler
 {
@@ -82,6 +82,8 @@ namespace Jurassic.Compiler
                     return TypeConverter.ToNumber(left) / TypeConverter.ToNumber(right);
                 case OperatorType.Modulo:
                     return TypeConverter.ToNumber(left) % TypeConverter.ToNumber(right);
+                case OperatorType.Exponentiation:
+                    return Library.MathObject.Pow(TypeConverter.ToNumber(left), TypeConverter.ToNumber(right));
 
                 // Bitwise operations.
                 case OperatorType.BitwiseAnd:
@@ -165,6 +167,7 @@ namespace Jurassic.Compiler
                     case OperatorType.Multiply:
                     case OperatorType.Divide:
                     case OperatorType.Modulo:
+                    case OperatorType.Exponentiation:
                         return PrimitiveType.Number;
 
                     // Bitwise operations.
@@ -278,6 +281,7 @@ namespace Jurassic.Compiler
                 case OperatorType.Multiply:
                 case OperatorType.Divide:
                 case OperatorType.Modulo:
+                case OperatorType.Exponentiation:
                     EmitConversion.ToNumber(generator, this.Left.ResultType);
                     break;
 
@@ -311,6 +315,7 @@ namespace Jurassic.Compiler
                 case OperatorType.Multiply:
                 case OperatorType.Divide:
                 case OperatorType.Modulo:
+                case OperatorType.Exponentiation:
                     EmitConversion.ToNumber(generator, this.Right.ResultType);
                     break;
 
@@ -352,6 +357,9 @@ namespace Jurassic.Compiler
                     break;
                 case OperatorType.Modulo:
                     generator.Remainder();
+                    break;
+                case OperatorType.Exponentiation:
+                    generator.CallStatic(ReflectionHelpers.Math_Pow);
                     break;
 
                 // Bitwise operations.
@@ -701,7 +709,7 @@ namespace Jurassic.Compiler
         /// <param name="optimizationInfo"> Information about any optimizations that should be performed. </param>
         private void GenerateInstanceOf(ILGenerator generator, OptimizationInfo optimizationInfo)
         {
-            // Emit the left-hand side expression and convert it to an object.
+            /*// Emit the left-hand side expression and convert it to an object.
             this.Left.GenerateCode(generator, optimizationInfo);
             EmitConversion.ToAny(generator, this.Left.ResultType);
 
@@ -714,22 +722,22 @@ namespace Jurassic.Compiler
             EmitConversion.ToAny(generator, this.Right.ResultType);
 
             // Check the right-hand side is a function - if not, throw an exception.
-            generator.IsInstance(typeof(Library.FunctionInstance));
             generator.Duplicate();
+            generator.IsInstance(typeof(Library.FunctionInstance));
             var endOfTypeCheck = generator.CreateLabel();
-            generator.BranchIfNotNull(endOfTypeCheck);
+            generator.BranchIfTrue(endOfTypeCheck);
 
             // Throw an nicely formatted exception.
             var rightValue = generator.CreateTemporaryVariable(typeof(object));
             generator.StoreVariable(rightValue);
-            EmitHelpers.LoadScriptEngine(generator);
-            generator.LoadString("TypeError");
+            generator.LoadEnumValue(ErrorType.TypeError);
             generator.LoadString("The instanceof operator expected a function, but found '{0}' instead");
             generator.LoadInt32(1);
             generator.NewArray(typeof(object));
             generator.Duplicate();
             generator.LoadInt32(0);
             generator.LoadVariable(rightValue);
+            generator.ReleaseTemporaryVariable(rightValue);
             generator.Call(ReflectionHelpers.TypeUtilities_TypeOf);
             generator.StoreArrayElement(typeof(object));
             generator.Call(ReflectionHelpers.String_Format);
@@ -739,7 +747,7 @@ namespace Jurassic.Compiler
             generator.NewObject(ReflectionHelpers.JavaScriptException_Constructor_Error);
             generator.Throw();
             generator.DefineLabelPosition(endOfTypeCheck);
-            generator.ReleaseTemporaryVariable(rightValue);
+            generator.ReinterpretCast(typeof(FunctionInstance));
 
             // Load the left-hand side expression from the temporary variable.
             generator.LoadVariable(temp);
@@ -748,7 +756,22 @@ namespace Jurassic.Compiler
             generator.Call(ReflectionHelpers.FunctionInstance_HasInstance);
 
             // Allow the temporary variable to be reused.
-            generator.ReleaseTemporaryVariable(temp);
+            generator.ReleaseTemporaryVariable(temp);*/
+
+            this.Left.GenerateCode(generator, optimizationInfo);
+            EmitConversion.ToAny(generator, this.Left.ResultType);
+
+            // Emit the right-hand side expression.
+            this.Right.GenerateCode(generator, optimizationInfo);
+            EmitConversion.ToAny(generator, this.Right.ResultType);
+
+            // Stack trace support.
+            generator.LoadInt32(optimizationInfo.SourceSpan.StartLine);
+            generator.LoadStringOrNull(optimizationInfo.Source.Path);
+            generator.LoadStringOrNull(optimizationInfo.FunctionName);
+
+            // Call FunctionInstance.HasInstance(object)
+            generator.Call(ReflectionHelpers.ReflectionHelpers_InstanceOf);
         }
 
         /// <summary>
@@ -760,10 +783,10 @@ namespace Jurassic.Compiler
         {
             // Emit the left-hand side expression and convert it to a string.
             this.Left.GenerateCode(generator, optimizationInfo);
-            EmitConversion.ToString(generator, this.Left.ResultType);
+            EmitConversion.ToPropertyKey(generator, this.Left.ResultType);
 
             // Store the left-hand side expression in a temporary variable.
-            var temp = generator.CreateTemporaryVariable(typeof(string));
+            var temp = generator.CreateTemporaryVariable(typeof(object));
             generator.StoreVariable(temp);
 
             // Emit the right-hand side expression.
@@ -771,16 +794,15 @@ namespace Jurassic.Compiler
             EmitConversion.ToAny(generator, this.Right.ResultType);
 
             // Check the right-hand side is a javascript object - if not, throw an exception.
-            generator.IsInstance(typeof(Library.ObjectInstance));
             generator.Duplicate();
+            generator.IsInstance(typeof(ObjectInstance));
             var endOfTypeCheck = generator.CreateLabel();
-            generator.BranchIfNotNull(endOfTypeCheck);
+            generator.BranchIfTrue(endOfTypeCheck);
 
             // Throw an nicely formatted exception.
             var rightValue = generator.CreateTemporaryVariable(typeof(object));
             generator.StoreVariable(rightValue);
-            EmitHelpers.LoadScriptEngine(generator);
-            generator.LoadString("TypeError");
+            generator.LoadEnumValue(ErrorType.TypeError);
             generator.LoadString("The in operator expected an object, but found '{0}' instead");
             generator.LoadInt32(1);
             generator.NewArray(typeof(object));
@@ -797,6 +819,7 @@ namespace Jurassic.Compiler
             generator.Throw();
             generator.DefineLabelPosition(endOfTypeCheck);
             generator.ReleaseTemporaryVariable(rightValue);
+            generator.ReinterpretCast(typeof(ObjectInstance));
 
             // Load the left-hand side expression from the temporary variable.
             generator.LoadVariable(temp);

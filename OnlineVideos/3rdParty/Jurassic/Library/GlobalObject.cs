@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Jurassic.Compiler;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -7,8 +8,7 @@ namespace Jurassic.Library
     /// <summary>
     /// Represents functions and properties within the global scope.
     /// </summary>
-    [Serializable]
-    public class GlobalObject : ObjectInstance
+    public partial class GlobalObject : ObjectInstance
     {
 
         //     INITIALIZATION
@@ -21,28 +21,22 @@ namespace Jurassic.Library
         internal GlobalObject(ObjectInstance prototype)
             : base(prototype)
         {
-            // Add the global constants.
-            // Infinity, NaN and undefined are read-only in ECMAScript 5.
-            this.FastSetProperty("Infinity", double.PositiveInfinity, PropertyAttributes.Sealed);
-            this.FastSetProperty("NaN", double.NaN, PropertyAttributes.Sealed);
-            this.FastSetProperty("undefined", Undefined.Value, PropertyAttributes.Sealed);
         }
-
-
-
-        //     .NET ACCESSOR PROPERTIES
-        //_________________________________________________________________________________________
 
         /// <summary>
-        /// Gets the internal class name of the object.  Used by the default toString()
-        /// implementation.
+        /// Retrieves a list of properties to apply to the global object.
         /// </summary>
-        protected override string InternalClassName
+        internal List<PropertyNameAndValue> GetGlobalProperties()
         {
-            get { return "Global"; }
+            // Infinity, NaN and undefined are read-only in ECMAScript 5.
+            var properties = GetDeclarativeProperties(Engine);
+            properties.Add(new PropertyNameAndValue("Infinity", double.PositiveInfinity, PropertyAttributes.Sealed));
+            properties.Add(new PropertyNameAndValue("NaN", double.NaN, PropertyAttributes.Sealed));
+            properties.Add(new PropertyNameAndValue("undefined", Undefined.Value, PropertyAttributes.Sealed));
+            // parseFloat and parseInt are defined in NumberConstructor.cs and then added to the global
+            // object in ScriptEngine.cs.
+            return properties;
         }
-
-
 
 
 
@@ -57,6 +51,7 @@ namespace Jurassic.Library
         /// <summary>
         /// Decodes a string that was encoded with the encodeURI function.
         /// </summary>
+        /// <param name="engine"> The current script environment. </param>
         /// <param name="input"> The associated script engine. </param>
         /// <returns> The string, as it was before encoding. </returns>
         [JSInternalFunction(Name = "decodeURI", Flags = JSFunctionFlags.HasEngineParameter)]
@@ -160,7 +155,7 @@ namespace Jurassic.Library
         {
             if (TypeUtilities.IsString(code) == false)
                 return code;
-            return engine.Eval(TypeConverter.ToString(code), engine.CreateGlobalScope(), engine.Global, false);
+            return engine.Eval(TypeConverter.ToString(code), RuntimeScope.CreateGlobalScope(engine), engine.Global, false);
         }
 
         /// <summary>
@@ -174,10 +169,10 @@ namespace Jurassic.Library
         /// strict mode code. </param>
         /// <returns> The value of the last statement that was executed, or <c>undefined</c> if
         /// there were no executed statements. </returns>
-        public static object Eval(ScriptEngine engine, object code, Compiler.Scope scope, object thisObject, bool strictMode)
+        public static object Eval(ScriptEngine engine, object code, RuntimeScope scope, object thisObject, bool strictMode)
         {
             if (scope == null)
-                throw new ArgumentNullException("scope");
+                throw new ArgumentNullException(nameof(scope));
             if (TypeUtilities.IsString(code) == false)
                 return code;
             return engine.Eval(TypeConverter.ToString(code), scope, thisObject, strictMode);
@@ -204,44 +199,6 @@ namespace Jurassic.Library
         public static bool IsNaN(double value)
         {
             return double.IsNaN(value);
-        }
-
-        /// <summary>
-        /// Parses the given string and returns the equivalent numeric value. 
-        /// </summary>
-        /// <param name="input"> The string to parse. </param>
-        /// <returns> The equivalent numeric value of the given string. </returns>
-        /// <remarks> Leading whitespace is ignored.  Parsing continues until the first invalid
-        /// character, at which point parsing stops.  No error is returned in this case. </remarks>
-        [JSInternalFunction(Name = "parseFloat")]
-        public static double ParseFloat(string input)
-        {
-            return NumberParser.ParseFloat(input);
-        }
-
-        /// <summary>
-        /// Parses the given string and returns the equivalent integer value. 
-        /// </summary>
-        /// <param name="engine"> The associated script engine. </param>
-        /// <param name="input"> The string to parse. </param>
-        /// <param name="radix"> The numeric base to use for parsing.  Pass zero to use base 10
-        /// except when the input string starts with '0' in which case base 16 or base 8 are used
-        /// instead (base 8 is only supported in compatibility mode). </param>
-        /// <returns> The equivalent integer value of the given string. </returns>
-        /// <remarks> Leading whitespace is ignored.  Parsing continues until the first invalid
-        /// character, at which point parsing stops.  No error is returned in this case. </remarks>
-        [JSInternalFunction(Name = "parseInt", Flags = JSFunctionFlags.HasEngineParameter)]
-        public static double ParseInt(ScriptEngine engine, string input, [DefaultParameterValue(0.0)] double radix = 0)
-        {
-            // Check for a valid radix.
-            // Note: this is the only function that uses TypeConverter.ToInt32() for parameter
-            // conversion (as opposed to the normal method which is TypeConverter.ToInteger() so
-            // the radix parameter must be converted to an integer in code.
-            int radix2 = TypeConverter.ToInt32(radix);
-            if (radix2 < 0 || radix2 == 1 || radix2 > 36)
-                return double.NaN;
-
-            return NumberParser.ParseInt(input, radix2, engine.CompatibilityMode == CompatibilityMode.ECMAScript3);
         }
 
         /// <summary>
@@ -303,7 +260,7 @@ namespace Jurassic.Library
         /// </summary>
         /// <param name="engine"> The script engine used to create the error objects. </param>
         /// <param name="input"> The string to decode. </param>
-        /// <param name="unescapedSet"> A string containing the set of characters that should not
+        /// <param name="reservedSet"> A string containing the set of characters that should not
         /// be escaped.  Alphanumeric characters should not be included. </param>
         /// <returns> A copy of the given string with the escape sequences decoded. </returns>
         private static string Decode(ScriptEngine engine, string input, bool[] reservedSet)
@@ -319,7 +276,7 @@ namespace Jurassic.Library
                     // Decode the %XX encoding.
                     int utf8Byte = ParseHexNumber(input, i + 1, 2);
                     if (utf8Byte < 0)
-                        throw new JavaScriptException(engine, "URIError", "URI malformed");
+                        throw new JavaScriptException(ErrorType.URIError, "URI malformed");
                     i += 2;
 
                     // If the high bit is not set, then this is a single byte ASCII character.
@@ -342,7 +299,7 @@ namespace Jurassic.Library
 
                         // Check for an invalid UTF-8 start value.
                         if (utf8Byte == 0xc0 || utf8Byte == 0xc1)
-                            throw new JavaScriptException(engine, "URIError", "URI malformed");
+                            throw new JavaScriptException(ErrorType.URIError, "URI malformed");
 
                         // Count the number of high bits set (this is the number of bytes required for the character).
                         int utf8ByteCount = 1;
@@ -354,7 +311,7 @@ namespace Jurassic.Library
                                 break;
                         }
                         if (utf8ByteCount < 2 || utf8ByteCount > 4)
-                            throw new JavaScriptException(engine, "URIError", "URI malformed");
+                            throw new JavaScriptException(ErrorType.URIError, "URI malformed");
 
                         // Read the additional bytes.
                         byte[] utf8Bytes = new byte[utf8ByteCount];
@@ -363,16 +320,16 @@ namespace Jurassic.Library
                         {
                             // An additional escape sequence is expected.
                             if (i >= input.Length - 1 || input[++i] != '%')
-                                throw new JavaScriptException(engine, "URIError", "URI malformed");
+                                throw new JavaScriptException(ErrorType.URIError, "URI malformed");
 
                             // Decode the %XX encoding.
                             utf8Byte = ParseHexNumber(input, i + 1, 2);
                             if (utf8Byte < 0)
-                                throw new JavaScriptException(engine, "URIError", "URI malformed");
+                                throw new JavaScriptException(ErrorType.URIError, "URI malformed");
 
                             // Top two bits must be 10 (i.e. byte must be 10XXXXXX in binary).
                             if ((utf8Byte & 0xC0) != 0x80)
-                                throw new JavaScriptException(engine, "URIError", "URI malformed");
+                                throw new JavaScriptException(ErrorType.URIError, "URI malformed");
 
                             // Store the byte.
                             utf8Bytes[j] = (byte)utf8Byte;
@@ -415,12 +372,12 @@ namespace Jurassic.Library
 
                     // Compute the code point.
                     if (c >= 0xDC00)
-                        throw new JavaScriptException(engine, "URIError", "URI malformed");
+                        throw new JavaScriptException(ErrorType.URIError, "URI malformed");
                     if (i == input.Length)
-                        throw new JavaScriptException(engine, "URIError", "URI malformed");
+                        throw new JavaScriptException(ErrorType.URIError, "URI malformed");
                     int c2 = input[i];
                     if (c2 < 0xDC00 || c2 >= 0xE000)
-                        throw new JavaScriptException(engine, "URIError", "URI malformed");
+                        throw new JavaScriptException(ErrorType.URIError, "URI malformed");
                     c = (c - 0xD800) * 0x400 + (c2 - 0xDC00) + 0x10000;
                 }
 
@@ -545,7 +502,7 @@ namespace Jurassic.Library
             {
                 char c = characters[i];
                 if (c >= 128)
-                    throw new ArgumentException("Characters must be ASCII.", "characters");
+                    throw new ArgumentException(nameof(characters));
                 result[c] = true;
             }
             return result;

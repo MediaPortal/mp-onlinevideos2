@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Jurassic.Library;
+using ErrorType = Jurassic.Library.ErrorType;
 
 namespace Jurassic.Compiler
 {
@@ -70,16 +71,15 @@ namespace Jurassic.Compiler
             }
 
             // Check the object really is a function - if not, throw an exception.
-            generator.IsInstance(typeof(Library.FunctionInstance));
             generator.Duplicate();
+            generator.IsInstance(typeof(FunctionInstance));
             var endOfTypeCheck = generator.CreateLabel();
-            generator.BranchIfNotNull(endOfTypeCheck);
+            generator.BranchIfTrue(endOfTypeCheck);
 
             // Throw an nicely formatted exception.
             var targetValue = generator.CreateTemporaryVariable(typeof(object));
             generator.StoreVariable(targetValue);
-            EmitHelpers.LoadScriptEngine(generator);
-            generator.LoadString("TypeError");
+            generator.LoadEnumValue(ErrorType.TypeError);
             generator.LoadString("The new operator requires a function, found a '{0}' instead");
             generator.LoadInt32(1);
             generator.NewArray(typeof(object));
@@ -97,6 +97,21 @@ namespace Jurassic.Compiler
             generator.DefineLabelPosition(endOfTypeCheck);
             generator.ReleaseTemporaryVariable(targetValue);
 
+            // Store the function reference.
+            generator.ReinterpretCast(typeof(FunctionInstance));
+            var functionReference = generator.CreateTemporaryVariable(typeof(FunctionInstance));
+            generator.Duplicate();
+            generator.StoreVariable(functionReference);
+
+            // Pass in the path, function name and line.
+            generator.LoadStringOrNull(optimizationInfo.Source.Path);
+            generator.LoadStringOrNull(optimizationInfo.FunctionName);
+            generator.LoadInt32(optimizationInfo.SourceSpan.StartLine);
+
+            // Pass in the value of 'new.target'.
+            generator.LoadVariable(functionReference);
+            generator.ReleaseTemporaryVariable(functionReference);
+
             if (operand is FunctionCallExpression)
             {
                 // Emit an array containing the function arguments.
@@ -109,8 +124,8 @@ namespace Jurassic.Compiler
                 generator.NewArray(typeof(object));
             }
 
-            // Call FunctionInstance.ConstructLateBound(argumentValues)
-            generator.Call(ReflectionHelpers.FunctionInstance_ConstructLateBound);
+            // FunctionInstance.ConstructLateBound(string path, string function, int line, FunctionInstance newTarget, object[] argumentValues)
+            generator.Call(ReflectionHelpers.FunctionInstance_ConstructWithStackTrace);
         }
     }
 

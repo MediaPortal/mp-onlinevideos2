@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Jurassic.Library
 {
     /// <summary>
     /// Represents an instance of the JavaScript Array object.
     /// </summary>
-    [Serializable]
-    public class ArrayInstance : ObjectInstance
+    public partial class ArrayInstance : ObjectInstance
     {
         // The array, if it is dense.
         private object[] dense;
@@ -61,7 +61,7 @@ namespace Jurassic.Library
             : base(prototype)
         {
             if (elements == null)
-                throw new ArgumentNullException("elements");
+                throw new ArgumentNullException(nameof(elements));
             this.dense = elements;
             
             this.denseMayContainHoles = Array.IndexOf(elements, null) >= 0;
@@ -81,7 +81,7 @@ namespace Jurassic.Library
             : base(prototype)
         {
             if (sparseArray == null)
-                throw new ArgumentNullException("sparseArray");
+                throw new ArgumentNullException(nameof(sparseArray));
             this.sparse = sparseArray;
 
             // Create a fake property for length plus initialize the real length property.
@@ -89,19 +89,46 @@ namespace Jurassic.Library
             FastSetProperty("length", -1, PropertyAttributes.Writable | PropertyAttributes.IsLengthProperty);
         }
 
+        /// <summary>
+        /// Creates the Array prototype object.
+        /// </summary>
+        /// <param name="engine"> The script environment. </param>
+        /// <param name="constructor"> A reference to the constructor that owns the prototype. </param>
+        internal static ObjectInstance CreatePrototype(ScriptEngine engine, ArrayConstructor constructor)
+        {
+            var result = engine.Object.Construct();
+            var properties = GetDeclarativeProperties(engine);
+            properties.Add(new PropertyNameAndValue("constructor", constructor, PropertyAttributes.NonEnumerable));
+
+            // From the spec: the initial value of the @@iterator property is the same function
+            // object as the initial value of the Array.prototype.values property.
+            PropertyNameAndValue valuesProperty = properties.Find(p => "values".Equals(p.Key));
+            if (valuesProperty == null)
+                throw new InvalidOperationException("Expected values property.");
+            properties.Add(new PropertyNameAndValue(Symbol.Iterator, valuesProperty.Value, PropertyAttributes.NonEnumerable));
+
+            // Create the @@unscopables data property.
+            var unscopables = engine.Object.Construct();
+            unscopables["copyWithin"] = true;
+            unscopables["entries"] = true;
+            unscopables["fill"] = true;
+            unscopables["find"] = true;
+            unscopables["findIndex"] = true;
+            unscopables["flat"] = true;
+            unscopables["flatMap"] = true;
+            unscopables["includes"] = true;
+            unscopables["keys"] = true;
+            unscopables["values"] = true;
+            properties.Add(new PropertyNameAndValue(Symbol.Unscopables, unscopables, PropertyAttributes.Configurable));
+
+            result.InitializeProperties(properties);
+            return result;
+        }
+
 
 
         //     .NET ACCESSOR PROPERTIES
         //_________________________________________________________________________________________
-
-        /// <summary>
-        /// Gets the internal class name of the object.  Used by the default toString()
-        /// implementation.
-        /// </summary>
-        protected override string InternalClassName
-        {
-            get { return "Array"; }
-        }
 
         /// <summary>
         /// Gets or sets the number of elements in the array.  Equivalent to the javascript
@@ -187,6 +214,12 @@ namespace Jurassic.Library
         }
 
 
+        private int GetLength()
+        {
+            return this.Properties.Where(pnv => (pnv.Key is string) && (pnv.Key as string) != "length").Count();
+        }
+
+
 
         //     INTERNAL HELPER METHODS
         //_________________________________________________________________________________________
@@ -194,16 +227,26 @@ namespace Jurassic.Library
         /// <summary>
         /// Attempts to parse a string into a valid array index.
         /// </summary>
-        /// <param name="propertyName"> The property name to parse. </param>
+        /// <param name="key"> The property key (either a string or a Symbol). </param>
         /// <returns> The array index value, or <c>uint.MaxValue</c> if the property name does not reference
         /// an array index. </returns>
-        internal static uint ParseArrayIndex(string propertyName)
+        internal static uint ParseArrayIndex(object key)
         {
+            if (key is Symbol)
+                return uint.MaxValue;
+
+            var propertyName = (string)key;
             if (propertyName.Length == 0)
                 return uint.MaxValue;
+
             int digit = propertyName[0] - '0';
             if (digit < 0 || digit > 9)
                 return uint.MaxValue;
+
+            // '0' is an array index but '00[, '01', '000' are not.
+            if (digit == 0 && propertyName.Length > 1)
+                return uint.MaxValue;
+
             uint result = (uint)digit;
             for (int i = 1; i < propertyName.Length; i++)
             {
@@ -223,6 +266,31 @@ namespace Jurassic.Library
             return result;
         }
 
+        /// <summary>
+        /// Converts the JS array to a .NET object array.
+        /// </summary>
+        /// <returns> A .NET object array. </returns>
+        internal object[] ToArray()
+        {
+            var result = new object[this.length];
+            if (this.dense != null)
+            {
+                Array.Copy(this.dense, result, this.length);
+                if (this.denseMayContainHoles)
+                {
+                    for (uint i = 0; i < this.length; i++)
+                        if (result[i] == null)
+                            result[i] = Undefined.Value;
+                }
+            }
+            else
+            {
+                for (uint i = 0; i < this.length; i++)
+                    result[i] = this[i];
+            }
+            return result;
+        }
+
 
 
         //     OVERRIDES
@@ -231,7 +299,7 @@ namespace Jurassic.Library
         /// <summary>
         /// Gets a descriptor for the property with the given array index.
         /// </summary>
-        /// <param name="propertyName"> The array index of the property. </param>
+        /// <param name="index"> The array index of the property. </param>
         /// <returns> A property descriptor containing the property value and attributes. </returns>
         /// <remarks> The prototype chain is not searched. </remarks>
         public override PropertyDescriptor GetOwnPropertyDescriptor(uint index)
@@ -241,7 +309,7 @@ namespace Jurassic.Library
                 // The array is dense and therefore has at least "length" elements.
                 if (index < this.length)
                     return new PropertyDescriptor(this.dense[index], PropertyAttributes.FullAccess);
-                return PropertyDescriptor.Undefined;
+                return PropertyDescriptor.Missing;
             }
 
             // The array is sparse and therefore has "holes".
@@ -256,9 +324,12 @@ namespace Jurassic.Library
         /// <param name="index"> The array index of the property to set. </param>
         /// <param name="value"> The value to set the property to.  This must be a javascript
         /// primitive (double, string, etc) or a class derived from <see cref="ObjectInstance"/>. </param>
+        /// <param name="thisValue"> The value of the "this" keyword inside a getter. </param>
         /// <param name="throwOnError"> <c>true</c> to throw an exception if the property could not
         /// be set.  This can happen if the property is read-only or if the object is sealed. </param>
-        public override void SetPropertyValue(uint index, object value, bool throwOnError)
+        /// <returns> <c>false</c> if <paramref name="throwOnError"/> is false and an error
+        /// occurred; <c>true</c> otherwise. </returns>
+        public override bool SetPropertyValue(uint index, object value, object thisValue, bool throwOnError)
         {
             value = value ?? Undefined.Value;
             if (this.dense != null)
@@ -305,6 +376,7 @@ namespace Jurassic.Library
                 this.sparse[index] = value;
                 this.length = Math.Max(this.length, index + 1);
             }
+            return true;
         }
 
         /// <summary>
@@ -320,6 +392,8 @@ namespace Jurassic.Library
         {
             if (this.dense != null)
             {
+                if (index >= this.dense.Length)
+                    return true;
                 this.dense[index] = null;
                 this.denseMayContainHoles = true;
             }
@@ -333,22 +407,22 @@ namespace Jurassic.Library
         /// not searched so if the property exists but only in the prototype chain a new property
         /// will be created.
         /// </summary>
-        /// <param name="propertyName"> The name of the property to modify. </param>
+        /// <param name="key"> The property key of the property to modify. </param>
         /// <param name="descriptor"> The property value and attributes. </param>
         /// <param name="throwOnError"> <c>true</c> to throw an exception if the property could not
         /// be set.  This can happen if the property is not configurable or the object is sealed. </param>
         /// <returns> <c>true</c> if the property was successfully modified; <c>false</c> otherwise. </returns>
-        public override bool DefineProperty(string propertyName, PropertyDescriptor descriptor, bool throwOnError)
+        public override bool DefineProperty(object key, PropertyDescriptor descriptor, bool throwOnError)
         {
             // Make sure the property name isn't actually an array index.
-            uint arrayIndex = ParseArrayIndex(propertyName);
+            uint arrayIndex = ParseArrayIndex(key);
             if (arrayIndex != uint.MaxValue)
             {
                 // Spec violation: array elements are never accessor properties.
                 if (descriptor.IsAccessor == true)
                 {
                     if (throwOnError == true)
-                        throw new JavaScriptException(this.Engine, "TypeError", string.Format("Accessors are not supported for array elements.", propertyName));
+                        throw new JavaScriptException(ErrorType.TypeError, "Accessors are not supported for array elements.");
                     return false;
                 }
 
@@ -356,7 +430,7 @@ namespace Jurassic.Library
                 if (descriptor.Attributes != PropertyAttributes.FullAccess)
                 {
                     if (throwOnError == true)
-                        throw new JavaScriptException(this.Engine, "TypeError", string.Format("Non-accessible array elements are not supported.", propertyName));
+                        throw new JavaScriptException(ErrorType.TypeError, "Non-accessible array elements are not supported.");
                     return false;
                 }
 
@@ -370,13 +444,14 @@ namespace Jurassic.Library
             }
 
             // Delegate to the base class.
-            return base.DefineProperty(propertyName, descriptor, throwOnError);
+            return base.DefineProperty(key, descriptor, throwOnError);
         }
 
         /// <summary>
-        /// Gets an enumerable list of every property name and value associated with this object.
+        /// Gets an enumerable list of every property name associated with this object.
+        /// Does not include properties in the prototype chain.
         /// </summary>
-        public override IEnumerable<PropertyNameAndValue> Properties
+        public override IEnumerable<object> OwnKeys
         {
             get
             {
@@ -387,7 +462,7 @@ namespace Jurassic.Library
                     {
                         object arrayElementValue = this.dense[i];
                         if (arrayElementValue != null)
-                            yield return new PropertyNameAndValue(i.ToString(), new PropertyDescriptor(arrayElementValue, PropertyAttributes.FullAccess));
+                            yield return i.ToString();
                     }
                 }
                 else
@@ -398,13 +473,13 @@ namespace Jurassic.Library
                         {
                             object arrayElementValue = this.sparse[i];
                             if (arrayElementValue != null)
-                                yield return new PropertyNameAndValue(i.ToString(), new PropertyDescriptor(arrayElementValue, PropertyAttributes.FullAccess));
+                                yield return i.ToString();
                         }
                 }
 
                 // Delegate to the base implementation.
-                foreach (var nameAndValue in base.Properties)
-                    yield return nameAndValue;
+                foreach (var key in base.OwnKeys)
+                    yield return key;
             }
         }
 
@@ -422,7 +497,7 @@ namespace Jurassic.Library
         /// <returns> A new array consisting of the values of this array plus any number of
         /// additional items. </returns>
         [JSInternalFunction(Name = "concat", Flags = JSFunctionFlags.HasThisObject)]
-        public static ArrayInstance Concat(ObjectInstance thisObj, params object[] items)
+        public static ObjectInstance Concat(ObjectInstance thisObj, params object[] items)
         {
             // Create a new items array with the thisObject at the beginning.
             var temp = new object[items.Length + 1];
@@ -435,16 +510,24 @@ namespace Jurassic.Library
             bool dense = true;
             uint length = (uint)items.Length;
             foreach (object item in items)
-                if (item is ArrayInstance)
+                if (IsConcatSpreadable(thisObj.Engine, item))
                 {
-                    length += ((ArrayInstance)item).Length - 1;
-                    if (((ArrayInstance)item).dense == null)
+                    if (item is ArrayInstance)
+                    {
+                        length += ((ArrayInstance)item).Length - 1;
+                        if (((ArrayInstance)item).dense == null)
+                            dense = false;
+                    }
+                    else
+                    {
+                        length += GetLength((ObjectInstance)item) - 1;
                         dense = false;
+                    }
                 }
 
             // This method only supports arrays of length up to 2^31-1, rather than 2^32-1.
             if (length > int.MaxValue)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The resulting array is too long");
+                throw new JavaScriptException(ErrorType.RangeError, "The resulting array is too long");
 
             if (dense == true)
             {
@@ -454,19 +537,25 @@ namespace Jurassic.Library
                 int index = 0;
                 foreach (object item in items)
                 {
-                    if (item is ArrayInstance)
+                    if (IsConcatSpreadable(thisObj.Engine, item))
                     {
                         // Add the items in the array to the end of the resulting array.
-                        var array = (ArrayInstance)item;
-                        Array.Copy(array.dense, 0, result, index, (int)array.Length);
-                        if (array.denseMayContainHoles == true && array.Prototype != null)
+                        if (item is ArrayInstance array)
                         {
-                            // Populate holes from the prototype.
-                            for (uint i = 0; i < array.length; i++)
-                                if (array.dense[i] == null)
-                                    result[index + i] = array.Prototype.GetPropertyValue(i);
+                            Array.Copy(array.dense, 0, result, index, (int)array.Length);
+                            if (array.denseMayContainHoles == true && array.Prototype != null)
+                            {
+                                // Populate holes from the prototype.
+                                for (uint i = 0; i < array.length; i++)
+                                    if (array.dense[i] == null)
+                                        result[index + i] = array.Prototype.GetPropertyValue(i);
+                            }
+                            index += (int)array.Length;
                         }
-                        index += (int)array.Length;
+                        else
+                        {
+                            throw new InvalidOperationException();
+                        }
                     }
                     else
                     {
@@ -476,7 +565,7 @@ namespace Jurassic.Library
                 }
 
                 // Return the new dense array.
-                return new ArrayInstance(thisObj.Engine.Array.InstancePrototype, result);
+                return new ArrayInstanceAdapter(thisObj).ConstructArray(result);
             }
             else
             {
@@ -486,33 +575,43 @@ namespace Jurassic.Library
                 int index = 0;
                 foreach (object item in items)
                 {
-                    if (item is ArrayInstance)
+                    if (IsConcatSpreadable(thisObj.Engine, item))
                     {
                         // Add the items in the array to the end of the resulting array.
-                        var array = (ArrayInstance)item;
-                        if (array.dense != null)
+                        if (item is ArrayInstance array)
                         {
-                            result.CopyTo(array.dense, (uint)index, (int)array.Length);
-                            if (array.Prototype != null)
+                            if (array.dense != null)
                             {
-                                // Populate holes from the prototype.
-                                for (uint i = 0; i < array.length; i++)
-                                    if (array.dense[i] == null)
-                                        result[(uint)index + i] = array.Prototype.GetPropertyValue(i);
+                                result.CopyTo(array.dense, (uint)index, (int)array.Length);
+                                if (array.Prototype != null)
+                                {
+                                    // Populate holes from the prototype.
+                                    for (uint i = 0; i < array.length; i++)
+                                        if (array.dense[i] == null)
+                                            result[(uint)index + i] = array.Prototype.GetPropertyValue(i);
+                                }
                             }
+                            else
+                            {
+                                result.CopyTo(array.sparse, (uint)index);
+                                if (array.Prototype != null)
+                                {
+                                    // Populate holes from the prototype.
+                                    for (uint i = 0; i < array.Length; i++)
+                                        if (array.sparse[i] == null)
+                                            result[(uint)index + i] = array.Prototype.GetPropertyValue(i);
+                                }
+                            }
+                            index += (int)array.Length;
                         }
                         else
                         {
-                            result.CopyTo(array.sparse, (uint)index);
-                            if (array.Prototype != null)
-                            {
-                                // Populate holes from the prototype.
-                                for (uint i = 0; i < array.Length; i++)
-                                    if (array.sparse[i] == null)
-                                        result[(uint)index + i] = array.Prototype.GetPropertyValue(i);
-                            }
+                            // Concat array-like elements.
+                            uint itemLength = GetLength((ObjectInstance)item);
+                            foreach (var indexAndValue in EnumerateArrayLikeValues(thisObj.Engine, (ObjectInstance)item, itemLength))
+                                result[(uint)index + indexAndValue.Key] = indexAndValue.Value;
+                            index += (int)itemLength;
                         }
-                        index += (int)array.Length;
                     }
                     else
                     {
@@ -528,50 +627,12 @@ namespace Jurassic.Library
         }
 
         /// <summary>
-        /// Concatenates all the elements of the array, using the specified separator between each
-        /// element.  If no separator is provided, a comma is used for this purpose.
-        /// </summary>
-        /// <param name="thisObj"> The array that is being operated on. </param>
-        /// <param name="separator"> The string to use as a separator. </param>
-        /// <returns> A string that consists of the element values separated by the separator string. </returns>
-        [JSInternalFunction(Name = "join", Flags = JSFunctionFlags.HasThisObject)]
-        public static string Join(ObjectInstance thisObj, [DefaultParameterValue(",")] string separator = ",")
-        {
-            // Get the length of the array.
-            uint arrayLength = GetLength(thisObj);
-
-            // This method only supports strings of length up to 2^31-1.
-            if (arrayLength > int.MaxValue / 2)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
-
-            var result = new System.Text.StringBuilder((int)arrayLength * 2);
-            try
-            {
-
-                for (uint i = 0; i < arrayLength; i++)
-                {
-                    if (i > 0)
-                        result.Append(separator);
-                    object element = thisObj[i];
-                    if (element != null && element != Undefined.Value && element != Null.Value)
-                        result.Append(TypeConverter.ToString(element));
-                }
-
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
-            }
-            return result.ToString();
-        }
-
-        /// <summary>
         /// Removes the last element from the array and returns it.
         /// </summary>
         /// <param name="thisObj"> The array to operate on. </param>
         /// <returns> The last element from the array. </returns>
-        [JSInternalFunction(Name = "pop", Flags = JSFunctionFlags.HasThisObject)]
-        public static object Pop([JSParameter(JSParameterFlags.Mutated)] ObjectInstance thisObj)
+        [JSInternalFunction(Name = "pop", Flags = JSFunctionFlags.HasThisObject | JSFunctionFlags.MutatesThisObject)]
+        public static object Pop(ObjectInstance thisObj)
         {
             // If the "this" object is an array, use the fast version of this method.
             if (thisObj is ArrayInstance)
@@ -657,8 +718,8 @@ namespace Jurassic.Library
         /// </summary>
         /// <param name="thisObj"> The array that is being operated on. </param>
         /// <param name="items"> The items to append to the array. </param>
-        [JSInternalFunction(Name = "push", Flags = JSFunctionFlags.HasThisObject)]
-        public static double Push([JSParameter(JSParameterFlags.Mutated)] ObjectInstance thisObj, params object[] items)
+        [JSInternalFunction(Name = "push", Flags = JSFunctionFlags.HasThisObject | JSFunctionFlags.MutatesThisObject)]
+        public static double Push(ObjectInstance thisObj, params object[] items)
         {
             // If the "this" object is an array, use the fast version of this method.
             if (thisObj is ArrayInstance && items.Length == 1)
@@ -676,17 +737,17 @@ namespace Jurassic.Library
                 for (int i = 0; i < items.Length; i++)
                 {
                     // Append the new item to the array.
-                    thisObj.SetPropertyValue((arrayLength2++).ToString(), items[i], true);
+                    thisObj.SetPropertyValue((arrayLength2++).ToString(), items[i], thisObj, throwOnError: true);
                 }
                 SetLength(thisObj, uint.MaxValue);
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "Invalid array length");
+                throw new JavaScriptException(ErrorType.RangeError, "Invalid array length");
             }
 
             // For each item to append.
             for (int i = 0; i < items.Length; i++)
             {
                 // Append the new item to the array.
-                thisObj.SetPropertyValue(arrayLength ++, items[i], true);
+                thisObj.SetPropertyValue(arrayLength ++, items[i], thisObj, throwOnError: true);
             }
 
             // Update the length property.
@@ -707,8 +768,8 @@ namespace Jurassic.Library
                 // Even though attempting to push more items than can fit in the array raises an
                 // error, the items are still pushed correctly (but the length is stuck at the
                 // maximum).
-                SetPropertyValue(this.length.ToString(), item, false);
-                throw new JavaScriptException(this.Engine, "RangeError", "Invalid array length");
+                SetPropertyValue(this.length.ToString(), item, this, throwOnError: false);
+                throw new JavaScriptException(ErrorType.RangeError, "Invalid array length");
             }
 
             if (this.dense != null)
@@ -731,45 +792,13 @@ namespace Jurassic.Library
         }
 
         /// <summary>
-        /// Reverses the order of the elements in the array.
-        /// </summary>
-        /// <param name="thisObj"> The array that is being operated on. </param>
-        /// <returns> The array that is being operated on. </returns>
-        [JSInternalFunction(Name = "reverse", Flags = JSFunctionFlags.HasThisObject)]
-        public static ObjectInstance Reverse([JSParameter(JSParameterFlags.Mutated)] ObjectInstance thisObj)
-        {
-            // Get the length of the array.
-            uint arrayLength = GetLength(thisObj);
-
-            // Reverse each element.
-            for (uint lowIndex = 0; lowIndex < arrayLength / 2; lowIndex++)
-            {
-                uint highIndex = arrayLength - lowIndex - 1;
-
-                // Swap the two values.
-                object low = thisObj[lowIndex];
-                object high = thisObj[highIndex];
-                if (high != null)
-                    thisObj[lowIndex] = high;
-                else
-                    thisObj.Delete(lowIndex, true);
-                if (low != null)
-                    thisObj[highIndex] = low;
-                else
-                    thisObj.Delete(highIndex, true);
-            }
-
-            return thisObj;
-        }
-
-        /// <summary>
         /// The first element in the array is removed from the array and returned.  All the other
         /// elements are shifted down in the array.
         /// </summary>
         /// <param name="thisObj"> The array that is being operated on. </param>
         /// <returns> The first element in the array. </returns>
-        [JSInternalFunction(Name = "shift", Flags = JSFunctionFlags.HasThisObject)]
-        public static object Shift([JSParameter(JSParameterFlags.Mutated)] ObjectInstance thisObj)
+        [JSInternalFunction(Name = "shift", Flags = JSFunctionFlags.HasThisObject | JSFunctionFlags.MutatesThisObject)]
+        public static object Shift(ObjectInstance thisObj)
         {
             // Get the length of the array.
             uint arrayLength = GetLength(thisObj);
@@ -787,7 +816,7 @@ namespace Jurassic.Library
             // Shift all the other elements down one place.
             for (uint i = 1; i < arrayLength; i++)
             {
-                object elementValue = thisObj[i];
+                object elementValue = thisObj.GetPropertyValue(i);
                 if (elementValue != null)
                     thisObj[i - 1] = elementValue;
                 else
@@ -805,112 +834,32 @@ namespace Jurassic.Library
         }
 
         /// <summary>
-        /// Returns a section of an array.
+        /// Deletes a range of elements from the array and optionally inserts new elements.
         /// </summary>
         /// <param name="thisObj"> The array that is being operated on. </param>
-        /// <param name="start"> The index of the first element in the section.  If this value is
-        /// negative it is treated as an offset from the end of the array. </param>
-        /// <param name="end"> The index of the element just past the last element in the section.
-        /// If this value is negative it is treated as an offset from the end of the array.  If
-        /// <paramref name="end"/> is less than or equal to <paramref name="start"/> then an empty
-        /// array is returned. </param>
-        /// <returns> A section of an array. </returns>
-        [JSInternalFunction(Name = "slice", Flags = JSFunctionFlags.HasThisObject, Length = 2)]
-        public static ArrayInstance Slice(ObjectInstance thisObj, int start, [DefaultParameterValue(int.MaxValue)] int end = int.MaxValue)
+        /// <returns> An array containing the deleted elements, if any. </returns>
+        [JSInternalFunction(Name = "splice", Flags = JSFunctionFlags.HasThisObject | JSFunctionFlags.MutatesThisObject, Length = 2)]
+        public static ObjectInstance Splice(ObjectInstance thisObj)
         {
-            // Get the length of the array.
-            uint arrayLength = GetLength(thisObj);
-
-            // This method only supports arrays of length up to 2^31-1.
-            if (arrayLength > int.MaxValue)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
-
-            // Fix the arguments so they are positive and within the bounds of the array.
-            if (start < 0)
-                start += (int)arrayLength;
-            if (end < 0)
-                end += (int)arrayLength;
-            if (end <= start)
-                return thisObj.Engine.Array.New(new object[0]);
-            start = Math.Min(Math.Max(start, 0), (int)arrayLength);
-            end = Math.Min(Math.Max(end, 0), (int)arrayLength);
-
-            // Populate a new array.
-            object[] result = new object[end - start];
-            for (int i = 0; i < result.Length; i++)
-            {
-                result[i] = thisObj[(uint)(start + i)];
-            }
-            return thisObj.Engine.Array.New(result);
+            // If the number of actual arguments is 0, then
+            //     Let insertCount be 0.
+            //     Let actualDeleteCount be 0.
+            return Splice(thisObj, 0, 0);
         }
 
         /// <summary>
-        /// Sorts the array.
+        /// Deletes a range of elements from the array and optionally inserts new elements.
         /// </summary>
         /// <param name="thisObj"> The array that is being operated on. </param>
-        /// <param name="comparisonFunction"> A function which determines the order of the
-        /// elements.  This function should return a number less than zero if the first argument is
-        /// less than the second argument, zero if the arguments are equal or a number greater than
-        /// zero if the first argument is greater than Defaults to an ascending ASCII ordering. </param>
-        /// <returns> The array that was sorted. </returns>
-        [JSInternalFunction(Name = "sort", Flags = JSFunctionFlags.HasThisObject)]
-        public static ObjectInstance Sort([JSParameter(JSParameterFlags.Mutated)] ObjectInstance thisObj, [DefaultParameterValue(null)] FunctionInstance comparisonFunction = null)
+        /// <param name="start"> The index to start deleting from. </param>
+        /// <returns> An array containing the deleted elements, if any. </returns>
+        [JSInternalFunction(Name = "splice", Flags = JSFunctionFlags.HasThisObject | JSFunctionFlags.MutatesThisObject, Length = 2)]
+        public static ObjectInstance Splice(ObjectInstance thisObj, int start)
         {
-            // Get the length of the array.
-            uint arrayLength = GetLength(thisObj);
-
-            // An array of size 1 or less is already sorted.
-            if (arrayLength <= 1)
-                return thisObj;
-
-            // Create a comparer delegate.
-            Func<object, object, double> comparer;
-            if (comparisonFunction == null)
-                comparer = (a, b) =>
-                {
-                    if (a == null && b == null)
-                        return 0f;
-                    if (a == null)
-                        return 1f;
-                    if (b == null)
-                        return -1f;
-                    if (a == Undefined.Value && b == Undefined.Value)
-                        return 0f;
-                    if (a == Undefined.Value)
-                        return 1f;
-                    if (b == Undefined.Value)
-                        return -1f;
-                    return string.Compare(TypeConverter.ToString(a), TypeConverter.ToString(b), StringComparison.Ordinal);
-                };
-            else
-                comparer = (a, b) =>
-                {
-                    if (a == null && b == null)
-                        return 0f;
-                    if (a == null)
-                        return 1f;
-                    if (b == null)
-                        return -1f;
-                    if (a == Undefined.Value && b == Undefined.Value)
-                        return 0f;
-                    if (a == Undefined.Value)
-                        return 1f;
-                    if (b == Undefined.Value)
-                        return -1f;
-                    return TypeConverter.ToNumber(comparisonFunction.CallFromNative("sort", null, a, b));
-                }; 
-
-            try
-            {
-                // Sort the array.
-                QuickSort(thisObj, comparer, 0, arrayLength - 1);
-            }
-            catch (IndexOutOfRangeException)
-            {
-                throw new JavaScriptException(thisObj.Engine, "TypeError", "Invalid comparison function");
-            }
-
-            return thisObj;
+            // Else if the number of actual arguments is 1, then
+            //     Let insertCount be 0.
+            //     Let actualDeleteCount be len – actualStart.
+            return Splice(thisObj, start, int.MaxValue);
         }
 
         /// <summary>
@@ -921,15 +870,15 @@ namespace Jurassic.Library
         /// <param name="deleteCount"> The number of elements to delete. </param>
         /// <param name="items"> The items to insert. </param>
         /// <returns> An array containing the deleted elements, if any. </returns>
-        [JSInternalFunction(Name = "splice", Flags = JSFunctionFlags.HasThisObject, Length = 2)]
-        public static ArrayInstance Splice([JSParameter(JSParameterFlags.Mutated)] ObjectInstance thisObj, int start, int deleteCount, params object[] items)
+        [JSInternalFunction(Name = "splice", Flags = JSFunctionFlags.HasThisObject | JSFunctionFlags.MutatesThisObject, Length = 2)]
+        public static ObjectInstance Splice(ObjectInstance thisObj, int start, int deleteCount, params object[] items)
         {
             // Get the length of the array.
             uint arrayLength = GetLength(thisObj);
 
             // This method only supports arrays of length up to 2^31-1.
             if (arrayLength > int.MaxValue)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
+                throw new JavaScriptException(ErrorType.RangeError, "The array is too long");
 
             // Fix the arguments so they are positive and within the bounds of the array.
             if (start < 0)
@@ -950,7 +899,7 @@ namespace Jurassic.Library
             {
                 for (int i = start + items.Length; i < newLength; i++)
                     thisObj[(uint)i] = thisObj[(uint)(i - offset)];
-                
+
                 // Delete the trailing elements.
                 for (int i = newLength; i < arrayLength; i++)
                     thisObj.Delete((uint)i, true);
@@ -967,7 +916,7 @@ namespace Jurassic.Library
                 thisObj[(uint)(start + i)] = items[i];
 
             // Return the deleted items.
-            return thisObj.Engine.Array.New(deletedItems);
+            return new ArrayInstanceAdapter(thisObj).ConstructArray(deletedItems);
         }
 
         /// <summary>
@@ -976,8 +925,8 @@ namespace Jurassic.Library
         /// <param name="thisObj"> The array that is being operated on. </param>
         /// <param name="items"> The items to prepend. </param>
         /// <returns> The new length of the array. </returns>
-        [JSInternalFunction(Name = "unshift", Flags = JSFunctionFlags.HasThisObject)]
-        public static uint Unshift([JSParameter(JSParameterFlags.Mutated)] ObjectInstance thisObj, params object[] items)
+        [JSInternalFunction(Name = "unshift", Flags = JSFunctionFlags.HasThisObject | JSFunctionFlags.MutatesThisObject)]
+        public static uint Unshift(ObjectInstance thisObj, params object[] items)
         {
             // If the "this" object is an array and the array is dense, use the fast version of this method.
             var array = thisObj as ArrayInstance;
@@ -985,7 +934,7 @@ namespace Jurassic.Library
             {
                 // Dense arrays are supported up to 2^32-1.
                 if (array.length + items.Length > int.MaxValue)
-                    throw new JavaScriptException(thisObj.Engine, "RangeError", "Invalid array length");
+                    throw new JavaScriptException(ErrorType.RangeError, "Invalid array length");
 
                 if (array.denseMayContainHoles == true && array.Prototype != null)
                 {
@@ -1018,7 +967,7 @@ namespace Jurassic.Library
 
             // This method supports arrays of length up to 2^32-1.
             if (uint.MaxValue - arrayLength < items.Length)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "Invalid array length");
+                throw new JavaScriptException(ErrorType.RangeError, "Invalid array length");
 
             // Update the length property.
             SetLength(thisObj, arrayLength + (uint)items.Length);
@@ -1029,10 +978,237 @@ namespace Jurassic.Library
 
             // Prepend the new items.
             for (uint i = 0; i < items.Length; i++)
-                thisObj.SetPropertyValue(i, items[i], true);
-            
+                thisObj.SetPropertyValue(i, items[i], thisObj, throwOnError: true);
+
             // Return the new length of the array.
             return arrayLength + (uint)items.Length;
+        }
+
+        /// <summary>
+        /// Creates a new array with all sub-array elements concatenated into it recursively up to
+        /// the specified depth.
+        /// </summary>
+        /// <param name="thisObj"> The array that is being operated on. </param>
+        /// <param name="depth"> The depth level specifying how deep a nested array structure
+        /// should be flattened. Defaults to 1. </param>
+        /// <returns> A new array with the sub-array elements concatenated into it. </returns>
+        [JSInternalFunction(Name = "flat", Flags = JSFunctionFlags.HasThisObject, Length = 0)]
+        public static ObjectInstance Flat(ObjectInstance thisObj, int depth = 1)
+        {
+            var result = new List<object>((int)GetLength(thisObj));
+            FlattenTo(result, thisObj, null, null, depth);
+            return new ArrayInstanceAdapter(thisObj).ConstructArray(result.ToArray());
+        }
+
+        /// <summary>
+        /// Maps each element using a mapping function, then flattens the result into a new array.
+        /// </summary>
+        /// <param name="thisObj"> The array that is being operated on. </param>
+        /// <param name="callback"> A function that produces an element of the new Array, taking
+        /// three arguments: currentValue, index, array. </param>
+        /// <param name="thisArg"> Value to use as this when executing callback. </param>
+        /// <returns> A new array with each element being the result of the callback function and
+        /// flattened to a depth of 1. </returns>
+        [JSInternalFunction(Name = "flatMap", Flags = JSFunctionFlags.HasThisObject, Length = 1)]
+        public static ObjectInstance FlatMap(ObjectInstance thisObj, FunctionInstance callback, object thisArg)
+        {
+            var result = new List<object>((int)GetLength(thisObj));
+            FlattenTo(result, thisObj, callback, thisArg, depth: 1);
+            return new ArrayInstanceAdapter(thisObj).ConstructArray(result.ToArray());
+        }
+
+
+
+        //     ARRAY ADAPTER FUNCTIONS
+        //_________________________________________________________________________________________
+
+        /// <summary>
+        /// Implements an adapter for regular JS arrays.
+        /// </summary>
+        internal class ArrayInstanceAdapter : ArrayAdapter<object>
+        {
+            /// <summary>
+            /// Creates a new ArrayInstanceWrapper instance.
+            /// </summary>
+            /// <param name="wrappedInstance"> The array-like object that is being wrapped. </param>
+            public ArrayInstanceAdapter(ObjectInstance wrappedInstance)
+                : base(wrappedInstance, (int)GetLength(wrappedInstance))
+            {
+            }
+
+            /// <summary>
+            /// Gets or sets an array element within the range 0 .. Length-1 (inclusive).
+            /// </summary>
+            /// <param name="index"> The index to get or set. </param>
+            /// <returns> The value at the given index. </returns>
+            public override object this[int index]
+            {
+                get { return WrappedInstance.GetPropertyValue((uint)index); }
+                set { WrappedInstance.SetPropertyValue((uint)index, value, WrappedInstance, throwOnError: false); }
+            }
+
+            /// <summary>
+            /// Deletes the value at the given array index, throwing an exception on error.
+            /// </summary>
+            /// <param name="index"> The array index to delete. </param>
+            public override void Delete(int index)
+            {
+                WrappedInstance.Delete((uint)index, true);
+            }
+
+            /// <summary>
+            /// Indicates whether the array index exists (has a value).
+            /// </summary>
+            /// <param name="index"> The index to check. </param>
+            /// <returns> <c>true</c> if the index exists, <c>false</c> otherwise. </returns>
+            public override bool HasProperty(int index)
+            {
+                return WrappedInstance.HasProperty(index.ToString());
+            }
+
+            /// <summary>
+            /// Creates a new array of the same type as this one.
+            /// </summary>
+            /// <param name="values"> The values in the new array. </param>
+            /// <returns> A new array object. </returns>
+            public override ObjectInstance ConstructArray(object[] values)
+            {
+                if (WrappedInstance is ArrayInstance wrappedArrayInstance)
+                {
+                    var constructor = wrappedArrayInstance["constructor"];
+                    if (constructor is ObjectInstance constructorObjectInstance && !(constructor is FunctionInstance))
+                    {
+                        constructor = constructorObjectInstance[Symbol.Species];
+                        if (constructor == Null.Value)
+                            constructor = Undefined.Value;
+                    }
+                    if (constructor != Undefined.Value && constructor != Engine.Array)
+                    {
+                        if (constructor is FunctionInstance constructorFunction)
+                        {
+                            var result = constructorFunction.ConstructLateBound(constructorFunction, values.Length);
+                            for (int i = 0; i < values.Length; i++)
+                                if (values[i] != null)
+                                    result[i] = values[i];
+                            return result;
+                        }
+                        else
+                            throw new JavaScriptException(ErrorType.TypeError, "object.constructor[Symbol.species] is not a constructor.");
+                    }
+                }
+                return Engine.Array.New(values);
+            }
+
+            /// <summary>
+            /// Convert an untyped value to a typed value.
+            /// </summary>
+            /// <param name="value"> The value to convert. </param>
+            /// <returns> The typed value. </returns>
+            public override object ConvertValue(object value)
+            {
+                return value;
+            }
+        }
+
+        /// <summary>
+        /// Concatenates all the elements of the array, using the specified separator between each
+        /// element.  If no separator is provided, a comma is used for this purpose.
+        /// </summary>
+        /// <param name="thisObj"> The array that is being operated on. </param>
+        /// <param name="separator"> The string to use as a separator. </param>
+        /// <returns> A string that consists of the element values separated by the separator string. </returns>
+        [JSInternalFunction(Name = "join", Flags = JSFunctionFlags.HasThisObject)]
+        public static string Join(ObjectInstance thisObj, string separator = ",")
+        {
+            return new ArrayInstanceAdapter(thisObj).Join(separator);
+        }
+
+        /// <summary>
+        /// Reverses the order of the elements in the array.
+        /// </summary>
+        /// <param name="thisObj"> The array that is being operated on. </param>
+        /// <returns> The array that is being operated on. </returns>
+        [JSInternalFunction(Name = "reverse", Flags = JSFunctionFlags.HasThisObject | JSFunctionFlags.MutatesThisObject)]
+        public static ObjectInstance Reverse(ObjectInstance thisObj)
+        {
+            return new ArrayInstanceAdapter(thisObj).Reverse();
+        }
+
+        /// <summary>
+        /// Returns a section of an array.
+        /// </summary>
+        /// <param name="thisObj"> The array that is being operated on. </param>
+        /// <param name="start"> The index of the first element in the section.  If this value is
+        /// negative it is treated as an offset from the end of the array. </param>
+        /// <param name="end"> The index of the element just past the last element in the section.
+        /// If this value is negative it is treated as an offset from the end of the array.  If
+        /// <paramref name="end"/> is less than or equal to <paramref name="start"/> then an empty
+        /// array is returned. </param>
+        /// <returns> A section of an array. </returns>
+        [JSInternalFunction(Name = "slice", Flags = JSFunctionFlags.HasThisObject, Length = 2)]
+        public static ObjectInstance Slice(ObjectInstance thisObj, int start, int end = int.MaxValue)
+        {
+            return new ArrayInstanceAdapter(thisObj).Slice(start, end);
+        }
+
+        /// <summary>
+        /// Sorts the array.
+        /// </summary>
+        /// <param name="thisObj"> The array that is being operated on. </param>
+        /// <param name="comparisonFunction"> A function which determines the order of the
+        /// elements.  This function should return a number less than zero if the first argument is
+        /// less than the second argument, zero if the arguments are equal or a number greater than
+        /// zero if the first argument is greater than Defaults to an ascending ASCII ordering. </param>
+        /// <returns> The array that was sorted. </returns>
+        [JSInternalFunction(Name = "sort", Flags = JSFunctionFlags.HasThisObject | JSFunctionFlags.MutatesThisObject, Length = 1)]
+        public static ObjectInstance Sort(ObjectInstance thisObj, FunctionInstance comparisonFunction = null)
+        {
+            Comparison<object> comparer;
+            if (comparisonFunction == null)
+            {
+                // Default comparer.
+                comparer = (a, b) =>
+                {
+                    if (a == null && b == null)
+                        return 0;
+                    if (a == null)
+                        return 1;
+                    if (b == null)
+                        return -1;
+                    if (a == Undefined.Value && b == Undefined.Value)
+                        return 0;
+                    if (a == Undefined.Value)
+                        return 1;
+                    if (b == Undefined.Value)
+                        return -1;
+                    return string.Compare(TypeConverter.ToString(a), TypeConverter.ToString(b), StringComparison.Ordinal);
+                };
+            }
+            else
+            {
+                // Custom comparer.
+                comparer = (a, b) =>
+                {
+                    if (a == null && b == null)
+                        return 0;
+                    if (a == null)
+                        return 1;
+                    if (b == null)
+                        return -1;
+                    if (a == Undefined.Value && b == Undefined.Value)
+                        return 0;
+                    if (a == Undefined.Value)
+                        return 1;
+                    if (b == Undefined.Value)
+                        return -1;
+                    var v = TypeConverter.ToNumber(comparisonFunction.CallFromNative("sort", null, a, b));
+                    if (double.IsNaN(v))
+                        return 0;
+                    return Math.Sign(v);
+                };
+            }
+
+            return new ArrayInstanceAdapter(thisObj).Sort(comparer);
         }
 
         /// <summary>
@@ -1043,42 +1219,7 @@ namespace Jurassic.Library
         [JSInternalFunction(Name = "toLocaleString", Flags = JSFunctionFlags.HasThisObject)]
         public static string ToLocaleString(ObjectInstance thisObj)
         {
-            // Get the length of the array.
-            var arrayLength = GetLength(thisObj);
-
-            // This method only supports arrays of length up to 2^30-1.
-            if (arrayLength > int.MaxValue / 2)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
-
-            var result = new System.Text.StringBuilder((int)arrayLength * 2);
-
-            // Get the culture-specific list separator.
-            var listSeparator = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ListSeparator;
-
-            try
-            {
-
-                for (uint i = 0; i < arrayLength; i++)
-                {
-                    // Append the localized list separator.
-                    if (i > 0)
-                        result.Append(listSeparator);
-
-                    // Retrieve the array element.
-                    var element = thisObj[i];
-
-                    // Convert the element to a string and append it to the result.
-                    if (element != null && element != Undefined.Value && element != Null.Value)
-                        result.Append(TypeConverter.ToObject(thisObj.Engine, element).CallMemberFunction("toLocaleString"));
-                }
-
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
-            }
-
-            return result.ToString();
+            return new ArrayInstanceAdapter(thisObj).ToLocaleString();
         }
 
         /// <summary>
@@ -1089,19 +1230,8 @@ namespace Jurassic.Library
         [JSInternalFunction(Name = "toString", Flags = JSFunctionFlags.HasThisObject)]
         public static string ToString(ObjectInstance thisObj)
         {
-            // Try calling thisObj.join().
-            object result;
-            if (thisObj.TryCallMemberFunction(out result, "join") == true)
-                return TypeConverter.ToString(result);
-
-            // Otherwise, use the default Object.prototype.toString() method.
-            return ObjectInstance.ToStringJS(thisObj.Engine, thisObj);
+            return new ArrayInstanceAdapter(thisObj).ToString();
         }
-
-
-
-        //     JAVASCRIPT FUNCTIONS (NEW IN ES5)
-        //_________________________________________________________________________________________
 
         /// <summary>
         /// Returns the index of the given search element in the array, starting from
@@ -1113,31 +1243,9 @@ namespace Jurassic.Library
         /// <returns> The index of the given search element in the array, or <c>-1</c> if the
         /// element wasn't found. </returns>
         [JSInternalFunction(Name = "indexOf", Flags = JSFunctionFlags.HasThisObject, Length = 1)]
-        public static int IndexOf(ObjectInstance thisObj, object searchElement, [DefaultParameterValue(0)] int fromIndex = 0)
+        public static int IndexOf(ObjectInstance thisObj, object searchElement, int fromIndex = 0)
         {
-            // Get the length of the array.
-            uint arrayLength = GetLength(thisObj);
-
-            // This method only supports arrays of length up to 2^31-1.
-            if (arrayLength > int.MaxValue)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
-
-            // If fromIndex is less than zero, it is an offset from the end of the array.
-            if (fromIndex < 0)
-                fromIndex += (int)arrayLength;
-
-            for (int i = Math.Max(fromIndex, 0); i < arrayLength; i++)
-            {
-                // Get the value of the array element.
-                object elementValue = thisObj[(uint)i];
-
-                // Compare the given search element with the array element.
-                if (elementValue != null && TypeComparer.StrictEquals(searchElement, elementValue) == true)
-                    return i;
-            }
-
-            // The search element wasn't found.
-            return -1;
+            return new ArrayInstanceAdapter(thisObj).IndexOf(searchElement, fromIndex);
         }
 
         /// <summary>
@@ -1146,7 +1254,6 @@ namespace Jurassic.Library
         /// </summary>
         /// <param name="thisObj"> The array that is being operated on. </param>
         /// <param name="searchElement"> The value to search for. </param>
-        /// <param name="fromIndex"> The array index to start searching. </param>
         /// <returns> The index of the given search element in the array, or <c>-1</c> if the
         /// element wasn't found. </returns>
         [JSInternalFunction(Name = "lastIndexOf", Flags = JSFunctionFlags.HasThisObject, Length = 1)]
@@ -1167,29 +1274,7 @@ namespace Jurassic.Library
         [JSInternalFunction(Name = "lastIndexOf", Flags = JSFunctionFlags.HasThisObject, Length = 1)]
         public static int LastIndexOf(ObjectInstance thisObj, object searchElement, int fromIndex)
         {
-            // Get the length of the array.
-            uint arrayLength = GetLength(thisObj);
-
-            // This method only supports arrays of length up to 2^31-1.
-            if (arrayLength > int.MaxValue)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
-
-            // If fromIndex is less than zero, it is an offset from the end of the array.
-            if (fromIndex < 0)
-                fromIndex += (int)arrayLength;
-
-            for (int i = Math.Min((int)arrayLength - 1, fromIndex); i >= 0; i--)
-            {
-                // Get the value of the array element.
-                object elementValue = thisObj[(uint)i];
-
-                // Compare the given search element with the array element.
-                if (elementValue != null && TypeComparer.StrictEquals(searchElement, elementValue) == true)
-                    return i;
-            }
-
-            // The search element wasn't found.
-            return -1;
+            return new ArrayInstanceAdapter(thisObj).LastIndexOf(searchElement, fromIndex);
         }
 
         /// <summary>
@@ -1197,7 +1282,7 @@ namespace Jurassic.Library
         /// defined function.
         /// </summary>
         /// <param name="thisObj"> The array that is being operated on. </param>
-        /// <param name="function"> A user-defined function that is called for each element in the
+        /// <param name="callbackFunction"> A user-defined function that is called for each element in the
         /// array.  This function is called with three arguments: the value of the element, the
         /// index of the element, and the array that is being operated on.  The function should
         /// return <c>true</c> or <c>false</c>. </param>
@@ -1205,33 +1290,9 @@ namespace Jurassic.Library
         /// <returns> <c>true</c> if every element of the array matches criteria defined by the
         /// given user-defined function; <c>false</c> otherwise. </returns>
         [JSInternalFunction(Name = "every", Flags = JSFunctionFlags.HasThisObject, Length = 1)]
-        public static bool Every(ObjectInstance thisObj, FunctionInstance callbackFunction, [DefaultParameterValue(null)] ObjectInstance context = null)
+        public static bool Every(ObjectInstance thisObj, FunctionInstance callbackFunction, ObjectInstance context = null)
         {
-            // callbackFunction must be a valid function.
-            if (callbackFunction == null)
-                throw new JavaScriptException(thisObj.Engine, "TypeError", "Invalid callback function");
-
-            // Get the length of the array.
-            uint arrayLength = GetLength(thisObj);
-
-            // This method only supports arrays of length up to 2^31-1.
-            if (arrayLength > int.MaxValue)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
-
-            for (int i = 0; i < arrayLength; i ++)
-            {
-                // Get the value of the array element.
-                object elementValue = thisObj[(uint)i];
-
-                // Only call the callback function for array elements that exist in the array.
-                if (elementValue != null)
-                {
-                    // Call the callback function.
-                    if (TypeConverter.ToBoolean(callbackFunction.CallFromNative("every", context, elementValue, i, thisObj)) == false)
-                        return false;
-                }
-            }
-            return true;
+            return new ArrayInstanceAdapter(thisObj).Every(callbackFunction, context);
         }
 
         /// <summary>
@@ -1239,7 +1300,7 @@ namespace Jurassic.Library
         /// user-defined function.
         /// </summary>
         /// <param name="thisObj"> The array that is being operated on. </param>
-        /// <param name="function"> A user-defined function that is called for each element in the
+        /// <param name="callbackFunction"> A user-defined function that is called for each element in the
         /// array.  This function is called with three arguments: the value of the element, the
         /// index of the element, and the array that is being operated on.  The function should
         /// return <c>true</c> or <c>false</c>. </param>
@@ -1247,69 +1308,23 @@ namespace Jurassic.Library
         /// <returns> <c>true</c> if at least one element of the array matches criteria defined by
         /// the given user-defined function; <c>false</c> otherwise. </returns>
         [JSInternalFunction(Name = "some", Flags = JSFunctionFlags.HasThisObject, Length = 1)]
-        public static bool Some(ObjectInstance thisObj, FunctionInstance callbackFunction, [DefaultParameterValue(null)] ObjectInstance context = null)
+        public static bool Some(ObjectInstance thisObj, FunctionInstance callbackFunction, ObjectInstance context = null)
         {
-            // callbackFunction must be a valid function.
-            if (callbackFunction == null)
-                throw new JavaScriptException(thisObj.Engine, "TypeError", "Invalid callback function");
-
-            // Get the length of the array.
-            uint arrayLength = GetLength(thisObj);
-
-            // This method only supports arrays of length up to 2^31-1.
-            if (arrayLength > int.MaxValue)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
-
-            for (int i = 0; i < arrayLength; i++)
-            {
-                // Get the value of the array element.
-                object elementValue = thisObj[(uint)i];
-
-                // Only call the callback function for array elements that exist in the array.
-                if (elementValue != null)
-                {
-                    // Call the callback function.
-                    if (TypeConverter.ToBoolean(callbackFunction.CallFromNative("some", context, elementValue, i, thisObj)) == true)
-                        return true;
-                }
-            }
-            return false;
+            return new ArrayInstanceAdapter(thisObj).Some(callbackFunction, context);
         }
 
         /// <summary>
         /// Calls the given user-defined function once per element in the array.
         /// </summary>
         /// <param name="thisObj"> The array that is being operated on. </param>
-        /// <param name="function"> A user-defined function that is called for each element in the
+        /// <param name="callbackFunction"> A user-defined function that is called for each element in the
         /// array.  This function is called with three arguments: the value of the element, the
         /// index of the element, and the array that is being operated on. </param>
         /// <param name="context"> The value of <c>this</c> in the context of the callback function. </param>
         [JSInternalFunction(Name = "forEach", Flags = JSFunctionFlags.HasThisObject, Length = 1)]
-        public static void ForEach(ObjectInstance thisObj, FunctionInstance callbackFunction, [DefaultParameterValue(null)] ObjectInstance context = null)
+        public static void ForEach(ObjectInstance thisObj, FunctionInstance callbackFunction, ObjectInstance context = null)
         {
-            // callbackFunction must be a valid function.
-            if (callbackFunction == null)
-                throw new JavaScriptException(thisObj.Engine, "TypeError", "Invalid callback function");
-
-            // Get the length of the array.
-            uint arrayLength = GetLength(thisObj);
-
-            // This method only supports arrays of length up to 2^31-1.
-            if (arrayLength > int.MaxValue)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
-
-            for (int i = 0; i < arrayLength; i++)
-            {
-                // Get the value of the array element.
-                object elementValue = thisObj[(uint)i];
-
-                // Only call the callback function for array elements that exist in the array.
-                if (elementValue != null)
-                {
-                    // Call the callback function.
-                    callbackFunction.CallFromNative("forEach", context, elementValue, i, thisObj);
-                }
-            }
+            new ArrayInstanceAdapter(thisObj).ForEach(callbackFunction, context);
         }
 
         /// <summary>
@@ -1325,40 +1340,26 @@ namespace Jurassic.Library
         /// <returns> A new array with the results of calling the given function on every element
         /// in the array. </returns>
         [JSInternalFunction(Name = "map", Flags = JSFunctionFlags.HasThisObject, Length = 1)]
-        public static ArrayInstance Map(ObjectInstance thisObj, FunctionInstance callbackFunction, [DefaultParameterValue(null)] ObjectInstance context = null)
+        public static ObjectInstance Map(ObjectInstance thisObj, FunctionInstance callbackFunction, ObjectInstance context = null)
         {
-            // callbackFunction must be a valid function.
-            if (callbackFunction == null)
-                throw new JavaScriptException(thisObj.Engine, "TypeError", "Invalid callback function");
+            return new ArrayInstanceAdapter(thisObj).Map(callbackFunction, context);
+        }
 
-            // Get the length of the array.
-            uint arrayLength = GetLength(thisObj);
-
-            // This method only supports arrays of length up to 2^31-1.
-            if (arrayLength > int.MaxValue)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
-
-            // Create a new array to hold the new values.
-            // The length of the output array is always equal to the length of the input array.
-            var resultArray = new ArrayInstance(thisObj.Engine.Array.InstancePrototype, arrayLength, arrayLength);
-
-            for (int i = 0; i < arrayLength; i++)
-            {
-                // Get the value of the array element.
-                object elementValue = thisObj[(uint)i];
-
-                // Only call the callback function for array elements that exist in the array.
-                if (elementValue != null)
-                {
-                    // Call the callback function.
-                    object result = callbackFunction.CallFromNative("map", context, elementValue, i, thisObj);
-
-                    // Store the result.
-                    resultArray[(uint)i] = result;
-                }
-            }
-
-            return resultArray;
+        /// <summary>
+        /// Returns the first element in the given array that passes the test implemented by the
+        /// given function.
+        /// </summary>
+        /// <param name="thisObj"> The array that is being operated on. </param>
+        /// <param name="callbackFunction"> A user-defined function that is called for each element in the
+        /// array.  This function is called with three arguments: the value of the element, the
+        /// index of the element, and the array that is being operated on.  The function should
+        /// return <c>true</c> or <c>false</c>. </param>
+        /// <param name="context"> The value of <c>this</c> in the context of the callback function. </param>
+        /// <returns> The first element that results in the callback returning <c>true</c>. </returns>
+        [JSInternalFunction(Name = "find", Flags = JSFunctionFlags.HasThisObject, Length = 1)]
+        public static object Find(ObjectInstance thisObj, FunctionInstance callbackFunction, ObjectInstance context = null)
+        {
+            return new ArrayInstanceAdapter(thisObj).Find(callbackFunction, context);
         }
 
         /// <summary>
@@ -1374,39 +1375,9 @@ namespace Jurassic.Library
         /// <returns> A copy of this array but with only those elements which produce <c>true</c>
         /// when passed to the provided function. </returns>
         [JSInternalFunction(Name = "filter", Flags = JSFunctionFlags.HasThisObject, Length = 1)]
-        public static ArrayInstance Filter(ObjectInstance thisObj, FunctionInstance callbackFunction, [DefaultParameterValue(null)] ObjectInstance context = null)
+        public static ObjectInstance Filter(ObjectInstance thisObj, FunctionInstance callbackFunction, ObjectInstance context = null)
         {
-            // callbackFunction must be a valid function.
-            if (callbackFunction == null)
-                throw new JavaScriptException(thisObj.Engine, "TypeError", "Invalid callback function");
-
-            // Get the length of the array.
-            uint arrayLength = GetLength(thisObj);
-
-            // This method only supports arrays of length up to 2^31-1.
-            if (arrayLength > int.MaxValue)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
-
-            // Create a new array to hold the new values.
-            var result = thisObj.Engine.Array.New();
-
-            for (int i = 0; i < arrayLength; i++)
-            {
-                // Get the value of the array element.
-                object elementValue = thisObj[(uint)i];
-
-                // Only call the callback function for array elements that exist in the array.
-                if (elementValue != null)
-                {
-                    // Call the callback function.
-                    bool includeInArray = TypeConverter.ToBoolean(callbackFunction.CallFromNative("filter", context, elementValue, i, thisObj));
-
-                    // Store the result if the callback function returned true.
-                    if (includeInArray == true)
-                        result.Push(elementValue);
-                }
-            }
-            return result;
+            return new ArrayInstanceAdapter(thisObj).Filter(callbackFunction, context);
         }
 
         /// <summary>
@@ -1422,52 +1393,9 @@ namespace Jurassic.Library
         /// <returns> The accumulated value returned from the last invocation of the callback
         /// function. </returns>
         [JSInternalFunction(Name = "reduce", Flags = JSFunctionFlags.HasThisObject, Length = 1)]
-        public static object Reduce(ObjectInstance thisObj, FunctionInstance callbackFunction, [DefaultParameterValue(null)] object initialValue = null)
+        public static object Reduce(ObjectInstance thisObj, FunctionInstance callbackFunction, object initialValue = null)
         {
-            // callbackFunction must be a valid function.
-            if (callbackFunction == null)
-                throw new JavaScriptException(thisObj.Engine, "TypeError", "Invalid callback function");
-
-            // Get the length of the array.
-            uint arrayLength = GetLength(thisObj);
-
-            // This method only supports arrays of length up to 2^31-1.
-            if (arrayLength > int.MaxValue)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
-
-            // If an initial value is not provided, the initial value is the first (defined) element.
-            int i = 0;
-            object accumulatedValue = initialValue;
-            if (accumulatedValue == null)
-            {
-                // Scan for a defined element.
-                for (; i < arrayLength; i++)
-                {
-                    if (thisObj[(uint)i] != null)
-                    {
-                        accumulatedValue = thisObj[(uint)(i++)];
-                        break;
-                    }
-                }
-                if (accumulatedValue == null)
-                    throw new JavaScriptException(thisObj.Engine, "TypeError", "Reduce of empty array with no initial value");
-            }
-
-            // Scan from low to high.
-            for (; i < arrayLength; i++)
-            {
-                // Get the value of the array element.
-                object elementValue = thisObj[(uint)i];
-
-                // Only call the callback function for array elements that exist in the array.
-                if (elementValue != null)
-                {
-                    // Call the callback function.
-                    accumulatedValue = callbackFunction.CallFromNative("reduce", Undefined.Value, accumulatedValue, elementValue, i, thisObj);
-                }
-            }
-
-            return accumulatedValue;
+            return new ArrayInstanceAdapter(thisObj).Reduce(callbackFunction, initialValue);
         }
 
         /// <summary>
@@ -1484,52 +1412,106 @@ namespace Jurassic.Library
         /// <returns> The accumulated value returned from the last invocation of the callback
         /// function. </returns>
         [JSInternalFunction(Name = "reduceRight", Flags = JSFunctionFlags.HasThisObject, Length = 1)]
-        public static object ReduceRight(ObjectInstance thisObj, FunctionInstance callbackFunction, [DefaultParameterValue(null)] object initialValue = null)
+        public static object ReduceRight(ObjectInstance thisObj, FunctionInstance callbackFunction, object initialValue = null)
         {
-            // callbackFunction must be a valid function.
-            if (callbackFunction == null)
-                throw new JavaScriptException(thisObj.Engine, "TypeError", "Invalid callback function");
+            return new ArrayInstanceAdapter(thisObj).ReduceRight(callbackFunction, initialValue);
+        }
 
-            // Get the length of the array.
-            uint arrayLength = GetLength(thisObj);
+        /// <summary>
+        /// Copies the sequence of array elements within the array to the position starting at
+        /// target. The copy is taken from the index positions of the second and third arguments
+        /// start and end. The end argument is optional and defaults to the length of the array.
+        /// This method has the same algorithm as Array.prototype.copyWithin.
+        /// </summary>
+        /// <param name="thisObj"> The array that is being operated on. </param>
+        /// <param name="target"> Target start index position where to copy the elements to. </param>
+        /// <param name="start"> Source start index position where to start copying elements from. </param>
+        /// <param name="end"> Optional. Source end index position where to end copying elements from. </param>
+        /// <returns> The array that is being operated on. </returns>
+        [JSInternalFunction(Name = "copyWithin", Length = 2, Flags = JSFunctionFlags.HasThisObject | JSFunctionFlags.MutatesThisObject)]
+        public static ObjectInstance CopyWithin(ObjectInstance thisObj, int target, int start, int end = int.MaxValue)
+        {
+            return new ArrayInstanceAdapter(thisObj).CopyWithin(target, start, end);
+        }
 
-            // This method only supports arrays of length up to 2^31-1.
-            if (arrayLength > int.MaxValue)
-                throw new JavaScriptException(thisObj.Engine, "RangeError", "The array is too long");
+        /// <summary>
+        /// Fills all the elements of a typed array from a start index to an end index with a
+        /// static value.
+        /// </summary>
+        /// <param name="thisObj"> The array that is being operated on. </param>
+        /// <param name="value"> The value to fill the typed array with. </param>
+        /// <param name="start"> Optional. Start index. Defaults to 0. </param>
+        /// <param name="end"> Optional. End index (exclusive). Defaults to the length of the array. </param>
+        /// <returns> The array that is being operated on. </returns>
+        [JSInternalFunction(Name = "fill", Length = 1, Flags = JSFunctionFlags.HasThisObject | JSFunctionFlags.MutatesThisObject)]
+        public static ObjectInstance Fill(ObjectInstance thisObj, object value, int start = 0, int end = int.MaxValue)
+        {
+            return new ArrayInstanceAdapter(thisObj).Fill(value, start, end);
+        }
 
-            // If an initial value is not provided, the initial value is the last (defined) element.
-            int i = (int)arrayLength - 1;
-            object accumulatedValue = initialValue;
-            if (accumulatedValue == null)
-            {
-                // Scan for a defined element.
-                for (; i >= 0; i--)
-                {
-                    if (thisObj[(uint)i] != null)
-                    {
-                        accumulatedValue = thisObj[(uint)(i--)];
-                        break;
-                    }
-                }
-                if (accumulatedValue == null)
-                    throw new JavaScriptException(thisObj.Engine, "TypeError", "Reduce of empty array with no initial value");
-            }
+        /// <summary>
+        /// Returns an index in the typed array, if an element in the typed array satisfies the
+        /// provided testing function. Otherwise -1 is returned.
+        /// </summary>
+        /// <param name="thisObj"> The array that is being operated on. </param>
+        /// <param name="callbackFunction"> A user-defined function that is called for each element in the
+        /// array.  This function is called with three arguments: the value of the element, the
+        /// index of the element, and the array that is being operated on.  The function should
+        /// return <c>true</c> or <c>false</c>. </param>
+        /// <param name="context"> The value of <c>this</c> in the context of the callback function. </param>
+        /// <returns> The first element that results in the callback returning <c>true</c>. </returns>
+        [JSInternalFunction(Name = "findIndex", Length = 1, Flags = JSFunctionFlags.HasThisObject)]
+        public static int FindIndex(ObjectInstance thisObj, FunctionInstance callbackFunction, ObjectInstance context = null)
+        {
+            return new ArrayInstanceAdapter(thisObj).FindIndex(callbackFunction, context);
+        }
 
-            // Scan from high to to low.
-            for (; i >= 0; i--)
-            {
-                // Get the value of the array element.
-                object elementValue = thisObj[(uint)i];
+        /// <summary>
+        /// Returns a new array iterator object that contains the key/value pairs for each index in
+        /// the array.
+        /// </summary>
+        /// <returns> An array iterator object that contains the key/value pairs for each index in
+        /// the array. </returns>
+        [JSInternalFunction(Name = "entries")]
+        public ObjectInstance Entries()
+        {
+            return new ArrayIterator(Engine.ArrayIteratorPrototype, this, ArrayIterator.Kind.KeyAndValue);
+        }
 
-                // Only call the callback function for array elements that exist in the array.
-                if (elementValue != null)
-                {
-                    // Call the callback function.
-                    accumulatedValue = callbackFunction.CallFromNative("reduceRight", Undefined.Value, accumulatedValue, elementValue, i, thisObj);
-                }
-            }
+        /// <summary>
+        /// Returns a new array iterator object that contains the keys for each index in the array.
+        /// </summary>
+        /// <returns> An array iterator object that contains the keys for each index in the array. </returns>
+        [JSInternalFunction(Name = "keys")]
+        public ObjectInstance Keys()
+        {
+            return new ArrayIterator(Engine.ArrayIteratorPrototype, this, ArrayIterator.Kind.Key);
+        }
 
-            return accumulatedValue;
+        /// <summary>
+        /// Returns a new array iterator object that contains the values for each index in the
+        /// array.
+        /// </summary>
+        /// <returns> An array iterator object that contains the values for each index in the
+        /// array. </returns>
+        [JSInternalFunction(Name = "values")]
+        public ObjectInstance Values()
+        {
+            return new ArrayIterator(Engine.ArrayIteratorPrototype, this, ArrayIterator.Kind.Value);
+        }
+
+        /// <summary>
+        /// Determines whether an array includes a certain value among its entries.
+        /// </summary>
+        /// <param name="thisObj"> The array that is being operated on. </param>
+        /// <param name="searchElement"> The value to search for. </param>
+        /// <param name="fromIndex"> The array index to start searching. </param>
+        /// <returns> <c>true</c> given search element in the array, or <c>false</c> if the element
+        /// wasn't found. </returns>
+        [JSInternalFunction(Name = "includes", Flags = JSFunctionFlags.HasThisObject, Length = 1)]
+        public static bool Includes(ObjectInstance thisObj, object searchElement, int fromIndex = 0)
+        {
+            return new ArrayInstanceAdapter(thisObj).Includes(searchElement, fromIndex);
         }
 
 
@@ -1542,7 +1524,7 @@ namespace Jurassic.Library
         /// </summary>
         /// <param name="thisObj"> The array that is being operated on. </param>
         /// <returns> The number of items in the array. </returns>
-        private static uint GetLength(ObjectInstance thisObj)
+        internal static uint GetLength(ObjectInstance thisObj)
         {
             if (thisObj is ArrayInstance)
                 return ((ArrayInstance)thisObj).length;
@@ -1559,7 +1541,7 @@ namespace Jurassic.Library
             if (thisObj is ArrayInstance)
                 ((ArrayInstance)thisObj).Length = value;
             else
-                thisObj.SetPropertyValue("length", (double)value, true);
+                thisObj.SetPropertyValue("length", (double)value, thisObj, throwOnError: true);
         }
 
         /// <summary>
@@ -1577,95 +1559,74 @@ namespace Jurassic.Library
         }
 
         /// <summary>
-        /// Sorts a array using the quicksort algorithm.
+        /// Recursively appends sub-array elements into the given list.
         /// </summary>
-        /// <param name="array"> The array to sort. </param>
-        /// <param name="comparer"> A comparison function. </param>
-        /// <param name="start"> The first index in the range. </param>
-        /// <param name="end"> The last index in the range. </param>
-        private static void QuickSort(ObjectInstance array, Func<object, object, double> comparer, uint start, uint end)
+        /// <param name="result"> The list to append to. </param>
+        /// <param name="array"> The array elements to append. </param>
+        /// <param name="callback"> A function that produces an element of the new Array, taking
+        /// three arguments: currentValue, index, array. </param>
+        /// <param name="thisArg"> Value to use as this when executing callback. </param>
+        /// <param name="depth"> The depth of recursion when iterating through elements. </param>
+        private static void FlattenTo(List<object> result, ObjectInstance array, FunctionInstance callback, object thisArg, int depth)
         {
-            if (end - start < 30)
+            for (int i = 0; i < GetLength(array); i++)
             {
-                // Insertion sort is faster than quick sort for small arrays.
-                InsertionSort(array, comparer, start, end);
-                return;
-            }
+                // Get the value of the array element.
+                object elementValue = array.GetPropertyValue((uint)i);
 
-            // Choose a random pivot.
-            uint pivotIndex = start + (uint)(MathObject.Random() * (end - start));
-
-            // Get the pivot value.
-            object pivotValue = array[pivotIndex];
-
-            // Send the pivot to the back.
-            Swap(array, pivotIndex, end);
-
-            // Sweep all the low values to the front of the array and the high values to the back
-            // of the array.  This version of quicksort never gets into an infinite loop even if
-            // the comparer function is not consistent.
-            uint newPivotIndex = start;
-            for (uint i = start; i < end; i++)
-            {
-                if (comparer(array[i], pivotValue) <= 0.0)
+                // Ignore missing elements.
+                if (elementValue != null)
                 {
-                    Swap(array, i, newPivotIndex);
-                    newPivotIndex++;
+                    // Transform the value using the mapping function.
+                    if (callback != null)
+                        elementValue = callback.Call(thisArg ?? Undefined.Value, elementValue, i, array);
+
+                    // If the element is an array, flatten it.
+                    if (depth > 0 && elementValue is ArrayInstance childArray)
+                        FlattenTo(result, childArray, null, null, depth - 1);
+                    else
+                        result.Add(elementValue);
                 }
-            }
-
-            // Swap the pivot back to where it belongs.
-            Swap(array, end, newPivotIndex);
-
-            // Quick sort the array to the left of the pivot.
-            if (newPivotIndex > start)
-                QuickSort(array, comparer, start, newPivotIndex - 1);
-
-            // Quick sort the array to the right of the pivot.
-            if (newPivotIndex < end)
-                QuickSort(array, comparer, newPivotIndex + 1, end);
-        }
-
-        /// <summary>
-        /// Sorts a array using the insertion sort algorithm.
-        /// </summary>
-        /// <param name="array"> The array to sort. </param>
-        /// <param name="comparer"> A comparison function. </param>
-        /// <param name="start"> The first index in the range. </param>
-        /// <param name="end"> The last index in the range. </param>
-        private static void InsertionSort(ObjectInstance array, Func<object, object, double> comparer, uint start, uint end)
-        {
-            for (uint i = start + 1; i <= end; i++)
-            {
-                object value = array[i];
-                uint j;
-                for (j = i - 1; j > start && comparer(array[j], value) > 0; j--)
-                    array[j + 1] = array[j];
-
-                // Normally the for loop above would continue until j < start but since we are
-                // using uint it doesn't work when start == 0.  Therefore the for loop stops one
-                // short of start then the extra loop iteration runs below.
-                if (j == start && comparer(array[j], value) > 0.0)
-                {
-                    array[j + 1] = array[j];
-                    j--;
-                }
-
-                array[j + 1] = value;
             }
         }
 
         /// <summary>
-        /// Swaps the elements at two locations in the array.
+        /// Indicates whether the given object should be concatenated as if it was an array.
         /// </summary>
-        /// <param name="array"> The array object. </param>
-        /// <param name="index1"> The location of the first element. </param>
-        /// <param name="index2"> The location of the second element. </param>
-        private static void Swap(ObjectInstance array, uint index1, uint index2)
+        /// <param name="engine"> The script engine. </param>
+        /// <param name="o"> The value to check. </param>
+        /// <returns> <c>true</c> if the value should be concatenated as if it was an array,
+        /// <c>false</c> otherwise. </returns>
+        private static bool IsConcatSpreadable(ScriptEngine engine, object o)
         {
-            object temp = array[index1];
-            array[index1] = array[index2];
-            array[index2] = temp;
+            if (o is ObjectInstance objectInstance)
+            {
+                var result = objectInstance[Symbol.IsConcatSpreadable];
+                if (result != Undefined.Value)
+                    return TypeConverter.ToBoolean(result);
+                return objectInstance is ArrayInstance;
+            }
+            else
+                return false;
+        }
+
+        /// <summary>
+        /// Enumerates the list of array-like properties (with numeric names).
+        /// </summary>
+        /// <param name="engine"> The script engine. </param>
+        /// <param name="obj"> The object to enumerate properties of. </param>
+        /// <param name="length"> The value of the length property. No indices are returned that
+        /// are higher or equal to this value. </param>
+        /// <returns> Enumerates the list of array-like properties (with numeric names). </returns>
+        private static IEnumerable<KeyValuePair<uint, object>> EnumerateArrayLikeValues(ScriptEngine engine, ObjectInstance obj, uint length)
+        {
+            foreach (var property in TypeConverter.ToObject(engine, obj).Properties)
+                if (property.Key is string key)
+                {
+                    uint arrayIndex = ArrayInstance.ParseArrayIndex(key);
+                    if (arrayIndex != uint.MaxValue && arrayIndex < length)
+                        yield return new KeyValuePair<uint, object>(arrayIndex, property.Value);
+                }
         }
     }
 }

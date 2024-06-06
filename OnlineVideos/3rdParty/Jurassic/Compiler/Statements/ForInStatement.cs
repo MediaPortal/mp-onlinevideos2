@@ -19,49 +19,35 @@ namespace Jurassic.Compiler
         }
 
         /// <summary>
+        /// The scope that encompasses the entire loop statement.
+        /// </summary>
+        public Scope Scope { get; set; }
+
+
+        /// <summary>
         /// Gets or sets a reference to mutate on each iteration of the loop.
         /// </summary>
-        public IReferenceExpression Variable
-        {
-            get;
-            set;
-        }
+        public IReferenceExpression Variable { get; set; }
 
         /// <summary>
         /// Gets or sets the portion of source code associated with the variable.
         /// </summary>
-        public SourceCodeSpan VariableSourceSpan
-        {
-            get;
-            set;
-        }
+        public SourceCodeSpan VariableSourceSpan { get; set; }
 
         /// <summary>
         /// Gets or sets an expression that evaluates to the object to enumerate.
         /// </summary>
-        public Expression TargetObject
-        {
-            get;
-            set;
-        }
+        public Expression TargetObject { get; set; }
 
         /// <summary>
         /// Gets or sets the portion of source code associated with the target object.
         /// </summary>
-        public SourceCodeSpan TargetObjectSourceSpan
-        {
-            get;
-            set;
-        }
+        public SourceCodeSpan TargetObjectSourceSpan { get; set; }
 
         /// <summary>
         /// Gets or sets the loop body.
         /// </summary>
-        public Statement Body
-        {
-            get;
-            set;
-        }
+        public Statement Body { get; set; }
 
         /// <summary>
         /// Generates CIL for the statement.
@@ -94,7 +80,7 @@ namespace Jurassic.Compiler
             generator.Call(ReflectionHelpers.TypeUtilities_EnumeratePropertyNames);
 
             // Call IEnumerable<string>.GetEnumerator()
-            generator.Call(ReflectionHelpers.IEnumerable_GetEnumerator);
+            generator.Call(ReflectionHelpers.IEnumerable_String_GetEnumerator);
 
             // Store the enumerator in a temporary variable.
             var enumerator = generator.CreateTemporaryVariable(typeof(IEnumerator<string>));
@@ -103,9 +89,8 @@ namespace Jurassic.Compiler
             var breakTarget = generator.CreateLabel();
             var continueTarget = generator.DefineLabelPosition();
 
-            // Emit debugging information.
-            if (optimizationInfo.DebugDocument != null)
-                generator.MarkSequencePoint(optimizationInfo.DebugDocument, this.VariableSourceSpan);
+            // Generate the scope variable if necessary.
+            this.Scope.GenerateScopeCreation(generator, optimizationInfo);
 
             //   if (enumerator.MoveNext() == false)
             //     goto break-target;
@@ -114,9 +99,10 @@ namespace Jurassic.Compiler
             generator.BranchIfFalse(breakTarget);
 
             // lhs = enumerator.Current;
+            this.Variable.GenerateReference(generator, optimizationInfo);
             generator.LoadVariable(enumerator);
-            generator.Call(ReflectionHelpers.IEnumerator_Current);
-            this.Variable.GenerateSet(generator, optimizationInfo, PrimitiveType.String, false);
+            generator.Call(ReflectionHelpers.IEnumerator_String_Current);
+            this.Variable.GenerateSet(generator, optimizationInfo, PrimitiveType.String);
 
             // Emit the body statement(s).
             optimizationInfo.PushBreakOrContinueInfo(this.Labels, breakTarget, continueTarget, labelledOnly: false);

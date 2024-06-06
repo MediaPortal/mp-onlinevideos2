@@ -12,7 +12,6 @@ namespace Jurassic.Compiler
     /// Binds to a method group using the default javascript rules (extra parameter values are
     /// ignored, missing parameter values are replaced with "undefined").
     /// </summary>
-    [Serializable]
     internal class JSBinder : MethodBinder
     {
         private JSBinderMethod[] buckets;
@@ -46,7 +45,7 @@ namespace Jurassic.Compiler
                     if (argumentCount >= method.RequiredParameterCount && argumentCount <= method.MaxParameterCount)
                     {
                         if (preferred != null)
-                            throw new ArgumentException(string.Format("Multiple ambiguous methods detected: {0} and {1}.", method, preferred), "targetMethods");
+                            throw new ArgumentException(string.Format("Multiple ambiguous methods detected: {0} and {1}.", method, preferred), nameof(targetMethods));
                         preferred = method;
                     }
                 }
@@ -167,7 +166,7 @@ namespace Jurassic.Compiler
                                 generator.Duplicate();
                                 generator.BranchIfNotNull(endOfThrowLabel);
                                 generator.LoadArgument(0);
-                                EmitHelpers.EmitThrow(generator, "TypeError", string.Format("The method '{0}' is not generic", binderMethod.Name));
+                                EmitHelpers.EmitThrow(generator, ErrorType.TypeError, string.Format("The method '{0}' is not generic", binderMethod.Name));
                                 generator.DefineLabelPosition(endOfThrowLabel);
                             }
                         }
@@ -181,31 +180,8 @@ namespace Jurassic.Compiler
                             generator.LoadInt32(argument.InputParameterIndex);
                             generator.LoadArrayElement(typeof(object));
 
-                            // Get some flags that apply to the parameter.
-                            var parameterFlags = JSParameterFlags.None;
-                            var parameterAttribute = argument.GetCustomAttribute<JSParameterAttribute>();
-                            if (parameterAttribute != null)
-                            {
-                                if (argument.Type != typeof(ObjectInstance))
-                                    throw new NotImplementedException("[JSParameter] is only supported for arguments of type ObjectInstance.");
-                                parameterFlags = parameterAttribute.Flags;
-                            }
-
-                            if ((parameterFlags & JSParameterFlags.DoNotConvert) == 0)
-                            {
-                                // Convert the input parameter to the correct type.
-                                EmitTypeConversion(generator, typeof(object), argument);
-                            }
-                            else
-                            {
-                                // Don't do argument conversion.
-                                var endOfThrowLabel = generator.CreateLabel();
-                                generator.IsInstance(typeof(ObjectInstance));
-                                generator.Duplicate();
-                                generator.BranchIfNotNull(endOfThrowLabel);
-                                EmitHelpers.EmitThrow(generator, "TypeError", string.Format("Parameter {1} parameter of '{0}' must be an object", binderMethod.Name, argument.InputParameterIndex));
-                                generator.DefineLabelPosition(endOfThrowLabel);
-                            }
+                            // Convert the input parameter to the correct type.
+                            EmitTypeConversion(generator, typeof(object), argument);
                         }
                         else
                         {
@@ -248,7 +224,7 @@ namespace Jurassic.Compiler
         /// </summary>
         /// <param name="generator"> The IL generator. </param>
         /// <param name="fromType"> The type to convert from. </param>
-        /// <param name="targetParameter"> The type to convert to and the default value, if there is one. </param>
+        /// <param name="argument"> The type and default value of the target parameter. </param>
         private static void EmitTypeConversion(ILGenerator generator, Type fromType, BinderArgument argument)
         {
             // Emit either the default value if there is one, otherwise emit "undefined".
@@ -319,7 +295,7 @@ namespace Jurassic.Compiler
         /// Pushes the result of converting <c>undefined</c> to the given type onto the stack.
         /// </summary>
         /// <param name="il"> The IL generator. </param>
-        /// <param name="targetParameter"> The type to convert to, and optionally a default value. </param>
+        /// <param name="argument"> The type to convert to, and optionally a default value. </param>
         private static void EmitUndefined(ILGenerator il, BinderArgument argument)
         {
             // Emit either the default value if there is one, otherwise emit "undefined".

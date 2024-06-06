@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace Jurassic.Library
 {
     /// <summary>
     /// The prototype for the Date object.
     /// </summary>
-    [Serializable]
-    public class DateInstance : ObjectInstance
+    public partial class DateInstance : ObjectInstance
     {
         /// <summary>
         /// The underlying DateTime value.
@@ -39,7 +37,7 @@ namespace Jurassic.Library
         /// <param name="prototype"> The next object in the prototype chain. </param>
         /// <param name="value"> The number of milliseconds since January 1, 1970, 00:00:00 UTC. </param>
         public DateInstance(ObjectInstance prototype, double value)
-            : this(prototype, ToDateTime(value >= 0 ? Math.Floor(value) : Math.Ceiling(value)))
+            : this(prototype, ToDateTime(value))
         {
         }
 
@@ -67,9 +65,9 @@ namespace Jurassic.Library
         /// <remarks>
         /// If any of the parameters are out of range, then the other values are modified accordingly.
         /// </remarks>
-        public DateInstance(ObjectInstance prototype, int year, int month, [DefaultParameterValue(1)] int day = 1, [DefaultParameterValue(0)] int hour = 0,
-            [DefaultParameterValue(0)] int minute = 0, [DefaultParameterValue(0)] int second = 0, [DefaultParameterValue(0)] int millisecond = 0)
-            : this(prototype, DateInstance.ToDateTime(year, month, day, hour, minute, second, millisecond, DateTimeKind.Local))
+        public DateInstance(ObjectInstance prototype, int year, int month, int day = 1, int hour = 0,
+            int minute = 0, int second = 0, int millisecond = 0)
+            : this(prototype, ToDateTime(year >= 0 && year < 100 ? year + 1900 : year, month, day, hour, minute, second, millisecond, DateTimeKind.Local))
         {
         }
 
@@ -84,19 +82,24 @@ namespace Jurassic.Library
             this.value = dateTime;
         }
 
+        /// <summary>
+        /// Creates the Date prototype object.
+        /// </summary>
+        /// <param name="engine"> The script environment. </param>
+        /// <param name="constructor"> A reference to the constructor that owns the prototype. </param>
+        internal static ObjectInstance CreatePrototype(ScriptEngine engine, DateConstructor constructor)
+        {
+            var result = engine.Object.Construct();
+            var properties = GetDeclarativeProperties(engine);
+            properties.Add(new PropertyNameAndValue("constructor", constructor, PropertyAttributes.NonEnumerable));
+            result.InitializeProperties(properties);
+            return result;
+        }
+
 
 
         //     .NET ACCESSOR PROPERTIES
         //_________________________________________________________________________________________
-
-        /// <summary>
-        /// Gets the internal class name of the object.  Used by the default toString()
-        /// implementation.
-        /// </summary>
-        protected override string InternalClassName
-        {
-            get { return "Date"; }
-        }
 
         /// <summary>
         /// Gets the date represented by this object in standard .NET DateTime format.
@@ -121,27 +124,9 @@ namespace Jurassic.Library
         /// </summary>
         public bool IsValid
         {
-            get { return this.value == InvalidDate; }
+            get { return this.value != InvalidDate; }
         }
 
-
-
-        //     JAVASCRIPT INTERNAL FUNCTIONS
-        //_________________________________________________________________________________________
-
-        /// <summary>
-        /// Returns a primitive value that represents the current object.  Used by the addition and
-        /// equality operators.
-        /// </summary>
-        /// <param name="hint"> Indicates the preferred type of the result. </param>
-        /// <returns> A primitive value that represents the current object. </returns>
-        protected internal override object GetPrimitiveValue(PrimitiveTypeHint typeHint)
-        {
-            if (typeHint == PrimitiveTypeHint.None)
-                return base.GetPrimitiveValue(PrimitiveTypeHint.String);
-            return base.GetPrimitiveValue(typeHint);
-        }
-        
 
 
         //     JAVASCRIPT FUNCTIONS
@@ -809,13 +794,14 @@ namespace Jurassic.Library
         public string ToISOString()
         {
             if (this.value == InvalidDate)
-                throw new JavaScriptException(this.Engine, "RangeError", "The date is invalid");
+                throw new JavaScriptException(ErrorType.RangeError, "The date is invalid");
             return this.value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", System.Globalization.DateTimeFormatInfo.InvariantInfo);
         }
 
         /// <summary>
         /// Used by the JSON.stringify to transform objects prior to serialization.
         /// </summary>
+        /// <param name="thisObject"> The object that is being operated on. </param>
         /// <param name="key"> Unused. </param>
         /// <returns> The date as a serializable string. </returns>
         [JSInternalFunction(Name = "toJSON", Flags = JSFunctionFlags.HasThisObject)]
@@ -866,14 +852,20 @@ namespace Jurassic.Library
         /// <summary>
         /// Returns a string representing the date and time.
         /// </summary>
+        /// <param name="thisRef"> The object that is being operated on. </param>
         /// <returns> A string representing the date and time. </returns>
-        [JSInternalFunction(Name = "toString")]
-        public string ToStringJS()
+        [JSInternalFunction(Name = "toString", Flags = JSFunctionFlags.HasThisObject)]
+        public static string ToString(object thisRef)
         {
-            if (this.value == InvalidDate)
+            // As of ES6, this method is generic.
+            if ((thisRef is DateInstance) == false)
                 return "Invalid Date";
-            
-            var dateTime = this.value.ToLocalTime();
+
+            var instance = (DateInstance)thisRef;
+            if (instance.value == InvalidDate)
+                return "Invalid Date";
+
+            var dateTime = instance.value.ToLocalTime();
             return dateTime.ToString("ddd MMM dd yyyy HH:mm:ss ", System.Globalization.DateTimeFormatInfo.InvariantInfo) +
                 ToTimeZoneString(dateTime);
         }
@@ -915,6 +907,26 @@ namespace Jurassic.Library
             return this.ValueInMilliseconds;
         }
 
+        /// <summary>
+        /// Returns a primitive value that represents the current object.  Used by the addition and
+        /// equality operators.
+        /// </summary>
+        /// <param name="engine"> The current script environment. </param>
+        /// <param name="thisObj"> The object to operate on. </param>
+        /// <param name="hint"> Specifies the conversion behaviour.  Must be "default", "string" or "number". </param>
+        /// <returns></returns>
+        [JSInternalFunction(Name = "@@toPrimitive", Flags = JSFunctionFlags.HasEngineParameter | JSFunctionFlags.HasThisObject, RequiredArgumentCount = 1)]
+        private static object ToPrimitive(ScriptEngine engine, ObjectInstance thisObj, string hint)
+        {
+            // This behaviour differs from the standard behaviour only in that the "default" hint
+            // results in a conversion to a string, not a number.
+            if (hint == "default" || hint == "string")
+                return thisObj.GetPrimitiveValuePreES6(PrimitiveTypeHint.String);
+            if (hint == "number")
+                return thisObj.GetPrimitiveValuePreES6(PrimitiveTypeHint.Number);
+            throw new JavaScriptException(ErrorType.TypeError, "Invalid type hint.");
+        }
+
 
 
         //     STATIC JAVASCRIPT METHODS (FROM DATECONSTRUCTOR)
@@ -951,10 +963,10 @@ namespace Jurassic.Library
         /// 
         /// If any of the parameters are out of range, then the other values are modified accordingly.
         /// </remarks>
-        public static double UTC(int year, int month, [DefaultParameterValue(1)] int day = 1, [DefaultParameterValue(0)] int hour = 0,
-            [DefaultParameterValue(0)] int minute = 0, [DefaultParameterValue(0)] int second = 0, [DefaultParameterValue(0)] int millisecond = 0)
+        public static double UTC(int year, int month, int day = 1, int hour = 0,
+            int minute = 0, int second = 0, int millisecond = 0)
         {
-            return ToJSDate(ToDateTime(year, month, day, hour, minute, second, millisecond, DateTimeKind.Utc));
+            return ToJSDate(ToDateTime(year >= 0 && year < 100 ? year + 1900 : year, month, day, hour, minute, second, millisecond, DateTimeKind.Utc));
         }
 
         /// <summary>
@@ -1098,7 +1110,9 @@ namespace Jurassic.Library
         {
             if (dateTime == InvalidDate)
                 return double.NaN;
-            return dateTime.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+            // The spec requires that the time value is an integer.
+            // We could round to nearest, but then date.toUTCString() would be different from Date(date.getTime()).toUTCString().
+            return Math.Floor(dateTime.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds);
         }
 
         /// <summary>
@@ -1109,11 +1123,18 @@ namespace Jurassic.Library
         private static DateTime ToDateTime(double milliseconds)
         {
             // Check if the milliseconds value is out of range.
-            if (double.IsNaN(milliseconds) || milliseconds < -31557600000000 || milliseconds > 31557600000000)
+            if (double.IsNaN(milliseconds))
                 return InvalidDate;
 
-            return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-                .AddMilliseconds(milliseconds);
+            try
+            {
+                return new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    .AddMilliseconds(Math.Truncate(milliseconds));
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return InvalidDate;
+            }
         }
 
         /// <summary>
@@ -1130,6 +1151,10 @@ namespace Jurassic.Library
         /// <returns> The equivalent .NET date. </returns>
         private static DateTime ToDateTime(int year, int month, int day, int hour, int minute, int second, int millisecond, DateTimeKind kind)
         {
+            // DateTime doesn't support years below year 1.
+            if (year < 0)
+                return InvalidDate;
+
             if (month >= 0 && month < 12 &&
                 day >= 1 && day <= DateTime.DaysInMonth(year, month + 1) &&
                 hour >= 0 && hour < 24 &&

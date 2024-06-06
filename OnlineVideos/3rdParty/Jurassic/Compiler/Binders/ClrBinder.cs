@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Jurassic;
+using ErrorType = Jurassic.Library.ErrorType;
 
 namespace Jurassic.Compiler
 {
@@ -12,7 +12,6 @@ namespace Jurassic.Compiler
     /// JSBinder is that the number of arguments must be correct.  Additionally, it is possible to
     /// bind to overloaded methods with the same number of arguments.
     /// </summary>
-    [Serializable]
     internal class ClrBinder : MethodBinder
     {
         private IEnumerable<BinderMethod> targetMethods;
@@ -20,7 +19,7 @@ namespace Jurassic.Compiler
         /// <summary>
         /// Creates a new ClrBinder instance.
         /// </summary>
-        /// <param name="targetMethods"> A method to bind to. </param>
+        /// <param name="targetMethod"> A method to bind to. </param>
         public ClrBinder(MethodBase targetMethod)
             : this(new BinderMethod[] { new BinderMethod(targetMethod) })
         {
@@ -66,7 +65,7 @@ namespace Jurassic.Compiler
             // Zero candidates means no overload had the correct number of arguments.
             if (candidateMethods.Count == 0)
             {
-                EmitHelpers.EmitThrow(generator, "TypeError", string.Format("No overload for method '{0}' takes {1} arguments", this.Name, argumentCount));
+                EmitHelpers.EmitThrow(generator, ErrorType.TypeError, string.Format("No overload for method '{0}' takes {1} arguments", this.Name, argumentCount));
                 EmitHelpers.EmitDefaultValue(generator, PrimitiveType.Any);
                 generator.Complete();
                 return;
@@ -187,7 +186,7 @@ namespace Jurassic.Compiler
                     generator.LoadInt32(1);
                     var endOfCharCheck = generator.CreateLabel();
                     generator.BranchIfEqual(endOfCharCheck);
-                    EmitHelpers.EmitThrow(generator, "TypeError", "Cannot convert string to char - the string must be exactly one character long");
+                    EmitHelpers.EmitThrow(generator, ErrorType.TypeError, "Cannot convert string to char - the string must be exactly one character long");
                     generator.DefineLabelPosition(endOfCharCheck);
                     generator.LoadInt32(0);
                     generator.Call(ReflectionHelpers.String_GetChars);
@@ -298,6 +297,36 @@ namespace Jurassic.Compiler
                 generator.DefineLabelPosition(startOfElse);
             }
 
+            // Handle Nullable<>.
+            var isNullable = fromType.IsGenericType && fromType.GetGenericTypeDefinition() == typeof(Nullable<>);
+            if (isNullable)
+            {
+                endOfNullCheck = generator.CreateLabel();
+
+                var v = generator.CreateTemporaryVariable(fromType);
+                generator.StoreVariable(v);
+                generator.LoadAddressOfVariable(v);
+
+                var hasValue = ReflectionHelpers.GetInstanceMethod(fromType, "get_HasValue");
+                generator.Call(hasValue);
+                generator.BranchIfTrue(endOfNullCheck);
+                
+                // Return null.
+                EmitHelpers.EmitNull(generator);
+                generator.Return();
+                
+                // Jump here if it was NOT null.
+                generator.DefineLabelPosition(endOfNullCheck);
+
+                // Get the underlying value.
+                generator.LoadAddressOfVariable(v);
+                var getValue = ReflectionHelpers.GetInstanceMethod(fromType, "get_Value");
+                generator.Call(getValue);
+
+                // Now let the normal conversion work.
+                fromType = Nullable.GetUnderlyingType(fromType);
+            }
+
             switch (Type.GetTypeCode(fromType))
             {
                 case TypeCode.Boolean:
@@ -355,7 +384,7 @@ namespace Jurassic.Compiler
                     if (fromType.IsValueType == true)
                         generator.Box(fromType);
                     generator.ReleaseTemporaryVariable(temp);
-                    generator.NewObject(ReflectionHelpers.ClrInstanceWrapper_Constructor);
+                    generator.CallStatic(ReflectionHelpers.ClrInstanceWrapper_Create);
                     
                     // End of wrap check.
                     if (fromType.IsValueType == false)

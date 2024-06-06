@@ -47,7 +47,7 @@ namespace Jurassic
 
             // Parse the number.
             NumberParser.ParseCoreStatus status;
-            double result = NumberParser.ParseCore(reader, (char)firstChar, out status, allowHex: false, allowOctal: false);
+            double result = NumberParser.ParseCore(reader, (char)firstChar, out status, decimalOnly: true);
 
             // Handle various error cases.
             if (status == ParseCoreStatus.NoDigits)
@@ -106,7 +106,7 @@ namespace Jurassic
 
             // Parse the number.
             NumberParser.ParseCoreStatus status;
-            double result = NumberParser.ParseCore(reader, (char)firstChar, out status, allowHex: true, allowOctal: false);
+            double result = NumberParser.ParseCore(reader, (char)firstChar, out status, allowES3Octal: false);
 
             // Handle various error cases.
             switch (status)
@@ -135,11 +135,13 @@ namespace Jurassic
             NoDigits,   // Number consists of a period without any digits.
             NoFraction, // Number has a period, but no digits after it.
             NoExponent, // Number has 'e' but no number after it.
-            ExponentHasLeadingZero,
             HexLiteral,
+            ES3OctalLiteral,
+            ES6OctalLiteral,
+            BinaryLiteral,
             InvalidHexLiteral,
-            OctalLiteral,
             InvalidOctalLiteral,
+            InvalidBinaryLiteral,
         }
 
         /// <summary>
@@ -148,10 +150,10 @@ namespace Jurassic
         /// <param name="reader"> The reader to read characters from. </param>
         /// <param name="firstChar"> The first character of the number.  Must be 0-9 or a period. </param>
         /// <param name="status"> Upon returning, contains the type of error if one occurred. </param>
-        /// <param name="allowHex"> </param>
-        /// <param name="allowOctal"> </param>
+        /// <param name="decimalOnly"> </param>
+        /// <param name="allowES3Octal"> </param>
         /// <returns> The numeric value, or <c>NaN</c> if the number is invalid. </returns>
-        internal static double ParseCore(TextReader reader, char firstChar, out ParseCoreStatus status, bool allowHex = true, bool allowOctal = true)
+        internal static double ParseCore(TextReader reader, char firstChar, out ParseCoreStatus status, bool decimalOnly = false, bool allowES3Octal = true)
         {
             double result;
 
@@ -161,12 +163,12 @@ namespace Jurassic
             // Assume success.
             status = ParseCoreStatus.Success;
 
-            // If the number starts with '0' then the number is a hex literal or a octal literal.
-            if (firstChar == '0' && (allowHex == true || allowOctal == true))
+            // If the number starts with '0' then the number is a hex literal, octal literal or binary literal.
+            if (firstChar == '0' && decimalOnly == false)
             {
                 // Read the next char - should be 'x' or 'X' if this is a hex number (could be just '0').
                 int c = reader.Peek();
-                if ((c == 'x' || c == 'X') && allowHex == true)
+                if (c == 'x' || c == 'X')
                 {
                     // Hex number.
                     reader.Read();
@@ -180,16 +182,44 @@ namespace Jurassic
                     status = ParseCoreStatus.HexLiteral;
                     return result;
                 }
-                else if (c >= '0' && c <= '9' && allowOctal == true)
+                else if (c == 'o' || c == 'O')
                 {
-                    // Octal number.
+                    // ES6 octal number.
+                    reader.Read();
+
                     result = ParseOctal(reader);
                     if (double.IsNaN(result) == true)
                     {
                         status = ParseCoreStatus.InvalidOctalLiteral;
                         return double.NaN;
                     }
-                    status = ParseCoreStatus.OctalLiteral;
+                    status = ParseCoreStatus.ES6OctalLiteral;
+                    return result;
+                }
+                else if (c == 'b' || c == 'B')
+                {
+                    // ES6 binary number.
+                    reader.Read();
+
+                    result = ParseBinary(reader);
+                    if (double.IsNaN(result) == true)
+                    {
+                        status = ParseCoreStatus.InvalidBinaryLiteral;
+                        return double.NaN;
+                    }
+                    status = ParseCoreStatus.BinaryLiteral;
+                    return result;
+                }
+                else if (c >= '0' && c <= '9' && allowES3Octal == true)
+                {
+                    // ES3 Octal number.
+                    result = ParseOctal(reader);
+                    if (double.IsNaN(result) == true)
+                    {
+                        status = ParseCoreStatus.InvalidOctalLiteral;
+                        return double.NaN;
+                    }
+                    status = ParseCoreStatus.ES3OctalLiteral;
                     return result;
                 }
             }
@@ -304,10 +334,6 @@ namespace Jurassic
                         exponent = Math.Min(exponent * 10 + (c - '0'), 9999);
                         exponentDigits++;
                     }
-
-                    // JSON does not allow a leading zero in front of the exponent.
-                    if (firstExponentChar == '0' && exponentDigits > 1 && status == ParseCoreStatus.Success)
-                        status = ParseCoreStatus.ExponentHasLeadingZero;
                 }
 
                 // Keep track of the overall base-10 exponent.
@@ -358,6 +384,7 @@ namespace Jurassic
         /// <summary>
         /// Converts a string to an integer (used by parseInt).
         /// </summary>
+        /// <param name="input"> The input text to parse. </param>
         /// <param name="radix"> The numeric base to use for parsing.  Pass zero to use base 10
         /// except when the input string starts with '0' in which case base 16 or base 8 are used
         /// instead. </param>
@@ -501,6 +528,32 @@ namespace Jurassic
                 if (c >= '0' && c <= '7')
                     result = result * 8 + c - '0';
                 else if (c == '8' || c == '9')
+                    return double.NaN;
+                else
+                    break;
+                reader.Read();
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Parses a binary number and returns the corresponding double-precision value.
+        /// </summary>
+        /// <param name="reader"> The reader to read characters from. </param>
+        /// <returns> The numeric value, or <c>NaN</c> if the number is invalid. </returns>
+        internal static double ParseBinary(TextReader reader)
+        {
+            double result = 0;
+
+            // Read numeric digits 0-1.
+            while (true)
+            {
+                int c = reader.Peek();
+                if (c == '0')
+                    result = result * 2;
+                else if (c == '1')
+                    result = result * 2 + 1;
+                else if (c >= '2' && c <= '9')
                     return double.NaN;
                 else
                     break;

@@ -13,10 +13,10 @@ namespace Jurassic.Compiler
         /// Creates a new KeywordToken instance.
         /// </summary>
         /// <param name="name"> The keyword name. </param>
-        public KeywordToken(string name)
+        private KeywordToken(string name)
         {
             if (name == null)
-                throw new ArgumentNullException("name");
+                throw new ArgumentNullException(nameof(name));
             this.Name = name;
         }
 
@@ -101,12 +101,14 @@ namespace Jurassic.Compiler
             Break,
             Case,
             Catch,
+            Class,
             Continue,
             Debugger,
             Default,
             Delete,
             Do,
             Else,
+            Extends,
             Finally,
             For,
             Function,
@@ -115,6 +117,7 @@ namespace Jurassic.Compiler
             InstanceOf,
             New,
             Return,
+            Super,
             Switch,
             This,
             Throw,
@@ -131,13 +134,10 @@ namespace Jurassic.Compiler
             LiteralToken.Null,
 
             // Reserved keywords.
-            Class,
             Const,
             Enum,
             Export,
-            Extends,
             Import,
-            Super,
         };
 
         // Reserved words (in strict mode).
@@ -240,7 +240,7 @@ namespace Jurassic.Compiler
                 return result;
 
             // If the text wasn't found, it is an identifier instead.
-            return new IdentifierToken(text);
+            return IdentifierToken.Create(text);
         }
 
         /// <summary>

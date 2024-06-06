@@ -14,38 +14,19 @@ namespace Jurassic.Compiler
         /// <summary>
         /// Creates a new OptimizationInfo instance.
         /// </summary>
-        /// <param name="engine"> The associated script engine. </param>
-        public OptimizationInfo(ScriptEngine engine)
+        public OptimizationInfo()
         {
-            this.Engine = engine;
-        }
-
-        /// <summary>
-        /// Gets the associated script engine.
-        /// </summary>
-        public ScriptEngine Engine
-        {
-            get;
-            private set;
         }
 
         /// <summary>
         /// Gets or sets the root of the abstract syntax tree that is being compiled.
         /// </summary>
-        public AstNode AbstractSyntaxTree
-        {
-            get;
-            set;
-        }
+        public AstNode AbstractSyntaxTree { get; set; }
 
         /// <summary>
         /// Gets or sets a value that indicates whether strict mode is enabled.
         /// </summary>
-        public bool StrictMode
-        {
-            get;
-            set;
-        }
+        public bool StrictMode { get; set; }
 
 
 
@@ -53,41 +34,20 @@ namespace Jurassic.Compiler
         //_________________________________________________________________________________________
 
         /// <summary>
-        /// Gets or sets the symbol store to write debugging information to.
-        /// </summary>
-        public System.Diagnostics.SymbolStore.ISymbolDocumentWriter DebugDocument
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
         /// Gets or sets the source of javascript code.
         /// </summary>
-        public ScriptSource Source
-        {
-            get;
-            set;
-        }
+        public ScriptSource Source { get; set; }
 
         /// <summary>
         /// Gets or sets the name of the function that is being generated.
         /// </summary>
-        public string FunctionName
-        {
-            get;
-            set;
-        }
+        public string FunctionName { get; set; }
 
         /// <summary>
         /// Gets the portion of source code associated with the statement that code is
         /// being generated for.
         /// </summary>
-        public SourceCodeSpan SourceSpan
-        {
-            get;
-            private set;
-        }
+        public SourceCodeSpan SourceSpan { get; private set; }
 
         /// <summary>
         /// Emits a sequence point, and sets the SourceSpan property.
@@ -97,9 +57,7 @@ namespace Jurassic.Compiler
         public void MarkSequencePoint(ILGenerator generator, SourceCodeSpan span)
         {
             if (span == null)
-                throw new ArgumentNullException("span");
-            if (this.DebugDocument != null)
-                generator.MarkSequencePoint(this.DebugDocument, span);
+                throw new ArgumentNullException(nameof(span));
             this.SourceSpan = span;
         }
 
@@ -112,11 +70,7 @@ namespace Jurassic.Compiler
         /// This list is maintained so that the garbage collector does not prematurely collect
         /// the generated code for the nested functions.
         /// </summary>
-        public IList<GeneratedMethod> NestedFunctions
-        {
-            get;
-            set;
-        }
+        public IList<GeneratedMethod> NestedFunctions { get; set; }
 
 
 
@@ -126,11 +80,7 @@ namespace Jurassic.Compiler
         /// <summary>
         /// Gets or sets function optimization information.
         /// </summary>
-        public MethodOptimizationHints MethodOptimizationHints
-        {
-            get;
-            set;
-        }
+        public MethodOptimizationHints MethodOptimizationHints { get; set; }
 
         /// <summary>
         /// Gets a value that indicates whether the declarative scopes should be optimized away,
@@ -142,25 +92,19 @@ namespace Jurassic.Compiler
             {
                 return this.MethodOptimizationHints.HasArguments == false &&
                     this.MethodOptimizationHints.HasEval == false &&
-                    this.MethodOptimizationHints.HasNestedFunction == false &&
-                    this.EvalResult == null;
+                    this.MethodOptimizationHints.HasNestedFunction == false;
             }
         }
 
         /// <summary>
-        /// Gets a value that indicates whether the variables should be optimized if the type of
-        /// the variable can be inferred.
+        /// Indicates that the given expression can choose to not generate a return value.
         /// </summary>
-        public bool OptimizeInferredTypes
-        {
-            get
-            {
-                return this.MethodOptimizationHints.HasArguments == false &&
-                    this.MethodOptimizationHints.HasEval == false &&
-                    this.MethodOptimizationHints.HasNestedFunction == false &&
-                    this.EvalResult == null;
-            }
-        }
+        public Expression IgnoreReturnValue { get; set; }
+
+        /// <summary>
+        /// Indicates whether the return value was generated.
+        /// </summary>
+        public bool ReturnValueWasNotGenerated { get; set; }
 
 
 
@@ -171,10 +115,64 @@ namespace Jurassic.Compiler
         /// Gets or sets the local variable to store the result of the eval() call.  Will be
         /// <c>null</c> if code is being generated outside an eval context.
         /// </summary>
-        public ILLocalVariable EvalResult
+        public ILLocalVariable EvalResult { get; set; }
+
+        private Dictionary<string, ILLocalVariable> globalVariables;
+
+        /// <summary>
+        /// Retrieves a variable that can be used to store a property name referencing a
+        /// global variable.
+        /// </summary>
+        /// <param name="generator"> The IL generator used to create the variable. </param>
+        /// <param name="name"> The name of the global variable. </param>
+        /// <returns> A variable. </returns>
+        public ILLocalVariable GetGlobalPropertyReferenceVariable(ILGenerator generator, string name)
         {
-            get;
-            set;
+            if (name == null)
+                throw new ArgumentNullException(nameof(name));
+
+            // Create a new Dictionary if it hasn't been created before.
+            if (this.globalVariables == null)
+                this.globalVariables = new Dictionary<string, ILLocalVariable>();
+
+            // Check if the name already exists in the dictionary.
+            ILLocalVariable variable;
+            if (this.globalVariables.TryGetValue(name, out variable) == false)
+            {
+                // The literal does not exist - add it.
+                variable = generator.DeclareVariable(typeof(Library.PropertyReference), name);
+                this.globalVariables.Add(name, variable);
+            }
+            return variable;
+        }
+
+        private Dictionary<string, ILLocalVariable> propertyVariables;
+
+        /// <summary>
+        /// Retrieves a variable that can be used to store a property name referencing an
+        /// object property.
+        /// </summary>
+        /// <param name="generator"> The IL generator used to create the variable. </param>
+        /// <param name="name"> The name of the property. </param>
+        /// <returns> A variable. </returns>
+        public ILLocalVariable GetPropertyReferenceVariable(ILGenerator generator, string name)
+        {
+            if (name == null)
+                throw new ArgumentNullException(nameof(name));
+
+            // Create a new Dictionary if it hasn't been created before.
+            if (this.propertyVariables == null)
+                this.propertyVariables = new Dictionary<string, ILLocalVariable>();
+
+            // Check if the name already exists in the dictionary.
+            ILLocalVariable variable;
+            if (this.propertyVariables.TryGetValue(name, out variable) == false)
+            {
+                // The literal does not exist - add it.
+                variable = generator.DeclareVariable(typeof(Library.PropertyReference), name);
+                this.propertyVariables.Add(name, variable);
+            }
+            return variable;
         }
 
         private Dictionary<RegularExpressionLiteral, ILLocalVariable> regularExpressionVariables;
@@ -190,7 +188,7 @@ namespace Jurassic.Compiler
         public ILLocalVariable GetRegExpVariable(ILGenerator generator, RegularExpressionLiteral literal)
         {
             if (literal == null)
-                throw new ArgumentNullException("literal");
+                throw new ArgumentNullException(nameof(literal));
 
             // Create a new Dictionary if it hasn't been created before.
             if (this.regularExpressionVariables == null)
@@ -217,26 +215,18 @@ namespace Jurassic.Compiler
         /// top of the stack).  Will be <c>null</c> if code is being generated outside a function
         /// context.
         /// </summary>
-        public ILLabel ReturnTarget
-        {
-            get;
-            set;
-        }
+        public ILLabel ReturnTarget { get; set; }
 
         /// <summary>
         /// Gets or sets the variable that holds the return value for the function.  Will be
         /// <c>null</c> if code is being generated outside a function context or if no return
         /// statements have been encountered.
         /// </summary>
-        public ILLocalVariable ReturnVariable
-        {
-            get;
-            set;
-        }
+        public ILLocalVariable ReturnVariable { get; set; }
 
 
 
-        //     BREAK AND CONTINUE SUPPORT
+        //     LOOP SUPPORT
         //_________________________________________________________________________________________
 
         private class BreakOrContinueInfo
@@ -248,6 +238,14 @@ namespace Jurassic.Compiler
         }
 
         private Stack<BreakOrContinueInfo> breakOrContinueStack = new Stack<BreakOrContinueInfo>();
+
+        /// <summary>
+        /// Indicates whether we are generating code inside a loop.
+        /// </summary>
+        public bool InsideLoop
+        {
+            get { return breakOrContinueStack.Count > 0; }
+        }
 
         /// <summary>
         /// Pushes information about break or continue targets to a stack.
@@ -262,7 +260,7 @@ namespace Jurassic.Compiler
         public void PushBreakOrContinueInfo(IList<string> labelNames, ILLabel breakTarget, ILLabel continueTarget, bool labelledOnly)
         {
             if (breakTarget == null)
-                throw new ArgumentNullException("breakTarget");
+                throw new ArgumentNullException(nameof(breakTarget));
 
             // Check the label doesn't already exist.
             if (labelNames != null)
@@ -270,7 +268,7 @@ namespace Jurassic.Compiler
                 foreach (var labelName in labelNames)
                     foreach (var info in this.breakOrContinueStack)
                         if (info.LabelNames != null && info.LabelNames.Contains(labelName) == true)
-                            throw new JavaScriptException(this.Engine, "SyntaxError", string.Format("Label '{0}' has already been declared", labelName), this.SourceSpan.StartLine, this.Source.Path, this.FunctionName);
+                            throw new SyntaxErrorException(string.Format("Label '{0}' has already been declared", labelName), this.SourceSpan.StartLine, this.Source.Path, this.FunctionName);
             }
 
             // Push the info to the stack.
@@ -307,7 +305,7 @@ namespace Jurassic.Compiler
                     if (info.LabelledOnly == false)
                         return info.BreakTarget;
                 }
-                throw new JavaScriptException(this.Engine, "SyntaxError", "Illegal break statement", this.SourceSpan.StartLine, this.Source.Path, this.FunctionName);
+                throw new SyntaxErrorException("Illegal break statement", this.SourceSpan.StartLine, this.Source.Path, this.FunctionName);
             }
             else
             {
@@ -316,7 +314,7 @@ namespace Jurassic.Compiler
                     if (info.LabelNames != null && info.LabelNames.Contains(labelName) == true)
                         return info.BreakTarget;
                 }
-                throw new JavaScriptException(this.Engine, "SyntaxError", string.Format("Undefined label '{0}'", labelName), this.SourceSpan.StartLine, this.Source.Path, this.FunctionName);
+                throw new SyntaxErrorException(string.Format("Undefined label '{0}'", labelName), this.SourceSpan.StartLine, this.Source.Path, this.FunctionName);
             }
         }
 
@@ -336,7 +334,7 @@ namespace Jurassic.Compiler
                     if (info.ContinueTarget != null && info.LabelledOnly == false)
                         return info.ContinueTarget;
                 }
-                throw new JavaScriptException(this.Engine, "SyntaxError", "Illegal continue statement", this.SourceSpan.StartLine, this.Source.Path, this.FunctionName);
+                throw new SyntaxErrorException("Illegal continue statement", this.SourceSpan.StartLine, this.Source.Path, this.FunctionName);
             }
             else
             {
@@ -345,11 +343,11 @@ namespace Jurassic.Compiler
                     if (info.LabelNames != null && info.LabelNames.Contains(labelName) == true)
                     {
                         if (info.ContinueTarget == null)
-                            throw new JavaScriptException(this.Engine, "SyntaxError", string.Format("The statement with label '{0}' is not a loop", labelName), this.SourceSpan.StartLine, this.Source.Path, this.FunctionName);
+                            throw new SyntaxErrorException(string.Format("The statement with label '{0}' is not a loop", labelName), this.SourceSpan.StartLine, this.Source.Path, this.FunctionName);
                         return info.ContinueTarget;
                     }
                 }
-                throw new JavaScriptException(this.Engine, "SyntaxError", string.Format("Undefined label '{0}'", labelName), this.SourceSpan.StartLine, this.Source.Path, this.FunctionName);
+                throw new SyntaxErrorException(string.Format("Undefined label '{0}'", labelName), this.SourceSpan.StartLine, this.Source.Path, this.FunctionName);
             }
         }
 
@@ -371,7 +369,7 @@ namespace Jurassic.Compiler
         private int GetBreakOrContinueLabelDepth(ILLabel label)
         {
             if (label == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
 
             int depth = this.breakOrContinueStack.Count - 1;
             foreach (var info in this.breakOrContinueStack)
@@ -394,31 +392,19 @@ namespace Jurassic.Compiler
         /// Gets or sets a value that indicates whether code generation is occurring within a
         /// try, catch or finally block.
         /// </summary>
-        public bool InsideTryCatchOrFinally
-        {
-            get;
-            set;
-        }
+        public bool InsideTryCatchOrFinally { get; set; }
 
         /// <summary>
         /// Gets or sets a delegate that is called when EmitLongJump() is called and the target
         /// label is outside the LongJumpStackSizeThreshold.
         /// </summary>
-        public Action<ILGenerator, ILLabel> LongJumpCallback
-        {
-            get;
-            set;
-        }
+        public Action<ILGenerator, ILLabel> LongJumpCallback { get; set; }
 
         /// <summary>
         /// Gets or sets the depth of the break/continue stack at the start of the finally
         /// statement.
         /// </summary>
-        public int LongJumpStackSizeThreshold
-        {
-            get;
-            set;
-        }
+        public int LongJumpStackSizeThreshold { get; set; }
 
         /// <summary>
         /// Emits code to branch between statements, even if code generation is within a finally
@@ -457,7 +443,6 @@ namespace Jurassic.Compiler
                 }
             }
         }
-
     }
 
 }

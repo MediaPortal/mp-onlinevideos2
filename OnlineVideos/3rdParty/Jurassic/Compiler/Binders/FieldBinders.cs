@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using Jurassic;
+using ErrorType = Jurassic.Library.ErrorType;
 
 namespace Jurassic.Compiler
 {
@@ -10,7 +8,6 @@ namespace Jurassic.Compiler
     /// <summary>
     /// Base class of field getter and setter binders.
     /// </summary>
-    [Serializable]
     internal abstract class FieldBinder : Binder
     {
         protected FieldInfo field;
@@ -53,7 +50,6 @@ namespace Jurassic.Compiler
     /// <summary>
     /// Retrieves the value of a field.
     /// </summary>
-    [Serializable]
     internal class FieldGetterBinder : FieldBinder
     {
         /// <summary>
@@ -77,7 +73,7 @@ namespace Jurassic.Compiler
             // Check for the correct number of arguments.
             if (argumentCount != 0)
             {
-                EmitHelpers.EmitThrow(generator, "TypeError", "Wrong number of arguments");
+                EmitHelpers.EmitThrow(generator, ErrorType.TypeError, "Wrong number of arguments");
                 EmitHelpers.EmitDefaultValue(generator, PrimitiveType.Any);
                 generator.Complete();
                 return;
@@ -98,7 +94,6 @@ namespace Jurassic.Compiler
     /// <summary>
     /// Sets the value of a field.
     /// </summary>
-    [Serializable]
     internal class FieldSetterBinder : FieldBinder
     {
         /// <summary>
@@ -122,7 +117,7 @@ namespace Jurassic.Compiler
             // Check for the correct number of arguments.
             if (argumentCount != 1)
             {
-                EmitHelpers.EmitThrow(generator, "TypeError", "Wrong number of arguments");
+                EmitHelpers.EmitThrow(generator, ErrorType.TypeError, "Wrong number of arguments");
                 EmitHelpers.EmitDefaultValue(generator, PrimitiveType.Any);
                 generator.Complete();
                 return;

@@ -7,14 +7,12 @@ namespace Jurassic.Library
     /// <summary>
     /// Represents the information stored about a property in the class schema.
     /// </summary>
-    [Serializable]
     internal struct SchemaProperty
     {
         /// <summary>
         /// Creates a new SchemaProperty instance.
         /// </summary>
-        /// <param name="index"> The index of the property in the
-        /// <see cref="ObjectInstance.Values"/> array. </param>
+        /// <param name="index"> The index of the property in the backing array. </param>
         /// <param name="attributes"> The property attributes.  These attributes describe how the
         /// property can be modified. </param>
         public SchemaProperty(int index, PropertyAttributes attributes)
@@ -30,7 +28,7 @@ namespace Jurassic.Library
         public readonly static SchemaProperty Undefined = new SchemaProperty(-1, PropertyAttributes.Sealed);
 
         /// <summary>
-        /// Gets the index of the property in the <see cref="ObjectInstance.Values"/> array.
+        /// Gets the index of the property in the backing array.
         /// </summary>
         public int Index
         {
