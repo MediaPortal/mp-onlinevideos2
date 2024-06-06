@@ -217,13 +217,14 @@ namespace OnlineVideos.Hoster
                 string postdata = String.Format(@"{{""context"": {{""client"": {{""clientName"": ""ANDROID_CREATOR"", ""clientVersion"": ""{1}"", ""androidSdkVersion"": 30, ""userAgent"": ""{2}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""params"": ""CgIQBg=="", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS""}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}", videoId,
                     headers["X-Youtube-Client-Version"], headers["User-Agent"]);
                 JObject jData = WebCache.Instance.GetWebData<JObject>(YoutubePlayerUrl, postData: postdata, headers: headers);
-                parsePlayerStatus(jData["streamingData"], qualities, videoId);
+                parsePlayerStatus(jData["streamingData"], qualities, null);
 
                 //yt-dlp processing
-                JToken jDataYtDlp = parsePlayerStatusFromYtDlp(qualities, videoId);
+                JToken jDataYtDlp = null; //parsePlayerStatusFromYtDlp(qualities, videoId);
 
                 JObject jDataWeb = null;
-                if (qualities.Count == 0)
+                YoutubeSignatureDecryptor decryptor = null;
+                //if (qualities.Count == 0)
                 {
                     //Load webpage; there is more available options (e.g. UHD)
                     string strContentsWeb = null;
@@ -236,12 +237,25 @@ namespace OnlineVideos.Hoster
                             );
                         Match m = Regex.Match(strContentsWeb, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
                         if (m.Success)
+                        {
                             jDataWeb = JObject.Parse(m.Groups["js"].Value);
+
+                            try
+                            {
+                                //Prepare signature decryptor
+                                decryptor = new YoutubeSignatureDecryptor(strContentsWeb);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error("Error creating signature decryptor: {0}", ex.Message);
+                                decryptor = null;
+                            }
+                        }
                     }
                     catch { jDataWeb = null; };
 
-                    if (jDataWeb != null)
-                        parsePlayerStatus(jDataWeb["streamingData"], qualities, videoId);
+                    if (jDataWeb != null && decryptor != null)
+                        parsePlayerStatus(jDataWeb["streamingData"], qualities, decryptor);
 
                     if (qualities.Count == 0 && strContentsWeb != null)
                     {
@@ -251,7 +265,7 @@ namespace OnlineVideos.Hoster
                         {
                             postdata = String.Format(@"{{""context"": {{""client"": {{""clientName"": ""WEB"", ""clientVersion"": ""2.20210622.10.00"", ""hl"": ""en"", ""clientScreen"": ""EMBED""}}, ""thirdParty"": {{""embedUrl"": ""https://google.com""}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {1}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}", videoId, m.Groups["sts"].Value);
                             jData = WebCache.Instance.GetWebData<JObject>(YoutubePlayerUrl, postData: postdata, headers: headers);
-                            parsePlayerStatus(jData["streamingData"], qualities, videoId);
+                            parsePlayerStatus(jData["streamingData"], qualities, null);
                         }
                     }
                 }
@@ -441,16 +455,16 @@ namespace OnlineVideos.Hoster
             return null;
         }
 
-        private void parsePlayerStatus(JToken streamingData, List<YoutubeQuality> qualities, string strVideoId)
+        private void parsePlayerStatus(JToken streamingData, List<YoutubeQuality> qualities, YoutubeSignatureDecryptor dec)
         {
             if (streamingData == null)
                 return;
 
             if (streamingData["formats"] is JArray formats)
-                parseFormats(formats, qualities, null, strVideoId);
+                parseFormats(formats, qualities, null, dec);
 
             if (streamingData["adaptiveFormats"] is JArray formatsAdapt)
-                parseFormats(formatsAdapt, qualities, formatsAdapt.Where(j => j["width"] == null && j["audioChannels"] != null && j["url"] != null).ToArray(), strVideoId);
+                parseFormats(formatsAdapt, qualities, formatsAdapt.Where(j => j["width"] == null && j["audioChannels"] != null).ToArray(), dec);
 
             if (qualities.Count == 0)
             {
@@ -625,15 +639,16 @@ namespace OnlineVideos.Hoster
             return jStreamingData;
         }
 
-        private static void parseFormats(JArray formats, List<YoutubeQuality> qualities, JToken[] audioStreams, string strVideoId)
+        private static void parseFormats(JArray formats, List<YoutubeQuality> qualities, JToken[] audioStreams, YoutubeSignatureDecryptor dec)
         {
             foreach (JToken format in formats)
             {
-                if (format["url"] == null)
-                    continue; //no url; signatureCipher instead
-
                 if (format["width"] == null)
                     continue; //skip audio streams
+
+                string strUrl = getStreamUrl(format, dec);
+                if (strUrl == null)
+                    continue;
 
                 if (format["audioChannels"] == null)
                 {
@@ -645,16 +660,20 @@ namespace OnlineVideos.Hoster
                         {
                             JToken jAudio = audioStreams[i];
 
+                            string strUrlAudio = getStreamUrl(jAudio, dec);
+                            if (strUrlAudio == null)
+                                continue;
+
                             YoutubeQuality q = new()
                             {
                                 VideoType = format.Value<string>("mimeType"),
                                 VideoBitrate = format.Value<int>("bitrate"),
                                 VideoID = format.Value<int>("itag"),
-                                VideoUrl = format.Value<string>("url"),
+                                VideoUrl = strUrl,
                                 VideoWidth = format.Value<int>("width"),
                                 VideoHeight = format.Value<int>("height"),
                                 AudioID = jAudio.Value<int>("itag"),
-                                AudioUrl = jAudio.Value<string>("url"),
+                                AudioUrl = strUrlAudio,
                                 AudioSampleRate = jAudio.Value<int>("audioSampleRate"),
                                 AudioChannels = jAudio.Value<int>("audioChannels"),
                                 AudioType = jAudio.Value<string>("mimeType"),
@@ -674,7 +693,7 @@ namespace OnlineVideos.Hoster
                         VideoBitrate = format.Value<int>("bitrate"),
                         Url = format.Value<string>("url"),
                         VideoID = format.Value<int>("itag"),
-                        VideoUrl = format.Value<string>("url"),
+                        VideoUrl = strUrl,
                         VideoWidth = format.Value<int>("width"),
                         VideoHeight = format.Value<int>("height"),
                         AudioSampleRate = format.Value<int>("audioSampleRate"),
@@ -682,6 +701,50 @@ namespace OnlineVideos.Hoster
                     });
                 }
             }
+        }
+
+        private static string getStreamUrl(JToken jFormat, YoutubeSignatureDecryptor decryptor)
+        {
+            JToken jUrlDecr = jFormat["urlDecrypted"];
+            if (jUrlDecr == null)
+            {
+                string strUrl = null;
+                string strSig = null;
+                JToken jUrl = jFormat["url"];
+                if (jUrl == null)
+                {
+                    string strSignatureCipher = jFormat["signatureCipher"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(strSignatureCipher))
+                    {
+                        NameValueCollection col = HttpUtility.ParseQueryString(strSignatureCipher);
+                        strUrl = col["url"];
+                        strSig = col["s"];
+                    }
+                }
+                else
+                    strUrl = (string)jUrl;
+
+                if (strUrl != null)
+                {
+                    if (decryptor != null)
+                    {
+                        Match m = Regex.Match(strUrl, "&n=(?<n>[^&]+)");
+                        if (m.Success)
+                        {
+                            string str = decryptor.DecryptNSignature(m.Groups["n"].Value);
+                            strUrl = strUrl.Substring(0, m.Index + 3) + str + strUrl.Substring(m.Index + m.Length);
+                            if (strSig != null)
+                                strUrl += "&sig=" + decryptor.DecryptSignature(strSig);
+                        }
+                    }
+                    jFormat["urlDecrypted"] = strUrl; //to avoid further decrypting
+                    return strUrl;
+                }
+
+                return null;
+            }
+            else
+                return (string)jUrlDecr;
         }
     }
 }
