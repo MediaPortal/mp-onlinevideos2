@@ -273,7 +273,11 @@ namespace OnlineVideos.Hoster
                 //Sort by quality
                 qualities.Sort(new Comparison<YoutubeQuality>((a, b) =>
                 {
-                    if (a.VideoID != b.VideoID)
+                    if (a.VideoWidth != b.VideoWidth)
+                        return a.VideoWidth.CompareTo(b.VideoWidth);
+                    else if (a.VideoBitrate != b.VideoBitrate)
+                        return a.VideoBitrate.CompareTo(b.VideoBitrate);
+                    else if (a.VideoID != b.VideoID)
                         return Array.IndexOf(fmtOptionsQualitySorted, (ushort)b.VideoID).CompareTo(Array.IndexOf(fmtOptionsQualitySorted, (ushort)a.VideoID));
                     else
                     {
@@ -472,15 +476,18 @@ namespace OnlineVideos.Hoster
                 if (!String.IsNullOrEmpty(hlsUrl))
                 {
                     var data = GetWebData(hlsUrl);
-                    var res = HlsPlaylistParser.GetPlaybackOptions(data, hlsUrl, (x, y) => x.Bandwidth.CompareTo(y.Bandwidth), (x) => x.Width + "x" + x.Height);
+                    var res = HlsPlaylistParser.GetPlaybackOptionsEx(data, hlsUrl, HlsStreamInfoComparer.BandwidtLowHigh, HlsStreamInfoFormatter.VideoDimension);
                     foreach (var kv in res)
                     {
                         string[] qualityKey = { "0", kv.Key };
                         qualities.Add(new YoutubeQuality()
                         {
-                            Url = kv.Value,
-                            VideoType = kv.Key,
-                            VideoID = 0
+                            Url = kv.Value.Url,
+                            VideoType = "HLS",
+                            VideoID = 0,
+                            VideoWidth = kv.Value.Width,
+                            VideoHeight = kv.Value.Height,
+                            VideoBitrate = kv.Value.Bandwidth
                         });
                     }
                 }
