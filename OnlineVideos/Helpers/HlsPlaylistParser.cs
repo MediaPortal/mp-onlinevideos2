@@ -98,6 +98,29 @@ namespace OnlineVideos.Helpers
             return playbackOptions;
         }
 
+        /// <summary>
+        /// Parse a m3u8 playlist into a dictionary with streamname and HlsStreamInfo
+        /// Sorting and streamname are customizable
+        /// </summary>
+        /// <param name="playlist">the m3u8 data</param>
+        /// <param name="url">url to use if the m3u8 data contains relative urls</param>
+        /// <param name="comparer">comparing two HlsStreamInfo, used in the sorting</param>
+        /// <param name="formatter">formating display string for a given HlsStreamInfo</param>
+        /// <returns>Dictionary with the streamnames and HlsStreamInfos</returns>
+        public static Dictionary<string, HlsStreamInfo> GetPlaybackOptionsEx(string playlist, string url, HlsStreamInfoComparer comparer, HlsStreamInfoFormatter formatter)
+        {
+            Dictionary<string, HlsStreamInfo> playbackOptions = new Dictionary<string, HlsStreamInfo>();
+            var tmp = new HlsPlaylistParser(playlist, url);
+
+            foreach (var streamInfo in tmp.StreamInfos.OrderBy(info => info, comparer))
+            {
+                var streamName = formatter.Format(streamInfo);
+                if (!playbackOptions.ContainsKey(streamName))
+                    playbackOptions.Add(streamName, streamInfo);
+            }
+            return playbackOptions;
+        }
+
         private List<HlsStreamInfo> StreamInfos
         {
             get { return streamInfos; }
