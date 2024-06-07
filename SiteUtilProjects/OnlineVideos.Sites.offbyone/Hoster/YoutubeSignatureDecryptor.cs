@@ -58,7 +58,7 @@ namespace OnlineVideos.Hoster
                 {
                     #region Http request
 
-                    Log.Debug("[YoutubeSignatureDecryptor] Checking for new JS player vsrsion...");
+                    Log.Debug("[YoutubeSignatureDecryptor] Checking for new JS player version...");
 
                     HttpWebResponse resp;
                     HttpWebRequest wr = (HttpWebRequest)WebRequest.Create("https://www.youtube.com" + m.Groups["url"].Value);
@@ -132,9 +132,9 @@ namespace OnlineVideos.Hoster
                             //Build our js code
                             sb.Clear();
                             sb.Append(m.Groups[0].Value);
-                            sb.Append("; sig=");
+                            sb.Append("; signature=");
                             sb.Append(m.Groups["fname"].Value);
-                            sb.Append("(sig);");
+                            sb.Append("(signature);");
                             strJsNsigCode = sb.ToString();
 
                             #endregion
@@ -158,9 +158,9 @@ namespace OnlineVideos.Hoster
                             sb.Clear();
                             sb.Append(m.Groups[0].Value);
                             sb.Append(strFcCode);
-                            sb.Append("sig=");
+                            sb.Append("signature=");
                             sb.Append(strFcName);
-                            sb.Append("(sig);");
+                            sb.Append("(signature);");
                             strJsSignatureCode = sb.ToString();
 
                             #endregion
@@ -204,16 +204,16 @@ namespace OnlineVideos.Hoster
 
         public string DecryptNSignature(string strSig)
         {
-            this._JsEngine.SetGlobalValue("sig", strSig);
+            this._JsEngine.SetGlobalValue("signature", strSig);
             this._JsCompiledNsigScript.Execute(this._JsEngine);
-            return (string)this._JsEngine.GetGlobalValue("sig");
+            return (string)this._JsEngine.GetGlobalValue("signature");
         }
 
         public string DecryptSignature(string strSig)
         {
-            this._JsEngine.SetGlobalValue("sig", strSig);
+            this._JsEngine.SetGlobalValue("signature", strSig);
             this._JsCompiledSignatureScript.Execute(this._JsEngine);
-            return (string)this._JsEngine.GetGlobalValue("sig");
+            return (string)this._JsEngine.GetGlobalValue("signature");
         }
 
         private static StringBuilder AppendUTF8Buffer(StringBuilder self, byte[] buffer, int iIdxFrom, int iLength, ref int iUTF8ToRead, ref int iUTF8Char)
