@@ -12,8 +12,8 @@ namespace OnlineVideos.Hoster
     public class YoutubeSignatureDecryptor
     {
         private static readonly Regex _RegexPlayerJsUrl = new("href=\"(?<url>/s/player/(?<id>.+?)/player_.+?base\\.js)\"", RegexOptions.Compiled);
-        private static readonly Regex _RegexPlayerJsFunction = new("(?<fname>[a-z,A-Z,0-9]+)=function\\(a\\){var\\s+b=a\\.split\\(\"\"\\)(?s:.)+?return\\s+b\\.join\\(\"\"\\)}", RegexOptions.Compiled);
-        private static readonly Regex _RegexPlayerJsSigFunction = new("(?<fname>[a-z,A-Z,0-9]+)=function\\(a\\){a=a.split\\(\"\"\\);(?<fnamesub>[a-z,A-Z,0-9]+)\\.(?s:.)+?return\\s+a\\.join\\(\"\"\\)};", RegexOptions.Compiled);
+        private static readonly Regex _RegexPlayerJsFunction = new("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){var\\s+b=a\\.split\\(\"\"\\)(?s:.)+?return\\s+b\\.join\\(\"\"\\)}", RegexOptions.Compiled);
+        private static readonly Regex _RegexPlayerJsSigFunction = new("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){a=a.split\\(\"\"\\);(?<fnamesub>[a-zA-Z0-9$]+)\\.(?s:.)+?return\\s+a\\.join\\(\"\"\\)};", RegexOptions.Compiled);
         private const string _JS_SUB_FUNCTION_REGEX = "var {0}={{(?s:.)+?}};";
 
         private readonly Jurassic.ScriptEngine _JsEngine;
@@ -147,7 +147,7 @@ namespace OnlineVideos.Hoster
 
                             string strFcCode = m.Groups[0].Value;
                             string strFcName = m.Groups["fname"].Value;
-                            string strFcNameSub = m.Groups["fnamesub"].Value;
+                            string strFcNameSub = m.Groups["fnamesub"].Value.Replace("$", "\\$");
                             m = Regex.Match(strJsBase, string.Format(_JS_SUB_FUNCTION_REGEX, strFcNameSub));
                             if (!m.Success)
                                 throw new Exception("Failed to locate js signature sub function.");
