@@ -11,23 +11,36 @@ namespace OnlineVideos.Hoster
 {
     public class YoutubeSignatureDecryptor
     {
+        //Current version of the Decryptor structure
+        private const int _DECRYPTOR_VERSION_CURRENT = 1;
+
+        private class Decryptor
+        {
+            public int Version = _DECRYPTOR_VERSION_CURRENT;
+            public DateTime TimeStamp;
+            public DateTime Expires;
+            public string NSignatureJsCode;
+            public string SignatureJsCode;
+        }
+
         private static readonly Regex _RegexPlayerJsUrl = new("href=\"(?<url>/s/player/(?<id>.+?)/player_.+?base\\.js)\"", RegexOptions.Compiled);
-        private static readonly Regex _RegexPlayerJsFunction = new("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){var\\s+b=a\\.split\\(\"\"\\)(?s:.)+?return\\s+b\\.join\\(\"\"\\)}", RegexOptions.Compiled);
+        private static readonly Regex _RegexPlayerJsFunction = new("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){var\\s+b=a\\.split\\(\"\"\\)(?s:.)+?return\\s+b\\.join\\(\"\"\\)};", RegexOptions.Compiled);
         private static readonly Regex _RegexPlayerJsSigFunction = new("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){a=a.split\\(\"\"\\);(?<fnamesub>[a-zA-Z0-9$]+)\\.(?s:.)+?return\\s+a\\.join\\(\"\"\\)};", RegexOptions.Compiled);
         private const string _JS_SUB_FUNCTION_REGEX = "var {0}={{(?s:.)+?}};";
-
-        private readonly Jurassic.ScriptEngine _JsEngine;
-        private readonly Jurassic.CompiledScript _JsCompiledNsigScript;
-        private readonly Jurassic.CompiledScript _JsCompiledSignatureScript;
-
-        private static readonly Dictionary<string, DateTime> _JsExpiresCache = new();
+        private const string _JS_FUNCTION_NAME = "decrypt";
+        
+        //Local decryptor cache
+        private static readonly Dictionary<string, Decryptor> _Cache = new();
 
         //Js file cache directory
         private static readonly string _CacheDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\.cache\\OnlineVideos\\Youtube";
 
-        public YoutubeSignatureDecryptor(string strVideoWebContent)
+        private readonly Helpers.WebViewHelper _Webview;
+        private readonly Decryptor _Decryptor;
+
+        public YoutubeSignatureDecryptor(string strVideoWebContent, Helpers.WebViewHelper webview)
         {
-            lock (_JsExpiresCache)
+            lock (_Cache)
             {
                 if (string.IsNullOrWhiteSpace(strVideoWebContent))
                     throw new ArgumentNullException();
@@ -42,19 +55,42 @@ namespace OnlineVideos.Hoster
                 Log.Debug("[YoutubeSignatureDecryptor] JS player id: {0}", strId);
 
                 //Cache files full path
-                string strCacheFileNsig = _CacheDir + '\\' + strId + "_nsig.js";
-                string strCacheFileSignature = _CacheDir + '\\' + strId + "_sig.js";
-
-                //Js codes
-                string strJsNsigCode = null;
-                string strJsSignatureCode = null;
+                string strCacheFile = _CacheDir + '\\' + strId + ".json";
 
                 //Check for cache directory
                 if (!Directory.Exists(_CacheDir))
                     Directory.CreateDirectory(_CacheDir);
 
+                //Try to load existing decryptor
+                if (!_Cache.TryGetValue(strId, out Decryptor dec))
+                {
+                    if (File.Exists(strCacheFile))
+                    {
+                        try
+                        {
+                            dec = Newtonsoft.Json.JsonConvert.DeserializeObject<Decryptor>(File.ReadAllText(strCacheFile));
+                            if (dec.Version != _DECRYPTOR_VERSION_CURRENT)
+                                dec = null;
+                            else
+                            {
+                                //Put decryptor to the local cache
+                                _Cache[strId] = dec;
+
+                                Log.Debug("[YoutubeSignatureDecryptor] Decryptor loaded from file cache.");
+                            }
+                        }
+                        catch
+                        {
+                            dec = null;
+                            Log.Error("[YoutubeSignatureDecryptor] Failed to load decryptor from cache.");
+                        }
+                    }
+                }
+                else
+                    Log.Debug("[YoutubeSignatureDecryptor] Decryptor loaded from cache.");
+
                 //Check for existing Expire time
-                if (!_JsExpiresCache.TryGetValue(strId, out DateTime dtExpires) || DateTime.Now >= dtExpires)
+                if (dec == null || DateTime.Now >= dec.Expires)
                 {
                     #region Http request
 
@@ -67,13 +103,12 @@ namespace OnlineVideos.Hoster
                     wr.Accept = "*/*";
                     wr.Headers.Add(HttpRequestHeader.AcceptEncoding, "gzip,deflate");
 
-                    if (File.Exists(strCacheFileNsig))
-                    {
-                        //Append ModifiedSince to check whether the file is modifid or not
-                        FileInfo fi = new(strCacheFileNsig);
-                        wr.IfModifiedSince = fi.LastWriteTimeUtc;
-                    }
-
+                    //Append ModifiedSince to check whether the file is modified or not
+                    if (dec == null)
+                        dec = new Decryptor();
+                    else if (dec.TimeStamp > DateTime.MinValue)
+                        wr.IfModifiedSince = dec.TimeStamp.ToUniversalTime();
+                       
                     //Get web response
                     try
                     {
@@ -85,8 +120,17 @@ namespace OnlineVideos.Hoster
                         resp = (HttpWebResponse)ex.Response;
                     }
 
-                    if (!DateTime.TryParse(resp.Headers["Expires"], out dtExpires))
+
+                    bool bStoreToFileCache = false;
+
+                    //Update Expires timestamp
+                    if (!DateTime.TryParse(resp.Headers["Expires"], out DateTime dtExpires))
                         dtExpires = DateTime.MinValue;
+                    else if (dtExpires > dec.Expires)
+                    {
+                        dec.Expires = dtExpires;
+                        bStoreToFileCache = true;
+                    }
 
                     switch (resp.StatusCode)
                     {
@@ -130,12 +174,12 @@ namespace OnlineVideos.Hoster
                             Log.Debug("[YoutubeSignatureDecryptor] JS nsig function found.");
 
                             //Build our js code
+                            string strFcCode = m.Groups[0].Value;
+                            string strFcName = m.Groups["fname"].Value;
                             sb.Clear();
-                            sb.Append(m.Groups[0].Value);
-                            sb.Append("; signature=");
-                            sb.Append(m.Groups["fname"].Value);
-                            sb.Append("(signature);");
-                            strJsNsigCode = sb.ToString();
+                            sb.Append(_JS_FUNCTION_NAME);
+                            sb.Append(strFcCode, strFcName.Length, strFcCode.Length - strFcName.Length);
+                            dec.NSignatureJsCode = sb.ToString();
 
                             #endregion
 
@@ -145,8 +189,8 @@ namespace OnlineVideos.Hoster
                             if (!m.Success)
                                 throw new Exception("Failed to locate js signature function.");
 
-                            string strFcCode = m.Groups[0].Value;
-                            string strFcName = m.Groups["fname"].Value;
+                            strFcCode = m.Groups[0].Value;
+                            strFcName = m.Groups["fname"].Value;
                             string strFcNameSub = m.Groups["fnamesub"].Value.Replace("$", "\\$");
                             m = Regex.Match(strJsBase, string.Format(_JS_SUB_FUNCTION_REGEX, strFcNameSub));
                             if (!m.Success)
@@ -157,18 +201,13 @@ namespace OnlineVideos.Hoster
                             //Build our js code
                             sb.Clear();
                             sb.Append(m.Groups[0].Value);
-                            sb.Append(strFcCode);
-                            sb.Append("signature=");
-                            sb.Append(strFcName);
-                            sb.Append("(signature);");
-                            strJsSignatureCode = sb.ToString();
+                            sb.Append(_JS_FUNCTION_NAME);
+                            sb.Append(strFcCode, strFcName.Length, strFcCode.Length - strFcName.Length);
+                            dec.SignatureJsCode = sb.ToString();
 
                             #endregion
 
-                            //Write the prepared functions to the cache files
-                            File.WriteAllText(strCacheFileNsig, strJsNsigCode);
-                            File.WriteAllText(strCacheFileSignature, strJsSignatureCode);
-
+                            bStoreToFileCache = true;
                             break;
 
                         case HttpStatusCode.NotModified:
@@ -180,40 +219,44 @@ namespace OnlineVideos.Hoster
                             throw new Exception("Failed to connect to youtube server.");
                     }
 
-                    //Remember expire time
-                    if (dtExpires > DateTime.MinValue)
-                        _JsExpiresCache[strId] = dtExpires;
+                    if (bStoreToFileCache)
+                    {
+                        //Write the decryptor to the file cache
+                        dec.TimeStamp = DateTime.Now;
+                        File.WriteAllText(strCacheFile, Newtonsoft.Json.JsonConvert.SerializeObject(dec));
+                        Log.Debug("[YoutubeSignatureDecryptor] Decryptor stored to file cache.");
+                    }
+
+                    //Put decryptor to the local cache
+                    _Cache[strId] = dec;
 
                     #endregion
                 }
 
-                //Load cached functions from cache if needed
-                if (strJsNsigCode == null)
-                {
-                    strJsNsigCode = File.ReadAllText(strCacheFileNsig);
-                    strJsSignatureCode = File.ReadAllText(strCacheFileSignature);
-                    Log.Debug("[YoutubeSignatureDecryptor] JS function files loaded from cache.");
-                }
-
-                //Initialize compiled scripts
-                this._JsEngine = new Jurassic.ScriptEngine();
-                this._JsCompiledNsigScript = Jurassic.CompiledScript.Compile(new Jurassic.StringScriptSource(strJsNsigCode));
-                this._JsCompiledSignatureScript = Jurassic.CompiledScript.Compile(new Jurassic.StringScriptSource(strJsSignatureCode));
+                //Complete the initialization
+                this._Decryptor = dec;
+                this._Webview = webview;
             }
         }
 
         public string DecryptNSignature(string strSig)
         {
-            this._JsEngine.SetGlobalValue("signature", strSig);
-            this._JsCompiledNsigScript.Execute(this._JsEngine);
-            return (string)this._JsEngine.GetGlobalValue("signature");
+            string strResult = this._Webview.ExecuteFunc(this._Decryptor.NSignatureJsCode + _JS_FUNCTION_NAME + "(\"" + strSig + "\");");
+
+            if (string.IsNullOrWhiteSpace(strResult) || strResult == "\"\"")
+                Log.Error("[DecryptNSignature] Failed to execute the js function. Signature: " + strSig);
+
+            return strResult.Trim('\"');
         }
 
         public string DecryptSignature(string strSig)
         {
-            this._JsEngine.SetGlobalValue("signature", strSig);
-            this._JsCompiledSignatureScript.Execute(this._JsEngine);
-            return (string)this._JsEngine.GetGlobalValue("signature");
+            string strResult = this._Webview.ExecuteFunc(this._Decryptor.SignatureJsCode + _JS_FUNCTION_NAME + "(\"" + strSig + "\");");
+
+            if (string.IsNullOrWhiteSpace(strResult) || strResult == "\"\"")
+                Log.Error("[DecryptSignature] Failed to execute the js function. Signature: " + strSig);
+
+            return strResult.Trim('\"');
         }
 
         private static StringBuilder AppendUTF8Buffer(StringBuilder self, byte[] buffer, int iIdxFrom, int iLength, ref int iUTF8ToRead, ref int iUTF8Char)

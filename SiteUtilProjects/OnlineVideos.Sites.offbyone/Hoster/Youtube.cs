@@ -13,7 +13,7 @@ using Newtonsoft.Json.Linq;
 
 namespace OnlineVideos.Hoster
 {
-    public class Youtube : HosterBase, ISubtitle
+    public class Youtube : HosterBaseWithWebView, ISubtitle
     {
         private class YoutubeQuality
         {
@@ -243,7 +243,7 @@ namespace OnlineVideos.Hoster
                             try
                             {
                                 //Prepare signature decryptor
-                                decryptor = new YoutubeSignatureDecryptor(strContentsWeb);
+                                decryptor = new YoutubeSignatureDecryptor(strContentsWeb, this.wv);
                             }
                             catch (Exception ex)
                             {
