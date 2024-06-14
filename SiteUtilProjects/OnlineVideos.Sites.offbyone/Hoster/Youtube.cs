@@ -217,7 +217,7 @@ namespace OnlineVideos.Hoster
                 string postdata = String.Format(@"{{""context"": {{""client"": {{""clientName"": ""ANDROID_CREATOR"", ""clientVersion"": ""{1}"", ""androidSdkVersion"": 30, ""userAgent"": ""{2}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""params"": ""CgIQBg=="", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS""}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}", videoId,
                     headers["X-Youtube-Client-Version"], headers["User-Agent"]);
                 JObject jData = WebCache.Instance.GetWebData<JObject>(YoutubePlayerUrl, postData: postdata, headers: headers);
-                parsePlayerStatus(jData["streamingData"], qualities, null);
+                parsePlayerStatus(jData["videoDetails"], jData["streamingData"], qualities, null);
 
                 //yt-dlp processing
                 JToken jDataYtDlp = null; //parsePlayerStatusFromYtDlp(qualities, videoId);
@@ -255,7 +255,7 @@ namespace OnlineVideos.Hoster
                     catch { jDataWeb = null; };
 
                     if (jDataWeb != null && decryptor != null)
-                        parsePlayerStatus(jDataWeb["streamingData"], qualities, decryptor);
+                        parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, decryptor);
 
                     if (qualities.Count == 0 && strContentsWeb != null)
                     {
@@ -265,7 +265,7 @@ namespace OnlineVideos.Hoster
                         {
                             postdata = String.Format(@"{{""context"": {{""client"": {{""clientName"": ""WEB"", ""clientVersion"": ""2.20210622.10.00"", ""hl"": ""en"", ""clientScreen"": ""EMBED""}}, ""thirdParty"": {{""embedUrl"": ""https://google.com""}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {1}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}", videoId, m.Groups["sts"].Value);
                             jData = WebCache.Instance.GetWebData<JObject>(YoutubePlayerUrl, postData: postdata, headers: headers);
-                            parsePlayerStatus(jData["streamingData"], qualities, null);
+                            parsePlayerStatus(jData["videoDetails"], jData["streamingData"], qualities, null);
                         }
                     }
                 }
@@ -459,18 +459,25 @@ namespace OnlineVideos.Hoster
             return null;
         }
 
-        private void parsePlayerStatus(JToken streamingData, List<YoutubeQuality> qualities, YoutubeSignatureDecryptor dec)
+        private void parsePlayerStatus(JToken videoDetails, JToken streamingData, List<YoutubeQuality> qualities, YoutubeSignatureDecryptor dec)
         {
             if (streamingData == null)
                 return;
 
-            if (streamingData["formats"] is JArray formats)
-                parseFormats(formats, qualities, null, dec);
+            //In case of LIVE stream take the HLS or DASH link only; adaptive formats have cca 5s streams only
+            bool bIsLive = videoDetails?.Value<bool>("isLive") ?? false;
 
-            if (streamingData["adaptiveFormats"] is JArray formatsAdapt)
-                parseFormats(formatsAdapt, qualities, formatsAdapt.Where(j => j["width"] == null && j["audioChannels"] != null).ToArray(), dec);
+            if (!bIsLive)
+            {
+                if (streamingData["formats"] is JArray formats)
+                    parseFormats(formats, qualities, null, dec);
 
-            if (qualities.Count == 0)
+                if (streamingData["adaptiveFormats"] is JArray formatsAdapt)
+                    parseFormats(formatsAdapt, qualities, formatsAdapt.Where(j => j["width"] == null && j["audioChannels"] != null).ToArray(), dec);
+            }
+
+            // Web page links can have higher resolution so take always the LIVE streams
+            if (qualities.Count == 0 || bIsLive)
             {
                 string hlsUrl = streamingData.Value<String>("hlsManifestUrl");
                 if (!String.IsNullOrEmpty(hlsUrl))
@@ -490,6 +497,24 @@ namespace OnlineVideos.Hoster
                             VideoBitrate = kv.Value.Bandwidth
                         });
                     }
+                }
+            }
+
+            // Fallback to MPEG-DASH; LAV does support this format
+            if (qualities.Count == 0)
+            {
+                string strDashUrl = streamingData.Value<string>("dashManifestUrl");
+                if (!string.IsNullOrEmpty(strDashUrl))
+                {
+                    qualities.Add(new YoutubeQuality()
+                    {
+                        Url = strDashUrl,
+                        VideoType = "DASH",
+                        VideoID = 0,
+                        VideoWidth = 0,
+                        VideoHeight = 0,
+                        VideoBitrate = 0
+                    });
                 }
             }
         }
