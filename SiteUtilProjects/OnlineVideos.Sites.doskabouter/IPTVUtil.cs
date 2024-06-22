@@ -69,26 +69,32 @@ namespace OnlineVideos.Sites
             return Settings.Categories.Count;
         }
 
+        private VideoInfo ConvertToVideo(string key, SortedList<string, IPTVStream> value)
+        {
+            VideoInfo video = new VideoInfo()
+            {
+                Title = key,
+                Other = value,
+                PlaybackOptions = new Dictionary<string, string>()
+            };
+            foreach (var res in value)
+            {
+                HttpUrl httpUrl = new HttpUrl(res.Value.url);
+                httpUrl.UserAgent = OnlineVideoSettings.Instance.UserAgent;
+                httpUrl.LiveStream = String.IsNullOrEmpty(Path.GetExtension(res.Value.url));
+                video.PlaybackOptions.Add(res.Key, httpUrl.ToString());
+                video.Thumb = res.Value.logo;
+            }
+            return video;
+        }
+
         public override List<VideoInfo> GetVideos(Category category)
         {
             var vids = (SortedList<string, SortedList<string, IPTVStream>>)category.Other;
             List<VideoInfo> videos = new List<VideoInfo>();
             foreach (var vid in vids)
             {
-                VideoInfo video = new VideoInfo()
-                {
-                    Title = vid.Key,
-                    Other = vid.Value,
-                    PlaybackOptions = new Dictionary<string, string>()
-                };
-                foreach (var res in vid.Value)
-                {
-                    HttpUrl httpUrl = new HttpUrl(res.Value.url);
-                    httpUrl.UserAgent = OnlineVideoSettings.Instance.UserAgent;
-                    httpUrl.LiveStream = String.IsNullOrEmpty(Path.GetExtension(res.Value.url));
-                    video.PlaybackOptions.Add(res.Key, httpUrl.ToString());
-                    video.Thumb = res.Value.logo;
-                }
+                var video = ConvertToVideo(vid.Key, vid.Value);
                 videos.Add(video);
             }
             return videos;
@@ -97,6 +103,28 @@ namespace OnlineVideos.Sites
         public override string GetVideoUrl(VideoInfo video)
         {
             return video.GetPreferredUrl(true);
+        }
+
+        public override bool CanSearch { get { return true; } }
+
+        public override List<SearchResultItem> Search(string query, string category = null)
+        {
+            var res = new List<SearchResultItem>();
+
+            foreach (var cat in Settings.Categories)
+            {
+                var vids = (SortedList<string, SortedList<string, IPTVStream>>)cat.Other;
+                foreach (var vid in vids)
+                {
+                    if (vid.Key.ToLowerInvariant().Contains(query.ToLowerInvariant()))
+                    {
+                        VideoInfo video = ConvertToVideo(vid.Key, vid.Value);
+                        res.Add(video as SearchResultItem);
+                    }
+                }
+            }
+
+            return res;
         }
 
     }
