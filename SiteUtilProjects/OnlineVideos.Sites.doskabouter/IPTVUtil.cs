@@ -37,7 +37,7 @@ namespace OnlineVideos.Sites
                             IPTVStream stream = new IPTVStream()
                             {
                                 tvgname = m.Groups["tvgname"].Value.Replace(" H.265", ""),
-                                grouptitle = m.Groups["grouptitle"].Value.Replace(" Terugkijken + Overig", "").Replace(" KANALEN", "").Replace(" HEVC H.265", ""),
+                                grouptitle = m.Groups["grouptitle"].Value.Replace(" Terugkijken + Overig", "").Replace(" KANALEN", "").Replace(" HEVC H.265", "").Replace('|', '∣'),
                                 reso = m.Groups["reso"].Value,
                                 logo = m.Groups["tvglogo"].Value
                             };
