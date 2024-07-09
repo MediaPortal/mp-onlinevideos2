@@ -21,6 +21,9 @@ namespace OnlineVideos.Hoster
             public DateTime Expires;
             public string NSignatureJsCode;
             public string SignatureJsCode;
+
+            [Newtonsoft.Json.JsonIgnore]
+            public DateTime LastUse;
         }
 
         private static readonly Regex _RegexPlayerJsUrl = new("href=\"(?<url>/s/player/(?<id>.+?)/player_.+?base\\.js)\"", RegexOptions.Compiled);
@@ -36,6 +39,7 @@ namespace OnlineVideos.Hoster
 
         //Local decryptor cache
         private static readonly Dictionary<string, Decryptor> _Cache = new();
+        private static DateTime _CacheLastMaintenance = DateTime.MinValue;
 
         //Js file cache directory
         private static readonly string _CacheDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\.cache\\OnlineVideos\\Youtube";
@@ -245,8 +249,45 @@ namespace OnlineVideos.Hoster
                 }
 
                 //Complete the initialization
+                new FileInfo(strCacheFile).LastAccessTime = DateTime.Now;
+                dec.LastUse = DateTime.Now;
                 this._Decryptor = dec;
                 this._Webview = webview;
+
+                #region Cache maintenance
+                if ((DateTime.Now - _CacheLastMaintenance).TotalDays >= 1)
+                {
+                    Log.Debug("[YoutubeSignatureDecryptor] Cache maintenance...");
+
+                    //Local cache
+                    _Cache.Where(d => (DateTime.Now - d.Value.LastUse).TotalDays >= 7).ToList().ForEach(d =>
+                    {
+                        _Cache.Remove(d.Key);
+                        Log.Debug("[YoutubeSignatureDecryptor] Cache maintenance: ID '{0}' removed", d.Key);
+                    });
+
+                    //File cache
+                    string[] files = Directory.GetFiles(_CacheDir, "*.json");
+                    for (int i = 0; i < files.Length; i++)
+                    {
+                        FileInfo fi = new(files[i]);
+                        if ((DateTime.Now - fi.LastAccessTime).TotalDays >= 90)
+                        {
+                            try
+                            {
+                                File.Delete(fi.FullName);
+                                Log.Debug("[YoutubeSignatureDecryptor] Cache maintenance: File '{0}' removed.", fi.FullName);
+                            }
+                            catch
+                            {
+                                Log.Error("[YoutubeSignatureDecryptor] Cache maintenance: Failed to remove '{0}'.", fi.FullName);
+                            }
+                        }
+                    }
+
+                    _CacheLastMaintenance = DateTime.Now;
+                }
+                #endregion
             }
         }
 
