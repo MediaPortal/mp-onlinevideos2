@@ -24,11 +24,16 @@ namespace OnlineVideos.Hoster
         }
 
         private static readonly Regex _RegexPlayerJsUrl = new("href=\"(?<url>/s/player/(?<id>.+?)/player_.+?base\\.js)\"", RegexOptions.Compiled);
-        private static readonly Regex _RegexPlayerJsFunction = new("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){var\\s+b=a\\.split\\(\"\"\\)(?s:.)+?return\\s+b\\.join\\(\"\"\\)};", RegexOptions.Compiled);
-        private static readonly Regex _RegexPlayerJsSigFunction = new("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){a=a.split\\(\"\"\\);(?<fnamesub>[a-zA-Z0-9$]+)\\.(?s:.)+?return\\s+a\\.join\\(\"\"\\)};", RegexOptions.Compiled);
+        private static readonly Regex[] _RegexPlayerJsFunctions = new Regex[]
+        {
+            new Regex("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){var\\s+b=a\\.split\\(\"\"\\)(?s:.)+?return\\s+b\\.join\\(\"\"\\)};", RegexOptions.Compiled),
+            new Regex("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){var\\s+b=String\\.prototype\\.split\\.(?s:.)+?return\\s+Array\\.prototype\\.join\\.call\\(b,\"\"\\)};", RegexOptions.Compiled),
+            new Regex("(?<=(?<fname>[a-zA-Z0-9$]+)\\=function\\((?s:.)+?)\"enhanced_except_(?s:.)+?\\)};", RegexOptions.Compiled)
+        };
+        private static readonly Regex _RegexPlayerJsSigFunction = new("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){a=a\\.split\\(\"\"\\);(?<fnamesub>[a-zA-Z0-9$]+)\\.(?s:.)+?return\\s+a\\.join\\(\"\"\\)};", RegexOptions.Compiled);
         private const string _JS_SUB_FUNCTION_REGEX = "var {0}={{(?s:.)+?}};";
         private const string _JS_FUNCTION_NAME = "decrypt";
-        
+
         //Local decryptor cache
         private static readonly Dictionary<string, Decryptor> _Cache = new();
 
@@ -108,7 +113,7 @@ namespace OnlineVideos.Hoster
                         dec = new Decryptor();
                     else if (dec.TimeStamp > DateTime.MinValue)
                         wr.IfModifiedSince = dec.TimeStamp.ToUniversalTime();
-                       
+
                     //Get web response
                     try
                     {
@@ -167,18 +172,24 @@ namespace OnlineVideos.Hoster
 
                             #region Try to find js nsig function
 
-                            m = _RegexPlayerJsFunction.Match(strJsBase);
+                            for (int i = 0; i < _RegexPlayerJsFunctions.Length; i++)
+                            {
+                                m = _RegexPlayerJsFunctions[i].Match(strJsBase);
+                                if (m.Success)
+                                    break;
+                            }
                             if (!m.Success)
                                 throw new Exception("Failed to locate js nsig function.");
 
                             Log.Debug("[YoutubeSignatureDecryptor] JS nsig function found.");
 
                             //Build our js code
-                            string strFcCode = m.Groups[0].Value;
-                            string strFcName = m.Groups["fname"].Value;
+                            System.Text.RegularExpressions.Group grFcCode = m.Groups[0];
+                            System.Text.RegularExpressions.Group grFcName = m.Groups["fname"];
+                            int iIdxStart = grFcName.Index + grFcName.Length;
                             sb.Clear();
                             sb.Append(_JS_FUNCTION_NAME);
-                            sb.Append(strFcCode, strFcName.Length, strFcCode.Length - strFcName.Length);
+                            sb.Append(strJsBase, iIdxStart, grFcCode.Index + grFcCode.Length - iIdxStart);
                             dec.NSignatureJsCode = sb.ToString();
 
                             #endregion
@@ -189,8 +200,8 @@ namespace OnlineVideos.Hoster
                             if (!m.Success)
                                 throw new Exception("Failed to locate js signature function.");
 
-                            strFcCode = m.Groups[0].Value;
-                            strFcName = m.Groups["fname"].Value;
+                            string strFcCode = m.Groups[0].Value;
+                            string strFcName = m.Groups["fname"].Value;
                             string strFcNameSub = m.Groups["fnamesub"].Value.Replace("$", "\\$");
                             m = Regex.Match(strJsBase, string.Format(_JS_SUB_FUNCTION_REGEX, strFcNameSub));
                             if (!m.Success)
@@ -243,7 +254,7 @@ namespace OnlineVideos.Hoster
         {
             string strResult = this._Webview.ExecuteFunc(this._Decryptor.NSignatureJsCode + _JS_FUNCTION_NAME + "(\"" + strSig + "\");");
 
-            if (string.IsNullOrWhiteSpace(strResult) || strResult == "\"\"")
+            if (string.IsNullOrWhiteSpace(strResult) || strResult == "\"\"" || strResult == "null")
                 Log.Error("[DecryptNSignature] Failed to execute the js function. Signature: " + strSig);
 
             return strResult.Trim('\"');
@@ -253,7 +264,7 @@ namespace OnlineVideos.Hoster
         {
             string strResult = this._Webview.ExecuteFunc(this._Decryptor.SignatureJsCode + _JS_FUNCTION_NAME + "(\"" + strSig + "\");");
 
-            if (string.IsNullOrWhiteSpace(strResult) || strResult == "\"\"")
+            if (string.IsNullOrWhiteSpace(strResult) || strResult == "\"\"" || strResult == "null")
                 Log.Error("[DecryptSignature] Failed to execute the js function. Signature: " + strSig);
 
             return strResult.Trim('\"');
