@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Diagnostics;
+using System.Xml;
 using OnlineVideos.Helpers;
 using Newtonsoft.Json.Linq;
 
@@ -281,7 +282,11 @@ namespace OnlineVideos.Hoster
                         return Array.IndexOf(fmtOptionsQualitySorted, (ushort)b.VideoID).CompareTo(Array.IndexOf(fmtOptionsQualitySorted, (ushort)a.VideoID));
                     else
                     {
-                        if (b.AudioID == a.AudioID)
+                        if (a.VideoType != "DASH" && b.VideoType == "DASH")
+                            return 1;
+                        else if (a.VideoType == "DASH" && b.VideoType != "DASH")
+                            return -1;
+                        else if (b.AudioID == a.AudioID)
                             return a.AudioBitrate.CompareTo(b.AudioBitrate);
                         else
                             return Array.IndexOf(fmtOptionsQualityAudioSorted, (ushort)b.AudioID).CompareTo(Array.IndexOf(fmtOptionsQualityAudioSorted, (ushort)a.AudioID));
@@ -293,8 +298,15 @@ namespace OnlineVideos.Hoster
                 {
                     YoutubeQuality q = qualities[i];
                     YoutubeQuality qPrev = qualities[i - 1];
-                    if (q.VideoID == qPrev.VideoID && q.AudioID == qPrev.AudioID)
-                        qualities.RemoveAt(--i);
+
+                    if (q.VideoID == qPrev.VideoID)
+                    {
+                        if (q.VideoID == 0 && q.VideoWidth != qPrev.VideoWidth) //HLS or DASH
+                            continue;
+
+                        if (q.AudioID == qPrev.AudioID)
+                            qualities.RemoveAt(--i);
+                    }
                 }
 
                 //Create playback list
@@ -464,8 +476,10 @@ namespace OnlineVideos.Hoster
             if (streamingData == null)
                 return;
 
+            string hlsUrl = streamingData.Value<string>("hlsManifestUrl");
+
             //In case of LIVE stream take the HLS or DASH link only; adaptive formats have cca 5s streams only
-            bool bIsLive = videoDetails?.Value<bool>("isLive") ?? false;
+            bool bIsLive = (videoDetails?.Value<bool>("isLive") ?? false) || !string.IsNullOrWhiteSpace(hlsUrl);
 
             if (!bIsLive)
             {
@@ -479,7 +493,6 @@ namespace OnlineVideos.Hoster
             // Web page links can have higher resolution so take always the LIVE streams
             if (qualities.Count == 0 || bIsLive)
             {
-                string hlsUrl = streamingData.Value<String>("hlsManifestUrl");
                 if (!String.IsNullOrEmpty(hlsUrl))
                 {
                     var data = GetWebData(hlsUrl);
@@ -500,21 +513,62 @@ namespace OnlineVideos.Hoster
                 }
             }
 
-            // Fallback to MPEG-DASH; LAV does support this format
-            if (qualities.Count == 0)
+            return; //LAV is failing to play YouTube MPEG-DASH(so far)
+
+            //MPEG-DASH; LAV does support this format
+            string strDashUrl = streamingData.Value<string>("dashManifestUrl");
+            if (!string.IsNullOrEmpty(strDashUrl))
             {
-                string strDashUrl = streamingData.Value<string>("dashManifestUrl");
-                if (!string.IsNullOrEmpty(strDashUrl))
+                try
                 {
+                    const string MPD_NS = "urn:mpeg:dash:schema:mpd:2011";
+                    const string MPD_NS2 = "urn:mpeg:DASH:schema:MPD:2011";
+                    string strContent = WebCache.Instance.GetWebData(strDashUrl);
+                    XmlDocument xml = new();
+                    xml.LoadXml(strContent);
+                    XmlNamespaceManager mgr = new(xml.NameTable);
+                    mgr.AddNamespace("ns", MPD_NS);
+                    XmlNode nodeMPD = xml.SelectSingleNode("ns:MPD", mgr);
+                    if (nodeMPD == null)
+                    {
+                        mgr.AddNamespace("ns", MPD_NS2);
+                        nodeMPD = xml.SelectSingleNode("ns:MPD", mgr);
+                    }
+                    
+                    //Find highest video resolution
+                    XmlNodeList nodesRepresentation = nodeMPD.SelectNodes("//ns:AdaptationSet/ns:Representation[@width][@height]", mgr);
+                    int iWidthMax = 0;
+                    int iHeightMax = 0;
+                    int iBandwidth = 0;
+                    for (int i = 0; i < nodesRepresentation.Count; i++)
+                    {
+                        XmlNode nodeR = nodesRepresentation[i];
+                        int iW = int.Parse(nodeR.Attributes["width"].Value);
+                        int iH = int.Parse(nodeR.Attributes["height"].Value);
+                        if (iW > iWidthMax || iH > iHeightMax)
+                        {
+                            iWidthMax = iW;
+                            iHeightMax = iH;
+                        }
+
+                        if (!int.TryParse(nodeR.Attributes["bandwidth"]?.Value, out iBandwidth))
+                            iBandwidth = 0;
+                    }
+
                     qualities.Add(new YoutubeQuality()
                     {
                         Url = strDashUrl,
                         VideoType = "DASH",
                         VideoID = 0,
-                        VideoWidth = 0,
-                        VideoHeight = 0,
-                        VideoBitrate = 0
+                        VideoWidth = iWidthMax,
+                        VideoHeight = iHeightMax,
+                        VideoBitrate = iBandwidth
                     });
+
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("[YoutubeHoster] parsePlayerStatus() Error downloading MPEG-DASH manifest: {0}", ex.Message);
                 }
             }
         }
