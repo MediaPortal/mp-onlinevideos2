@@ -16,6 +16,13 @@ namespace OnlineVideos.Hoster
 {
     public class Youtube : HosterBaseWithWebView, ISubtitle
     {
+        private enum PlayerStatusEnum
+        {
+            OK = 0,
+            InvalidLink,
+            Error,
+        }
+
         private class YoutubeQuality
         {
             public string Url;
@@ -197,8 +204,10 @@ namespace OnlineVideos.Hoster
 
             List<YoutubeQuality> qualities = new List<YoutubeQuality>();
 
+            int iAttempts = 3;
             try
             {
+                get:
                 CookieContainer cc = new CookieContainer();
                 cc.Add(new Cookie("CONSENT", "YES+cb.20210328-17-p0.en+FX+684", "", ".youtube.com"));
 
@@ -234,7 +243,8 @@ namespace OnlineVideos.Hoster
                         strContentsWeb = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId),
                             proxy: proxy,
                             cookies: cc,
-                            userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36"
+                            userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
+                            cache: false
                             );
                         Match m = Regex.Match(strContentsWeb, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
                         if (m.Success)
@@ -256,7 +266,20 @@ namespace OnlineVideos.Hoster
                     catch { jDataWeb = null; };
 
                     if (jDataWeb != null && decryptor != null)
-                        parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, decryptor);
+                    {
+                        PlayerStatusEnum status = parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, decryptor);
+                        if (status != PlayerStatusEnum.OK)
+                        {
+                            if (--iAttempts > 0)
+                            {
+                                Log.Warn("[YoutubeHoster] Failed to get working links. Try again. Remaining attempts: {0}", iAttempts);
+                                goto get; //try again
+                            }
+
+                            Log.Error("[YoutubeHoster] Failed to get working links.");
+                            return null;
+                        }
+                    }
 
                     if (qualities.Count == 0 && strContentsWeb != null)
                     {
@@ -471,10 +494,10 @@ namespace OnlineVideos.Hoster
             return null;
         }
 
-        private void parsePlayerStatus(JToken videoDetails, JToken streamingData, List<YoutubeQuality> qualities, YoutubeSignatureDecryptor dec)
+        private PlayerStatusEnum parsePlayerStatus(JToken videoDetails, JToken streamingData, List<YoutubeQuality> qualities, YoutubeSignatureDecryptor dec)
         {
             if (streamingData == null)
-                return;
+                return PlayerStatusEnum.Error;
 
             string hlsUrl = streamingData.Value<string>("hlsManifestUrl");
 
@@ -484,10 +507,13 @@ namespace OnlineVideos.Hoster
             if (!bIsLive)
             {
                 if (streamingData["formats"] is JArray formats)
-                    parseFormats(formats, qualities, null, dec);
+                    parseFormats(formats, qualities, null, dec, false);
 
                 if (streamingData["adaptiveFormats"] is JArray formatsAdapt)
-                    parseFormats(formatsAdapt, qualities, formatsAdapt.Where(j => j["width"] == null && j["audioChannels"] != null).ToArray(), dec);
+                {
+                    if (parseFormats(formatsAdapt, qualities, formatsAdapt.Where(j => j["width"] == null && j["audioChannels"] != null).ToArray(), dec, dec != null) == PlayerStatusEnum.InvalidLink)
+                        return PlayerStatusEnum.InvalidLink;
+                }
             }
 
             // Web page links can have higher resolution so take always the LIVE streams
@@ -513,7 +539,7 @@ namespace OnlineVideos.Hoster
                 }
             }
 
-            return; //LAV is failing to play YouTube MPEG-DASH(so far)
+            return PlayerStatusEnum.OK; //LAV is failing to play YouTube MPEG-DASH(so far)
 
             //MPEG-DASH; LAV does support this format
             string strDashUrl = streamingData.Value<string>("dashManifestUrl");
@@ -725,8 +751,10 @@ namespace OnlineVideos.Hoster
             return jStreamingData;
         }
 
-        private static void parseFormats(JArray formats, List<YoutubeQuality> qualities, JToken[] audioStreams, YoutubeSignatureDecryptor dec)
+        private static PlayerStatusEnum parseFormats(JArray formats, List<YoutubeQuality> qualities, JToken[] audioStreams, YoutubeSignatureDecryptor dec, bool bCheckLink)
         {
+            bool bStreamValid = !bCheckLink;
+
             foreach (JToken format in formats)
             {
                 if (format["width"] == null)
@@ -739,6 +767,24 @@ namespace OnlineVideos.Hoster
                 if (format["audioChannels"] == null)
                 {
                     //Video stream only
+
+                    if (!bStreamValid)
+                    {
+                        //Check for stream availability
+                        HttpWebRequest wr = (HttpWebRequest)WebRequest.Create(strUrl);
+                        wr.Method = "HEAD";
+                        HttpWebResponse resp = null;
+                        try { resp = (HttpWebResponse)wr.GetResponse(); }
+                        catch { }
+                        if (resp == null || resp.StatusCode != HttpStatusCode.OK)
+                        {
+                            Log.Warn("[YoutubeHoster] parseFormats() Invalid link.");
+                            return PlayerStatusEnum.InvalidLink;
+                        }
+
+                        Log.Debug("[YoutubeHoster] parseFormats() Link is valid.");
+                        bStreamValid = true; //links seems to be valid; no more checks
+                    }
 
                     if (audioStreams != null)
                     {
@@ -787,6 +833,8 @@ namespace OnlineVideos.Hoster
                     });
                 }
             }
+
+            return PlayerStatusEnum.OK;
         }
 
         private static string getStreamUrl(JToken jFormat, YoutubeSignatureDecryptor decryptor)
