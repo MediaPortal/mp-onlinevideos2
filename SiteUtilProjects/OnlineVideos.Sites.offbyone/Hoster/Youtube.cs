@@ -258,7 +258,7 @@ namespace OnlineVideos.Hoster
                             }
                             catch (Exception ex)
                             {
-                                Log.Error("Error creating signature decryptor: {0}", ex.Message);
+                                Log.Error("[YoutubeHoster] Error creating signature decryptor: {0}", ex.Message);
                                 decryptor = null;
                             }
                         }
@@ -439,7 +439,7 @@ namespace OnlineVideos.Hoster
             }
             catch (Exception e)
             {
-                Log.Error("Error getting url {0}", e.Message);
+                Log.Error("[YoutubeHoster] Error getting url {0}", e.Message);
             }
             return PlaybackOptions;
         }
@@ -601,7 +601,7 @@ namespace OnlineVideos.Hoster
 
         private static JToken parsePlayerStatusFromYtDlp(List<YoutubeQuality> qualities, string strVideoId)
         {
-            Log.Debug("parsePlayerStatusFromYtDlp() loading json data: " + strVideoId);
+            Log.Debug("[YoutubeHoster] parsePlayerStatusFromYtDlp() loading json data: " + strVideoId);
 
             JToken jStreamingData = null;
             try
@@ -653,7 +653,7 @@ namespace OnlineVideos.Hoster
                     && j.Value<string>("resolution") == "audio only"
                     && j.Value<int>("audio_channels") > 0).ToArray();
 
-                Log.Debug("parsePlayerStatusFromYtDlp() json data loaded");
+                Log.Debug("[YoutubeHoster] parsePlayerStatusFromYtDlp() json data loaded");
 
                 foreach (JToken format in jFormats)
                 {
@@ -684,7 +684,7 @@ namespace OnlineVideos.Hoster
                                 }
                                 catch (Exception ex)
                                 {
-                                    Log.Error("parsePlayerStatusFromYtDlp() Error: {0}", ex.Message);
+                                    Log.Error("[YoutubeHoster] parsePlayerStatusFromYtDlp() Error: {0}", ex.Message);
                                 }
                             }
                             else
@@ -733,7 +733,7 @@ namespace OnlineVideos.Hoster
                                         }
                                         catch (Exception ex)
                                         {
-                                            Log.Error("parsePlayerStatusFromYtDlp() Error: {0}", ex.Message);
+                                            Log.Error("[YoutubeHoster] parsePlayerStatusFromYtDlp() Error: {0}", ex.Message);
                                         }
                                     }
                                 }
@@ -744,7 +744,7 @@ namespace OnlineVideos.Hoster
             }
             catch (Exception ex)
             {
-                Log.Error("parsePlayerStatusFromYtDlp() Error: {0}", ex.Message);
+                Log.Error("[YoutubeHoster] parsePlayerStatusFromYtDlp() Error: {0}", ex.Message);
                 return null;
             }
 
