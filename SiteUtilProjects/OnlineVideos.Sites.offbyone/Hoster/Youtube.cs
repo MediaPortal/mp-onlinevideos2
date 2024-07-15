@@ -432,7 +432,10 @@ namespace OnlineVideos.Hoster
                         }
 
                         if (!String.IsNullOrEmpty(subUrl))
+                        {
                             subtitleText = WebCache.Instance.GetWebData(subUrl);
+                            subtitleText = Regex.Replace(subtitleText, @"([\d\:\.]+\s*-->\s*[\d\:\.]+).*", "$1"); //remove possible alignment
+                        }
                     }
                     catch { };
                 }
