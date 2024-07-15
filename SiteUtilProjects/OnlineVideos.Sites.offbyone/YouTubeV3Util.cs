@@ -251,6 +251,9 @@ namespace OnlineVideos.Sites
                                 //Height 
                                 int iHeight = int.Parse(m.Groups["h"].Value);
 
+                                //Width 
+                                int iWidth = int.Parse(m.Groups["w"].Value);
+
                                 //3D
                                 if (m.Groups["td"].Success)
                                     continue;
@@ -266,11 +269,11 @@ namespace OnlineVideos.Sites
                                             continue;
                                         break;
                                     case VideoQuality.HD:
-                                        if (iHeight > 720)
+                                        if (iHeight > 720 || iWidth > 1440)
                                             continue;
                                         break;
                                     case VideoQuality.FullHD:
-                                        if (iHeight > 1080)
+                                        if (iHeight > 1080 || iWidth > 1920)
                                             continue;
                                         break;
                                 }
