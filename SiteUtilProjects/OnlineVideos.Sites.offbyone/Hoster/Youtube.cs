@@ -149,7 +149,7 @@ namespace OnlineVideos.Hoster
                             if (!String.IsNullOrEmpty(subUrl))
                             {
                                 subtitleText = WebCache.Instance.GetWebData(subUrl + "&fmt=vtt");
-                                subtitleText = Regex.Replace(subtitleText, @"([\d\:\.]+\s*-->\s[\d\:\.]+)\s*(.+)", "$1");
+                                subtitleText = Regex.Replace(subtitleText, @"([\d\:\.]+\s*-->\s[\d\:\.]+)\s*(.+)", "$1", RegexOptions.Multiline);
                             }
                         }
                     }
