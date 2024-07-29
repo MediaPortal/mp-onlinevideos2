@@ -69,7 +69,9 @@
     <Compile Include="Ard\CollectionExtensions.cs" />
     <Compile Include="Ard\Services.cs" />
     <Compile Include="Ard\Dto.cs" />
+    <Compile Include="DailyMotionUtil.cs" />
     <Compile Include="DumpertUtil.cs" />
+    <Compile Include="NetfilxWebUtil.cs" />
     <Compile Include="..\..\Build\Version.cs">
       <Link>Properties\Version.cs</Link>
     </Compile>
@@ -114,6 +116,7 @@
     <Compile Include="RuutuUtil.cs" />
     <Compile Include="SBSauUtil.cs" />
     <Compile Include="TVLinkscc.cs" />
+    <Compile Include="TwitchTV.cs" />
     <Compile Include="VimeoUtil.cs" />
     <Compile Include="Vimeo\AuthBase.cs" />
     <Compile Include="VodTvpUtil.cs" />

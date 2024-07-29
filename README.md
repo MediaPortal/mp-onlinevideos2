@@ -8,7 +8,7 @@ The plug-in interface will unify the user experience from all the different webs
 
 # Supported Sites
 
-This short list gives a first impression of what you can expect inside OnlineVideos. The complete listing is available [here](http://onlinevideos.nocrosshair.de/).
+This short list gives a first impression of what you can expect inside OnlineVideos. The complete listing is available [here](https://ov2.team-mediaportal.com/).
 
     Global
         YouTube 

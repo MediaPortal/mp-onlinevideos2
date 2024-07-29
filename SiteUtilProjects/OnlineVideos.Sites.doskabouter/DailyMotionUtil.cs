@@ -62,22 +62,7 @@ namespace OnlineVideos.Sites
 
         public override string GetVideoUrl(VideoInfo video)
         {
-            var json = JObject.Parse(Regex.Match(GetWebData(video.VideoUrl), @"dmp\.create\(document\.getElementById\(\'player\'\)\,\s*(?<json>{.*)\);").Groups["json"].Value);
-
-            video.PlaybackOptions = new Dictionary<string, string>();
-
-            foreach (JProperty quality in json["metadata"]["qualities"])
-            {
-                try
-                {
-                    var name = quality.Name;
-                    var url = ((JArray)quality.Value)[0].Value<string>("url");
-                    if (!string.IsNullOrEmpty(url))
-                        video.PlaybackOptions.Add(name, url);
-                }
-                catch
-                { };
-            }
+            video.PlaybackOptions = Hoster.HosterFactory.GetHoster("DailyMotion").GetPlaybackOptions(video.VideoUrl);
             return video.PlaybackOptions.Last().Value;
         }
 

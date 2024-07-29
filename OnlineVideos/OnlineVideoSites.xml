@@ -1,6 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <OnlineVideoSites xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Sites>
+    <Site name="DailyMotion" util="DailyMotion" agecheck="false" enabled="true" lang="en">
+      <Description>Dailymotion is a video sharing service website, based in Paris (France).</Description>
+    </Site>
+    <Site name="Netflix" util="NetfilxWeb" agecheck="false" enabled="true" lang="--" player="Webview">
+      <Description>Watch Netflix in OnlineVideos</Description>
+    </Site>
     <Site name="YouTube" util="YouTubeV3" agecheck="false" enabled="true" lang="en">
       <Description>Largest video sharing site on the web. Available in any country.</Description>
     </Site>
@@ -76,6 +82,9 @@
         </Category>
         <Category xsi:type="RssLink" name="Programmas">https://npo.nl/start/categorie/programmas</Category>
       </Categories>
+    </Site>
+    <Site name="Twitch" util="TwitchTV" agecheck="false" enabled="true" lang="en" player="Webview">
+      <Description>Twitch is the leading video platform and community for gamers. We want to connect gamers around the world by allowing them to broadcast, watch, and chat from everywhere they play.</Description>
     </Site>
   </Sites>
 </OnlineVideoSites>

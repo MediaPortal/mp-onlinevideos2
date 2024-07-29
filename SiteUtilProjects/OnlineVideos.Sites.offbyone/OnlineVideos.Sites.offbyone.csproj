@@ -83,7 +83,6 @@
     <Compile Include="ArtePlus7Util.cs" />
     <Compile Include="BeegUtil.cs" />
     <Compile Include="CNNUtil.cs" />
-    <Compile Include="DailyMotionUtil.cs" />
     <Compile Include="DreiSatUtil.cs" />
     <Compile Include="FilmStartsUtil.cs" />
     <Compile Include="Google\Apis\Auth\GoogleJsonWebSignature.cs" />
@@ -303,7 +302,6 @@
     <Compile Include="PervyjKanalRuUtil.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="rbbUtil.cs" />
-    <Compile Include="TwitchTV.cs" />
     <Compile Include="VidiLifeUtil.cs" />
     <Compile Include="WDRUtil.cs" />
     <Compile Include="YouTubeUtil.cs" />

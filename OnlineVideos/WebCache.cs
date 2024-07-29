@@ -120,18 +120,48 @@ namespace OnlineVideos
             return GetWebData(new Uri(url), postData, cookies, referer, proxy, forceUTF8, allowUnsafeHeader, userAgent, encoding, headers, cache);
         }
 
+        private void SetRequestProperties(HttpWebRequest request, NameValueCollection headers, bool isPost)
+        {
+            //Set some defaults. If new values are passed in the headers property they will be overwritten
+            request.UserAgent = OnlineVideoSettings.Instance.UserAgent;
+            request.Accept = "*/*";
+            if (isPost)
+                request.ContentType = "application/x-www-form-urlencoded";
+
+            foreach (var headerName in headers.AllKeys)
+            {
+                switch (headerName.ToLowerInvariant())
+                {
+                    case "accept":
+                        request.Accept = headers[headerName];
+                        break;
+                    case "user-agent":
+                        request.UserAgent = headers[headerName];
+                        break;
+                    case "referer":
+                        request.Referer = headers[headerName];
+                        break;
+                    case "content-type":
+                        request.ContentType = headers[headerName];
+                        break;
+                    default:
+                        request.Headers.Set(headerName, headers[headerName]);
+                        break;
+                }
+            }
+        }
+
         public string GetWebData(Uri uri, string postData = null, CookieContainer cookies = null, string referer = null, IWebProxy proxy = null, bool forceUTF8 = false, bool allowUnsafeHeader = false, string userAgent = null, Encoding encoding = null, NameValueCollection headers = null, bool cache = true)
         {
             // do not use the cache when doing a POST
             if (postData != null) cache = false;
-            // set a few headers if none were given
             if (headers == null)
             {
                 headers = new NameValueCollection();
-                headers.Add("Accept", "*/*"); // accept any content type
-                headers.Add("User-Agent", userAgent ?? OnlineVideoSettings.Instance.UserAgent); // set the default OnlineVideos UserAgent when none specified
             }
-            if (referer != null) headers.Set("Referer", referer);
+            if (referer != null) headers.Add("referer", referer);
+            if (userAgent != null) headers.Add("user-agent", userAgent);
+
             HttpWebResponse response = null;
             try
             {
@@ -155,39 +185,13 @@ namespace OnlineVideos
                 request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate; // turn on automatic decompression of both formats (adds header "AcceptEncoding: gzip,deflate" to the request)
                 if (cookies != null) request.CookieContainer = cookies; // set cookies if given
                 if (proxy != null) request.Proxy = proxy; // send the request over a proxy if given
-                bool contentTypeSet = false;
-                if (headers != null) // set user defined headers
-                {
-                    foreach (var headerName in headers.AllKeys)
-                    {
-                        switch (headerName.ToLowerInvariant())
-                        {
-                            case "accept":
-                                request.Accept = headers[headerName];
-                                break;
-                            case "user-agent":
-                                request.UserAgent = headers[headerName];
-                                break;
-                            case "referer":
-                                request.Referer = headers[headerName];
-                                break;
-                            case "content-type":
-                                request.ContentType = headers[headerName];
-                                contentTypeSet = true;
-                                break;
-                            default:
-                                request.Headers.Set(headerName, headers[headerName]);
-                                break;
-                        }
-                    }
-                }
+
+                SetRequestProperties(request, headers, postData != null);
 
                 if (postData != null)
                 {
                     byte[] data = encoding != null ? encoding.GetBytes(postData) : Encoding.UTF8.GetBytes(postData);
                     request.Method = "POST";
-                    if (!contentTypeSet)
-                        request.ContentType = "application/x-www-form-urlencoded";
                     request.ContentLength = data.Length;
                     request.ProtocolVersion = HttpVersion.Version10;
                     Stream requestStream = request.GetRequestStream();
@@ -232,17 +236,21 @@ namespace OnlineVideos
             }
         }
 
-        public string GetRedirectedUrl(string url, string referer = null, bool allowAutoRedirect = true)
+        public string GetRedirectedUrl(string url, CookieContainer cc = null, NameValueCollection headers = null, bool allowAutoRedirect = true)
         {
             HttpWebResponse httpWebresponse = null;
             try
             {
+                if (headers == null)
+                    headers = new NameValueCollection();
+
                 HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
                 if (request == null) return url;
-                request.UserAgent = OnlineVideoSettings.Instance.UserAgent;
+                SetRequestProperties(request, headers, false);
+
                 request.AllowAutoRedirect = allowAutoRedirect;
+                request.CookieContainer = cc;
                 request.Timeout = 15000;
-                if (!string.IsNullOrEmpty(referer)) request.Referer = referer;
                 // invoke getting the Response async and abort as soon as data is coming in 
                 // (according to docs - this is after headers are completely received)
                 var result = request.BeginGetResponse((ar) => request.Abort(), null);

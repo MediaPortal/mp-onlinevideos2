@@ -225,8 +225,8 @@ namespace OnlineVideos.MediaPortal1
                         Thumb = DatabaseUtility.Get(resultSet, iRow, "CAT_ThumbUrl"),
                         Id = DatabaseUtility.GetAsInt(resultSet, iRow, "CAT_ID"),
                         RecursiveName = DatabaseUtility.Get(resultSet, iRow, "CAT_Hierarchy"),
-                        IsSearchCat = DatabaseUtility.GetAsInt(resultSet, iRow, "CAT_IS_SEARCH")==1,
-                        SearchCatHasSubcategories = DatabaseUtility.GetAsInt(resultSet, iRow, "SEARCH_CAT_HASSUBS")==1
+                        IsSearchCat = DatabaseUtility.GetAsInt(resultSet, iRow, "CAT_IS_SEARCH") == 1,
+                        SearchCatHasSubcategories = DatabaseUtility.GetAsInt(resultSet, iRow, "SEARCH_CAT_HASSUBS") == 1
                     });
             }
             return results;

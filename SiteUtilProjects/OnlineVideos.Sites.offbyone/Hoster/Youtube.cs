@@ -54,7 +54,6 @@ namespace OnlineVideos.Hoster
                 videoId = videoId.Substring(p, q - p);
             }
 
-            NameValueCollection Items = new NameValueCollection();
             string contents = "";
 
             List<KeyValuePair<string[], string>> qualities = new List<KeyValuePair<string[], string>>();// KeyValuePair.Value is url 
@@ -66,18 +65,19 @@ namespace OnlineVideos.Hoster
 
                 NameValueCollection headers = new NameValueCollection
                 {
-                    { "X-Youtube-Client-Name", "3" },
-                    { "X-Youtube-Client-Version", "17.31.35" },
+                    { "X-Youtube-Client-Name", "14" },
+                    { "X-Youtube-Client-Version", "22.30.100" },
                     { "Origin", "https://www.youtube.com" },
                     { "Content-Type", "application/json" },
-                    { "User-Agent", "com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip" },
+                    { "User-Agent", "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip" },
                     { "Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7" },
                     { "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
                     { "Accept-Encoding", "gzip, deflate" },
                     { "Accept-Language", "en-us,en;q=0.5" }
                 };
 
-                string postdata = String.Format(@"{{""context"": {{""client"": {{""clientName"": ""ANDROID"", ""clientVersion"": ""17.31.35"", ""androidSdkVersion"": 30, ""userAgent"": ""com.google.android.youtube/17.31.35 (Linux; U; Android 11) gzip"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""params"": ""CgIQBg=="", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS""}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}", videoId);
+                string postdata = String.Format(@"{{""context"": {{""client"": {{""clientName"": ""ANDROID_CREATOR"", ""clientVersion"": ""{1}"", ""androidSdkVersion"": 30, ""userAgent"": ""{2}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""params"": ""CgIQBg=="", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS""}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}", videoId,
+                    headers["X-Youtube-Client-Version"], headers["User-Agent"]);
                 var apicontents = WebCache.Instance.GetWebData<JObject>(YoutubePlayerUrl, postData: postdata, headers: headers);
                 parsePlayerStatus(apicontents["streamingData"], qualities);
 
@@ -134,25 +134,24 @@ namespace OnlineVideos.Hoster
                 };
 
                 subtitleText = null;
-                if (!String.IsNullOrEmpty(subtitleLanguages) && !string.IsNullOrEmpty(Items.Get("player_response")))
+                if (!String.IsNullOrEmpty(subtitleLanguages))
                 {
                     try
                     {
-                        var jdata = JToken.Parse(Items.Get("player_response"));
-                        var captions = jdata["captions"]?["playerCaptionsTracklistRenderer"]?["captionTracks"] as JArray;
-
-                        string subUrl = getSubUrl(captions, subtitleLanguages);
-                        if (!String.IsNullOrEmpty(subUrl))
+                        contents = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId), proxy: proxy, cookies: cc);
+                        Match m = Regex.Match(contents, @"ytInitialPlayerResponse\s=\s(?<js>[^<]*?);<", RegexOptions.IgnoreCase);
+                        if (m.Success)
                         {
-                            string data = WebCache.Instance.GetWebData(subUrl + "&fmt=vtt");
-                            subtitleText = Helpers.SubtitleUtils.Webvtt2SRT(data);
-                            if (subtitleText.StartsWith("Kind: captions\r\nLanguage: "))
+                            var jdata = JObject.Parse(m.Groups["js"].Value);
+                            var captions = jdata["captions"]?["playerCaptionsTracklistRenderer"]?["captionTracks"] as JArray;
+
+                            string subUrl = getSubUrl(captions, subtitleLanguages);
+                            if (!String.IsNullOrEmpty(subUrl))
                             {
-                                subtitleText = subtitleText.Substring(30);
+                                subtitleText = WebCache.Instance.GetWebData(subUrl + "&fmt=vtt");
+                                subtitleText = Regex.Replace(subtitleText, @"([\d\:\.]+\s*-->\s[\d\:\.]+)\s*(.+)", "$1", RegexOptions.Multiline);
                             }
                         }
-
-                        //if (jdata !=)
                     }
                     catch { };
                 }

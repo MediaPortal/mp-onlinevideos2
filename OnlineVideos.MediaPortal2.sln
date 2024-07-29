@@ -11,8 +11,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnlineVideos.MediaPortal2",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnlineVideos", "OnlineVideos\OnlineVideos.csproj", "{E0D9D390-CDD6-4B98-86F3-6EB04A958882}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OnlineVideos.Sites.JSurf", "SiteUtilProjects\OnlineVideos.Sites.JSurf\OnlineVideos.Sites.JSurf.csproj", "{75F69467-7062-45CB-909A-7D9A5D7E4958}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{B43036EE-AE38-4C65-874F-2C0606096A91}"
 	ProjectSection(SolutionItems) = preProject
 		.nuget\packages.config = .nuget\packages.config

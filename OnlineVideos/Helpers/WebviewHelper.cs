@@ -419,6 +419,7 @@ namespace OnlineVideos.Helpers
                 }
             }
             while (!_navCompleted);
+            _webView.NavigationCompleted -= Wv2_NavigationCompleted;
         }
 
         private async void Wv2_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
