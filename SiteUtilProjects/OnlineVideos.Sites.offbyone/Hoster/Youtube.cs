@@ -156,7 +156,7 @@ namespace OnlineVideos.Hoster
             272, 571, 702, 38, 402,
 
             //2160p
-            337, 315, 266, 138, 401,
+            337, 315, 313, 266, 138, 401,
 
             //1440p
             336, 308, 264, 271, 400,
@@ -267,17 +267,37 @@ namespace OnlineVideos.Hoster
 
                     if (jDataWeb != null && decryptor != null)
                     {
+                        //"WEB_CREATOR"
+
+                        headers = new NameValueCollection
+                        {
+                            { "X-Youtube-Client-Name", "62" },
+                            { "X-Youtube-Client-Version", "1.20240723.03.00" },
+                            { "Origin", "https://www.youtube.com" },
+                            { "Content-Type", "application/json" },
+                            { "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.41 Safari/537.36" },
+                            { "Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7" },
+                            { "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
+                            { "Accept-Encoding", "gzip, deflate" },
+                            { "Accept-Language", "en-us,en;q=0.5" }
+                        };
+
+                        postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""WEB_CREATOR"", ""clientVersion"": ""{1}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
+                            videoId, headers["X-Youtube-Client-Version"], decryptor.SignatureTimestamp);
+                        jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
+
                         PlayerStatusEnum status = parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, decryptor);
                         if (status != PlayerStatusEnum.OK)
                         {
                             if (--iAttempts > 0)
                             {
                                 Log.Warn("[YoutubeHoster] Failed to get working links. Try again. Remaining attempts: {0}", iAttempts);
+                                qualities.Clear();
                                 goto get; //try again
                             }
 
                             Log.Error("[YoutubeHoster] Failed to get working links.");
-                            return null;
+                            //return null;
                         }
                     }
 
