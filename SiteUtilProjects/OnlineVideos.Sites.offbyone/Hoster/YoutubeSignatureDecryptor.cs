@@ -12,7 +12,7 @@ namespace OnlineVideos.Hoster
     public class YoutubeSignatureDecryptor
     {
         //Current version of the Decryptor structure
-        private const int _DECRYPTOR_VERSION_CURRENT = 1;
+        private const int _DECRYPTOR_VERSION_CURRENT = 2;
 
         private class Decryptor
         {
@@ -21,12 +21,14 @@ namespace OnlineVideos.Hoster
             public DateTime Expires;
             public string NSignatureJsCode;
             public string SignatureJsCode;
+            public string SignatureTimestamp;
 
             [Newtonsoft.Json.JsonIgnore]
             public DateTime LastUse;
         }
 
         private static readonly Regex _RegexPlayerJsUrl = new("href=\"(?<url>/s/player/(?<id>.+?)/player_.+?base\\.js)\"", RegexOptions.Compiled);
+        private static readonly Regex _RegexPlayerTs = new("\"STS\":(?<sts>[0-9]+)", RegexOptions.Compiled);
         private static readonly Regex[] _RegexPlayerJsFunctions = new Regex[]
         {
             new Regex("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){var\\s+b=a\\.split\\(\"\"\\)(?s:.)+?return\\s+b\\.join\\(\"\"\\)};", RegexOptions.Compiled),
@@ -47,6 +49,10 @@ namespace OnlineVideos.Hoster
         private readonly Helpers.WebViewHelper _Webview;
         private readonly Decryptor _Decryptor;
 
+
+        public string SignatureTimestamp { get => this._Decryptor?.SignatureTimestamp; }
+
+
         public YoutubeSignatureDecryptor(string strVideoWebContent, Helpers.WebViewHelper webview)
         {
             lock (_Cache)
@@ -54,7 +60,16 @@ namespace OnlineVideos.Hoster
                 if (string.IsNullOrWhiteSpace(strVideoWebContent))
                     throw new ArgumentNullException();
 
-                Match m = _RegexPlayerJsUrl.Match(strVideoWebContent);
+                Match m = _RegexPlayerTs.Match(strVideoWebContent);
+                if (!m.Success)
+                    throw new Exception("Failed to get player STS.");
+
+                //STS of the js file
+                string strSts = m.Groups["sts"].Value;
+
+                Log.Debug("[YoutubeSignatureDecryptor] JS player STS: {0}", strSts);
+
+                m = _RegexPlayerJsUrl.Match(strVideoWebContent);
                 if (!m.Success)
                     throw new Exception("Failed to extract player js url.");
 
@@ -114,7 +129,7 @@ namespace OnlineVideos.Hoster
 
                     //Append ModifiedSince to check whether the file is modified or not
                     if (dec == null)
-                        dec = new Decryptor();
+                        dec = new Decryptor() { SignatureTimestamp = strSts };
                     else if (dec.TimeStamp > DateTime.MinValue)
                         wr.IfModifiedSince = dec.TimeStamp.ToUniversalTime();
 
