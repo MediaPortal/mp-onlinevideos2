@@ -25,6 +25,12 @@ namespace OnlineVideos.Hoster
 
             [Newtonsoft.Json.JsonIgnore]
             public DateTime LastUse;
+
+            [Newtonsoft.Json.JsonIgnore]
+            public DateTime LoadTime;
+
+            [Newtonsoft.Json.JsonIgnore]
+            public string CacheFilepath;
         }
 
         private static readonly Regex _RegexPlayerJsUrl = new("href=\"(?<url>/s/player/(?<id>.+?)/player_.+?base\\.js)\"", RegexOptions.Compiled);
@@ -51,6 +57,23 @@ namespace OnlineVideos.Hoster
 
 
         public string SignatureTimestamp { get => this._Decryptor?.SignatureTimestamp; }
+        public DateTime LoadTimestamp { get { return this._Decryptor?.LoadTime ?? DateTime.MinValue; } }
+
+        public DateTime LastUseTimestamp 
+        { 
+            get
+            {
+                return this._Decryptor?.LastUse ?? DateTime.MinValue;
+            }
+            set
+            {
+                if (this._Decryptor != null)
+                {
+                    new FileInfo(this._Decryptor.CacheFilepath).LastAccessTime = DateTime.Now;
+                    this._Decryptor.LastUse = DateTime.Now;
+                }
+            }
+        }
 
 
         public YoutubeSignatureDecryptor(string strVideoWebContent, Helpers.WebViewHelper webview)
@@ -100,6 +123,9 @@ namespace OnlineVideos.Hoster
                                 //Put decryptor to the local cache
                                 _Cache[strId] = dec;
 
+                                dec.CacheFilepath = strCacheFile;
+                                dec.LoadTime = DateTime.Now;
+
                                 Log.Debug("[YoutubeSignatureDecryptor] Decryptor loaded from file cache.");
                             }
                         }
@@ -129,7 +155,7 @@ namespace OnlineVideos.Hoster
 
                     //Append ModifiedSince to check whether the file is modified or not
                     if (dec == null)
-                        dec = new Decryptor() { SignatureTimestamp = strSts };
+                        dec = new Decryptor() { SignatureTimestamp = strSts, LoadTime = DateTime.Now, CacheFilepath = strCacheFile };
                     else if (dec.TimeStamp > DateTime.MinValue)
                         wr.IfModifiedSince = dec.TimeStamp.ToUniversalTime();
 

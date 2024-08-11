@@ -182,6 +182,8 @@ namespace OnlineVideos.Hoster
 
         static readonly ushort[] fmtOptionsQualityAudioSorted = new ushort[] { 141, 251, 140, 171, 250, 249 };
 
+        private static YoutubeSignatureDecryptor _YoutubeDecryptor = null;
+
         public override Dictionary<string, string> GetPlaybackOptions(string url)
         {
             IWebProxy proxy = null;
@@ -233,39 +235,47 @@ namespace OnlineVideos.Hoster
                 JToken jDataYtDlp = null; //parsePlayerStatusFromYtDlp(qualities, videoId);
 
                 JObject jDataWeb = null;
-                YoutubeSignatureDecryptor decryptor = null;
                 //if (qualities.Count == 0)
                 {
-                    //Load webpage; there is more available options (e.g. UHD)
-                    string strContentsWeb = null;
-                    try
-                    {
-                        strContentsWeb = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId),
-                            proxy: proxy,
-                            cookies: cc,
-                            userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
-                            cache: false
-                            );
-                        Match m = Regex.Match(strContentsWeb, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
-                        if (m.Success)
-                        {
-                            jDataWeb = JObject.Parse(m.Groups["js"].Value);
+                    if (_YoutubeDecryptor != null && (DateTime.Now - _YoutubeDecryptor.LoadTimestamp).TotalDays >= 1)
+                        _YoutubeDecryptor = null; //don't use the same decryptor for more than 1 day
 
-                            try
+
+                    string strContentsWeb = null;
+                    if (_YoutubeDecryptor == null)
+                    {
+                        //Load webpage; there is more available options (e.g. UHD)
+                        try
+                        {
+                            strContentsWeb = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId),
+                                proxy: proxy,
+                                cookies: cc,
+                                userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
+                                cache: false
+                                );
+                            Match m = Regex.Match(strContentsWeb, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
+                            if (m.Success)
                             {
-                                //Prepare signature decryptor
-                                decryptor = new YoutubeSignatureDecryptor(strContentsWeb, this.wv);
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error("[YoutubeHoster] Error creating signature decryptor: {0}", ex.Message);
-                                decryptor = null;
+                                jDataWeb = JObject.Parse(m.Groups["js"].Value);
+
+                                try
+                                {
+                                    //Prepare signature decryptor
+                                    _YoutubeDecryptor = new YoutubeSignatureDecryptor(strContentsWeb, this.wv);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Error("[YoutubeHoster] Error creating signature decryptor: {0}", ex.Message);
+                                    _YoutubeDecryptor = null;
+                                }
                             }
                         }
+                        catch { jDataWeb = null; };
                     }
-                    catch { jDataWeb = null; };
+                    else
+                        Log.Debug("[YoutubeHoster] Using existing YouTube decryptor: {0}", _YoutubeDecryptor.SignatureTimestamp);
 
-                    if (jDataWeb != null && decryptor != null)
+                    if (_YoutubeDecryptor != null)
                     {
                         //"WEB_CREATOR"
 
@@ -283,22 +293,26 @@ namespace OnlineVideos.Hoster
                         };
 
                         postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""WEB_CREATOR"", ""clientVersion"": ""{1}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
-                            videoId, headers["X-Youtube-Client-Version"], decryptor.SignatureTimestamp);
+                            videoId, headers["X-Youtube-Client-Version"], _YoutubeDecryptor.SignatureTimestamp);
                         jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
 
-                        PlayerStatusEnum status = parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, decryptor);
+                        PlayerStatusEnum status = parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, _YoutubeDecryptor);
                         if (status != PlayerStatusEnum.OK)
                         {
                             if (--iAttempts > 0)
                             {
                                 Log.Warn("[YoutubeHoster] Failed to get working links. Try again. Remaining attempts: {0}", iAttempts);
                                 qualities.Clear();
+                                _YoutubeDecryptor = null;
                                 goto get; //try again
                             }
 
                             Log.Error("[YoutubeHoster] Failed to get working links.");
                             //return null;
                         }
+
+                        if (_YoutubeDecryptor != null)
+                            _YoutubeDecryptor.LastUseTimestamp = DateTime.Now;
                     }
 
                     if (qualities.Count == 0 && strContentsWeb != null)
