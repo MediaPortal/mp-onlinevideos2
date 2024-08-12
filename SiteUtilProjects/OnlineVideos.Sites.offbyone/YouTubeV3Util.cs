@@ -966,15 +966,18 @@ namespace OnlineVideos.Sites
 
             foreach (var item in response.Items)
             {
-                string duration = System.Xml.XmlConvert.ToTimeSpan(item.ContentDetails.Duration).ToString();
-
-                //Trim if no hours found (00:)
-                if (duration.StartsWith("00:"))
+                if (item.ContentDetails.Duration != null)
                 {
-                    duration = duration.Substring(3);
-                }
+                    string duration = System.Xml.XmlConvert.ToTimeSpan(item.ContentDetails.Duration).ToString();
 
-                videoDurations.Add(item.Id, duration);
+                    //Trim if no hours found (00:)
+                    if (duration.StartsWith("00:"))
+                    {
+                        duration = duration.Substring(3);
+                    }
+
+                    videoDurations.Add(item.Id, duration);
+                }
                 //Log.Debug(string.Format("ID: {0}   Duration: {1}", item.Id, duration));
             }
 
