@@ -11,6 +11,7 @@ using MediaPortal.Player.Subtitles;
 using MediaPortal.Player.PostProcessing;
 using MediaPortal.Player.LAV;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.CompilerServices;
 using System.IO;
 
 namespace OnlineVideos.MediaPortal1.Player
@@ -32,6 +33,8 @@ namespace OnlineVideos.MediaPortal1.Player
         private double reportedFPS_Matched;
 
         private static string _VideoDecoder = null;
+        private static string _AudioDecoder = null;
+        private static string _AudioRenderer = null;
 
         void AdaptRefreshRateFromCacheFile()
         {
@@ -45,6 +48,7 @@ namespace OnlineVideos.MediaPortal1.Player
                     double.TryParse(mi.Get(MediaInfo.StreamKind.Video, 0, "FrameRate"), System.Globalization.NumberStyles.AllowDecimalPoint, new System.Globalization.NumberFormatInfo() { NumberDecimalSeparator = "." }, out framerate);
                     if (framerate > 1)
                     {
+                        this._VideoSampleDuration = 1d / framerate;
                         Log.Instance.Info("OnlineVideosPlayer got {0} FPS from MediaInfo", framerate);
                         double matchedFps = RefreshRateHelper.MatchConfiguredFPS(framerate);
                         if (matchedFps != default(double))
@@ -133,6 +137,8 @@ namespace OnlineVideos.MediaPortal1.Player
                                     if (dFps > 0)
                                     {
                                         Log.Instance.Info("[adaptRefreshRateFromCacheFile] Detected FPS from Video Decoder: {0}", dFps);
+
+                                        this._VideoSampleDuration = 1d / dFps;
 
                                         if (bInterlaced)
                                         {
@@ -228,6 +234,7 @@ namespace OnlineVideos.MediaPortal1.Player
                             double fps = EVRGetVideoFPS(0);
                             if (fps > 1)
                             {
+                                this._VideoSampleDuration = 1d / fps;
                                 refreshRateAdapted = RefreshRateState.Reported;
                                 Log.Instance.Info("OnlineVideosPlayer got {0} reported FPS from dshowhelper.dll after {1} sec", fps, CurrentPosition);
                                 reportedFPS_Matched = SetRefreshRate(fps, default(double));
@@ -238,6 +245,7 @@ namespace OnlineVideos.MediaPortal1.Player
                             double fps = EVRGetVideoFPS(1);
                             if (fps > 1)
                             {
+                                this._VideoSampleDuration = 1d / fps;
                                 refreshRateAdapted = RefreshRateState.Done;
                                 Log.Instance.Info("OnlineVideosPlayer got {0} detected FPS from dshowhelper.dll after {1} sec", fps, CurrentPosition);
                                 SetRefreshRate(fps, reportedFPS_Matched);
@@ -307,6 +315,16 @@ namespace OnlineVideos.MediaPortal1.Player
             if ((DateTime.Now - lastProgressCheck).TotalMilliseconds > 100) // check progress at maximum 10 times per second
             {
                 lastProgressCheck = DateTime.Now;
+
+                if (PluginConfiguration.Instance.AllowRefreshRateChange)
+                    AdaptRefreshRateFromVideoRenderer();
+
+                //LAV buffer monitoring
+                if (this.UseLAV)
+                    this.processLavBufferLevel();
+                else
+                {
+                    //LAV is not used
                 if (percentageBuffered >= 100.0f) // already buffered 100%, simply set the Property
                 {
                     GUIPropertyManager.SetProperty("#TV.Record.percent3", percentageBuffered.ToString());
@@ -340,9 +358,9 @@ namespace OnlineVideos.MediaPortal1.Player
                         }
                     }
                 }
-                if (PluginConfiguration.Instance.AllowRefreshRateChange)
-                    AdaptRefreshRateFromVideoRenderer();
+                }
             }
+
             base.Process();
         }
 
@@ -419,8 +437,8 @@ namespace OnlineVideos.MediaPortal1.Player
                 // add the audio renderer
                 using (Settings settings = new MPSettings())
                 {
-                    string audiorenderer = settings.GetValueAsString("movieplayer", "audiorenderer", "Default DirectSound Device");
-                    DirectShowUtil.AddAudioRendererToGraph(graphBuilder, audiorenderer, false);
+                    _AudioRenderer = settings.GetValueAsString("movieplayer", "audiorenderer", "Default DirectSound Device");
+                    DirectShowUtil.ReleaseComObject(DirectShowUtil.AddAudioRendererToGraph(graphBuilder, _AudioRenderer, false));
                 }
 
                 // set fields for playback
@@ -744,6 +762,51 @@ namespace OnlineVideos.MediaPortal1.Player
                     }
                     else
                     {
+                        GUIPropertyManager.SetProperty("#OnlineVideos.IsBuffering", "False");
+
+                        Thread.Sleep(1000);
+
+                        int iVideoOutputPinId = -1;
+                        int iOutPinsCounter = 0;
+                        IEnumPins pinEnum;
+                        if (sourceFilter.EnumPins(out pinEnum) == 0)
+                        {
+                            IPin[] pins = new IPin[1];
+                            int iFetched;
+                            while (iVideoOutputPinId < 0 && pinEnum.Next(1, pins, out iFetched) == 0 && iFetched > 0)
+                            {
+                                IPin pin = pins[0];
+                                PinDirection pinDirection;
+                                if (pin.QueryDirection(out pinDirection) == 0 && pinDirection == PinDirection.Output)
+                                {
+                                    IEnumMediaTypes enumMediaTypesVideo;
+                                    if (pin.EnumMediaTypes(out enumMediaTypesVideo) == 0)
+                                    {
+                                        AMMediaType[] mediaTypes = new AMMediaType[1];
+                                        int iTypesFetched;
+                                        while (iVideoOutputPinId < 0 && enumMediaTypesVideo.Next(1, mediaTypes, out iTypesFetched) == 0 && iTypesFetched > 0)
+                                        {
+                                            if (mediaTypes[0].majorType == MediaType.Video)
+                                                iVideoOutputPinId = iOutPinsCounter;
+                                        }
+                                        DirectShowUtil.ReleaseComObject(enumMediaTypesVideo);
+                                    }
+
+                                    iOutPinsCounter++;
+                                }
+                                DirectShowUtil.ReleaseComObject(pin);
+                            }
+                            DirectShowUtil.ReleaseComObject(pinEnum);
+                        }
+
+                        if (iVideoOutputPinId < 0)
+                        {
+                            Log.Instance.Error("[BufferFile] Failed to get video pin.");
+                            return false;
+                        }
+
+                        this._SourceFilterVideoPinIndex = iVideoOutputPinId;
+
                         // add audio and video filter from MP Movie Codec setting section
                         AddPreferredFilters(graphBuilder, sourceFilter);
                         // connect the pin automatically -> will buffer the full file in cases of bad metadata in the file or request of the audio or video filter
@@ -1038,6 +1101,7 @@ namespace OnlineVideos.MediaPortal1.Player
         {
             Log.Instance.Info("OnlineVideosPlayer: Stop");
             m_strCurrentFile = "";
+            this.disposeSourceFilter();
             CloseInterfaces();
             m_state = PlayState.Init;
             GUIGraphicsContext.IsPlaying = false;
@@ -1047,6 +1111,45 @@ namespace OnlineVideos.MediaPortal1.Player
         {
             base.Dispose();
             GUIPropertyManager.SetProperty("#TV.Record.percent3", 0.0f.ToString());
+        }
+
+        public override int CurrentAudioStream 
+        {
+            get => base.CurrentAudioStream;
+
+            set
+            {
+                this.disposeSourceFilter();
+                base.CurrentAudioStream = value;
+            }
+        }
+
+        public override void SeekAbsolute(double dTime)
+        {
+            //this.onBuffer();
+            base.SeekAbsolute(dTime);
+            this.onSeek();
+        }
+
+        public override void SeekAsolutePercentage(int iPercentage)
+        {
+            //this.onBuffer();
+            base.SeekAsolutePercentage(iPercentage);
+            this.onSeek();
+        }
+
+        public override void SeekRelative(double dTime)
+        {
+            //this.onBuffer();
+            base.SeekRelative(dTime);
+            this.onSeek();
+        }
+
+        public override void SeekRelativePercentage(int iPercentage)
+        {
+            //this.onBuffer();
+            base.SeekRelativePercentage(iPercentage);
+            this.onSeek();
         }
 
         #region OVSPLayer Member
@@ -1065,11 +1168,12 @@ namespace OnlineVideos.MediaPortal1.Player
 
                 if (!autodecodersettings) // the user has not chosen automatic graph building by merits
                 {
-                    // bool vc1ICodec,vc1Codec,xvidCodec = false; - will come later
+                    bool bVc1ICodec = false, bVc1Codec = false, bXvidCodec = false; //- will come later
                     bool aacCodec = false;
                     bool h264Codec = false;
                     bool videoCodec = false;
                     bool audioCodec = false;
+                    bool bHevcCodec = false;
 
                     // check the output pins of the splitter for known media types
                     IEnumPins pinEnum = null;
@@ -1092,17 +1196,37 @@ namespace OnlineVideos.MediaPortal1.Player
                                     {
                                         if (mediaTypes[0].majorType == MediaType.Video)
                                         {
-                                            if (mediaTypes[0].subType == MediaSubType.H264 || mediaTypes[0].subType == MEDIASUBTYPE_AVC1)
+                                            if (mediaTypes[0].subType == MediaSubType.HEVC)
+                                            {
+                                                Log.Instance.Info("[AddPreferredFilters] Found HEVC video on output pin");
+                                                bHevcCodec = true;
+                                            }
+                                            else if (mediaTypes[0].subType == MediaSubType.H264 || mediaTypes[0].subType == MEDIASUBTYPE_AVC1)
                                             {
                                                 Log.Instance.Info("found H264 video on output pin");
                                                 h264Codec = true;
                                             }
+                                            else if (mediaTypes[0].subType == MediaSubType.VC1)
+                                            {
+                                                Log.Instance.Info("[AddPreferredFilters] Found VC1 video on output pin");
+
+                                                //if (g_Player.MediaInfo.IsInterlaced)
+                                                //    bVc1ICodec = true;
+                                                //else
+                                                bVc1Codec = true;
+                                            }
+                                            else if (mediaTypes[0].subType == MediaSubType.XVID || mediaTypes[0].subType == MediaSubType.xvid)
+                                            {
+                                                Log.Instance.Info("[AddPreferredFilters] Found xvid video on output pin");
+                                                bXvidCodec = true;
+                                            }
                                             else
                                                 videoCodec = true;
+
                                         }
                                         else if (mediaTypes[0].majorType == MediaType.Audio)
                                         {
-                                            if (mediaTypes[0].subType == MediaSubType.LATMAAC)
+                                            if (mediaTypes[0].subType == MediaSubType.LATMAAC || mediaTypes[0].subType == MediaSubType.LATMAACLAF)
                                             {
                                                 Log.Instance.Info("found AAC audio on output pin");
                                                 aacCodec = true;
@@ -1122,23 +1246,50 @@ namespace OnlineVideos.MediaPortal1.Player
                     // add filters for found media types to the graph as configured in MP
                     if (h264Codec)
                     {
+                        _VideoDecoder = xmlreader.GetValueAsString("movieplayer", "h264videocodec", "");
                         DirectShowUtil.ReleaseComObject(
-                            DirectShowUtil.AddFilterToGraph(graphBuilder, xmlreader.GetValueAsString("movieplayer", "h264videocodec", "")));
+                            DirectShowUtil.AddFilterToGraph(graphBuilder, _VideoDecoder));
+                    }
+                    else if (bHevcCodec)
+                    {
+                        _VideoDecoder = xmlreader.GetValueAsString("movieplayer", "hevcvideocodec", "");
+                        DirectShowUtil.ReleaseComObject(
+                            DirectShowUtil.AddFilterToGraph(graphBuilder, _VideoDecoder));
+                    }
+                    else if (bXvidCodec)
+                    {
+                        _VideoDecoder = xmlreader.GetValueAsString("movieplayer", "xvidvideocodec", "");
+                        DirectShowUtil.ReleaseComObject(
+                            DirectShowUtil.AddFilterToGraph(graphBuilder, _VideoDecoder));
+                    }
+                    else if (bVc1Codec)
+                    {
+                        _VideoDecoder = xmlreader.GetValueAsString("movieplayer", "vc1videocodec", "");
+                        DirectShowUtil.ReleaseComObject(
+                            DirectShowUtil.AddFilterToGraph(graphBuilder, _VideoDecoder));
+                    }
+                    else if (bVc1ICodec)
+                    {
+                        _VideoDecoder = xmlreader.GetValueAsString("movieplayer", "vc1ivideocodec", "");
+                        DirectShowUtil.ReleaseComObject(
+                            DirectShowUtil.AddFilterToGraph(graphBuilder, _VideoDecoder));
                     }
                     else if (videoCodec)
                     {
+                        _VideoDecoder = xmlreader.GetValueAsString("movieplayer", "mpeg2videocodec", "");
                         DirectShowUtil.ReleaseComObject(
-                            DirectShowUtil.AddFilterToGraph(graphBuilder, xmlreader.GetValueAsString("movieplayer", "mpeg2videocodec", "")));
+                            DirectShowUtil.AddFilterToGraph(graphBuilder, _VideoDecoder));
                     }
-                    if (aacCodec)
+
+                    //Get audio decoder
+                    if (aacCodec || audioCodec)
                     {
-                        DirectShowUtil.ReleaseComObject(
-                            DirectShowUtil.AddFilterToGraph(graphBuilder, xmlreader.GetValueAsString("movieplayer", "aacaudiocodec", "")));
-                    }
-                    else if (audioCodec)
-                    {
-                        DirectShowUtil.ReleaseComObject(
-                            DirectShowUtil.AddFilterToGraph(graphBuilder, xmlreader.GetValueAsString("movieplayer", "mpeg2audiocodec", "")));
+                        if (aacCodec)
+                            _AudioDecoder = xmlreader.GetValueAsString("movieplayer", "aacaudiocodec", "");
+                        else
+                            _AudioDecoder = xmlreader.GetValueAsString("movieplayer", "mpeg2audiocodec", "");
+
+                        DirectShowUtil.ReleaseComObject(DirectShowUtil.AddFilterToGraph(graphBuilder, _AudioDecoder));
                     }
                 }
             }
@@ -1186,6 +1337,368 @@ namespace OnlineVideos.MediaPortal1.Player
             DirectShowUtil.ReleaseComObject(pinEnum, 2000);
 
             if (log) Log.Instance.Debug(previous);
+        }
+    
+
+        const bool LAV_ALWAYS_PREBUFFER = false; //set to true if we wants to always prebuffer at start or after seek
+        const int LAV_MIN_BUFFER_LEVEL = 5; //[%]; when frame duration is unknown
+        const double LAV_MIN_BUFFER_TIME = 0.5; //[s]
+        const int LAV_BUFFERED_LEVEL = 33; //[%]; when frame duration is unknown
+        const double LAV_BUFFERED_TIME = 5.0; //[s]
+        const double LAV_MIN_BUFFER_TOTAL_TIME = 20.0; //[s]; set LAV buffer size at least to this value(if frame duration is known)
+        const double LAV_DEFAULT_BUFFER_TOTAL_TIME = 10.0; //[s]; when frame duration is unknown
+
+        private enum BufferStatusEnum
+        {
+            BufferingNeeded = -1,
+            AboveMinLevel = 0,
+            BufferedEnough = 1
+        };
+        private int _LavMaxQueue = -1;
+        private double _LavMaxQueueTime = -1;
+        private int _LavMaxQueueMemSize = -1;
+        private IBaseFilter _SourceFilter;
+        private string _SourceFilterName;
+        private int _SourceFilterVideoPinIndex = -1;
+        private double _VideoSampleDuration = -1;
+        private DateTime _LastProgressCheck;
+        private bool _Buffering = false;
+        private double _LastCurrentPosition = 0.0d;
+        private bool _PlaybackDetected = false;
+        private bool _PreBufferNeeded = true;
+        private DateTime _SeekTimeStamp = DateTime.MinValue;
+        private static System.Globalization.CultureInfo _Culture_EN = new System.Globalization.CultureInfo("en-US");
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        private void onSeek()
+        {
+            if (this.mediaPos != null)
+                this.mediaPos.get_CurrentPosition(out this._LastCurrentPosition);
+
+            this._PlaybackDetected = false;
+            this._PreBufferNeeded = true;
+            this._LastProgressCheck = DateTime.MinValue;
+            this._SeekTimeStamp = DateTime.Now;
+
+            Log.Instance.Debug("[onSeek] Current position: {0}", this._LastCurrentPosition);
+        }
+
+        private IBaseFilter getSourceFilter()
+        {
+            if (this._SourceFilter == null)
+            {
+                Log.Instance.Debug("[GetSourceFilter]");
+
+                if (this._SourceFilterName == null)
+                    this._SourceFilterName = this.GetSourceFilterName(this.m_strCurrentFile);
+
+                int iResult = this.graphBuilder.FindFilterByName(this._SourceFilterName, out this._SourceFilter);
+                if (iResult != 0)
+                {
+                    string strErrorText = DsError.GetErrorText(iResult);
+                    if (strErrorText != null)
+                        strErrorText = strErrorText.Trim();
+
+                    Log.Instance.Warn("[GetSourceFilter] FindFilterByName returned '{0}'{1}", "0x" + iResult.ToString("X8"), !string.IsNullOrEmpty(strErrorText) ? " : (" + strErrorText + ")" : "");
+                    return null;
+                }
+            }
+            return this._SourceFilter;
+        }
+
+        private bool disposeSourceFilter()
+        {
+            if (this._SourceFilter != null)
+            {
+                DirectShowUtil.ReleaseComObject(this._SourceFilter);
+                this._SourceFilter = null;
+                return true;
+            }
+            return false;
+        }
+
+        private static string printFileSize(long lValue)
+        {
+            return printFileSize(lValue, "0");
+        }
+        private static string printFileSize(long lValue, string strFormat)
+        {
+            if (lValue < 0)
+                return string.Empty;
+
+            string strSuffix, strValue;
+
+            if (lValue < 1024)
+            {
+                strValue = lValue.ToString();
+                strSuffix = " B";
+            }
+            else if (lValue < 1048576)
+            {
+                strValue = ((float)lValue / 1024).ToString(strFormat, _Culture_EN);
+                strSuffix = " kB";
+            }
+            else if (lValue < 1073741824)
+            {
+                strValue = ((float)lValue / 1048576).ToString(strFormat, _Culture_EN);
+                strSuffix = " MB";
+            }
+            else
+            {
+                strValue = ((float)lValue / 1073741824).ToString("0.00", _Culture_EN);
+                strSuffix = " GB";
+            }
+
+            return strValue + strSuffix;
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        private void onBuffer()
+        {
+            if (!g_Player.Paused)
+                g_Player.Pause();
+
+            GUIPropertyManager.SetProperty("#OnlineVideos.Buffering", "1");
+            this._Buffering = true;
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        private void processLavBufferLevel()
+        {
+            if (!this.UseLAV || this._LavMaxQueue < -1)
+                return; //non LAV filter
+
+            if ((DateTime.Now - this._LastProgressCheck).TotalMilliseconds >= 1000) //once per second is enough
+            {
+                this._LastProgressCheck = DateTime.Now;
+
+                try
+                {
+                    int iLAVsize = -1;
+                    int iLAVlevel = -1;
+                    double dLAVtime = -1;
+                    bool bPlaybackEnds;
+                    BufferStatusEnum bufferStatus;
+
+                get:
+                    IBaseFilter sourceFilter = this.getSourceFilter();
+
+                    if (this._LavMaxQueue < 0 && sourceFilter != null)
+                    {
+                        #region LAV init
+
+                        try
+                        {
+                            ILAVSplitterSettings lav = (ILAVSplitterSettings)sourceFilter;
+                            this._LavMaxQueue = lav.GetMaxQueueSize(); //Samples
+                            this._LavMaxQueueMemSize = lav.GetMaxQueueMemSize(); //MB
+
+                            if (this._VideoSampleDuration > 0)
+                            {
+                                //Check min buffer total time
+                                int iQueue = (int)Math.Ceiling(LAV_MIN_BUFFER_TOTAL_TIME / this._VideoSampleDuration);
+                                if (iQueue > this._LavMaxQueue)
+                                {
+                                    //Modify MaxQueueSize (for runtime only)
+                                    lav.SetRuntimeConfig(true);
+                                    lav.SetMaxQueueSize(iQueue);
+                                    this._LavMaxQueue = iQueue;
+                                }
+
+                                this._LavMaxQueueTime = this._VideoSampleDuration * this._LavMaxQueue;
+                            }
+
+                            Log.Instance.Debug("[processLavBufferLevel] MaxQueue: {0} / {1:0.0}s / {2}MB",
+                                this._LavMaxQueue, this._LavMaxQueueTime, this._LavMaxQueueMemSize);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Instance.Error("[processLavBufferLevel] Error: {0}", ex.Message);
+                            this._LavMaxQueue = -2; //no success; never use LAV IBuffer
+                        }
+
+                        if (this._LavMaxQueue < 0)
+                        {
+                            //Non LAV filter
+
+                            this.disposeSourceFilter();
+                            sourceFilter = null;
+
+                            Log.Instance.Error("[processLavBufferLevel] LAV filter not available.");
+                        }
+                        #endregion
+                    }
+
+                    if (sourceFilter != null)
+                    {
+                        #region Buffer status
+
+                        LavSplitterSourceInterfaces.IBufferInfo buffer;
+                        try
+                        {
+                            buffer = (LavSplitterSourceInterfaces.IBufferInfo)sourceFilter;
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Instance.Error("[processLavBufferLevel] Error: {0}", ex.Message);
+                            this._LavMaxQueue = -1;
+                            this.disposeSourceFilter();
+                            sourceFilter = null;
+                            goto get; //try get source filter again
+                        }
+
+                        //Number of buffers (splitter's output pins)
+                        uint wCnt = buffer.GetCount();
+                        iLAVsize = 0;
+                        uint wSamplesVideo = 0;
+                        for (uint i = 0; i < wCnt; i++)
+                        {
+                            if (buffer.GetStatus(i, out uint wSamples, out uint wSize) != 0)
+                            {
+                                iLAVsize = -1;
+                                break;
+                            }
+
+                            //Total buffer size
+                            iLAVsize += (int)wSize;
+
+                            //Sample count of video output pin
+                            if (i == this._SourceFilterVideoPinIndex)
+                                wSamplesVideo = wSamples;
+                        }
+
+                        //Current LAV video buffer size
+                        GUIPropertyManager.SetProperty("#OnlineVideos.BufferSize", printFileSize(iLAVsize));
+
+                        //Current LAV video buffer time
+                        if (this._LavMaxQueue > 0)
+                        {
+                            //Default MaxQueue is 350
+                            //Each sample represents 1 video frame(progressive)
+                            iLAVlevel = (int)(float)wSamplesVideo * 100 / this._LavMaxQueue;
+
+                            if (this._LavMaxQueueTime > 0)
+                            {
+                                dLAVtime = this._VideoSampleDuration * wSamplesVideo;
+                                GUIPropertyManager.SetProperty("#OnlineVideos.BufferTime", string.Format(_Culture_EN, "{0,4:0.0}", dLAVtime));
+                            }
+                        }
+
+                        //Current LAV video buffer level
+                        if (iLAVlevel >= 0)
+                            GUIPropertyManager.SetProperty("#OnlineVideos.BufferLevel", string.Format("{0,3}", iLAVlevel));
+                        else
+                        {
+                            Log.Instance.Error("[processLavBufferLevel] Unknown buffer level.");
+                            return;
+                        }
+
+                        #endregion
+                    }
+                    else
+                    {
+                        Log.Instance.Error("[processLavBufferLevel] Unknown filter.");
+                        return;
+                    }
+                    
+
+                    if (dLAVtime >= 0)
+                    {
+                        //Frame duration is known
+
+                        if (dLAVtime < LAV_MIN_BUFFER_TIME)
+                            bufferStatus = BufferStatusEnum.BufferingNeeded;
+                        else if (dLAVtime >= LAV_BUFFERED_TIME)
+                            bufferStatus = BufferStatusEnum.BufferedEnough;
+                        else
+                            bufferStatus = BufferStatusEnum.AboveMinLevel;
+
+                        //Check ending of the stream(to avoid pausing the playback at the end)
+                        bPlaybackEnds = this.Duration - this.CurrentPosition < this._LavMaxQueueTime;
+
+                        GUIPropertyManager.SetProperty("#TV.Record.percent3", ((this.CurrentPosition + (this._LavMaxQueueTime * iLAVlevel / 100)) / this.Duration * 100).ToString("0.000"));
+
+                        //double d = (this.CurrentPosition + (this._LavMaxQueueTime * LEVEL_UNPAUSE / 100)) / this.Duration * 100;
+                        //GUIPropertyManager.SetProperty("#OnlineVideos.bufferedenough", (d).ToString("0.000"));
+                        //GUIPropertyManager.SetProperty("#OnlineVideos.bufferedenoughend", (d + 0.5).ToString("0.000"));
+                    }
+                    else
+                    {
+                        //Use % level
+
+                        if (iLAVlevel < LAV_MIN_BUFFER_LEVEL)
+                            bufferStatus = BufferStatusEnum.BufferingNeeded;
+                        else if (iLAVlevel >= LAV_BUFFERED_LEVEL)
+                            bufferStatus = BufferStatusEnum.BufferedEnough;
+                        else
+                            bufferStatus = BufferStatusEnum.AboveMinLevel;
+
+                        //Check ending of the stream(to avoid pausing the playback at the end)
+                        bPlaybackEnds = this.Duration - this.CurrentPosition < LAV_DEFAULT_BUFFER_TOTAL_TIME;
+
+                        GUIPropertyManager.SetProperty("#TV.Record.percent3", ((this.CurrentPosition + (LAV_DEFAULT_BUFFER_TOTAL_TIME * iLAVlevel / 100)) / this.Duration * 100).ToString("0.000"));
+                        //GUIPropertyManager.SetProperty("#OnlineVideos.bufferedenough", "0");
+                    }
+
+                    //The memory size reached 75% of MaxMemSize(256MB by default); consider the level as enough
+                    if (bufferStatus < BufferStatusEnum.BufferedEnough && ((float)iLAVsize / 0x100000 / this._LavMaxQueueMemSize >= 0.75f))
+                        bufferStatus = BufferStatusEnum.BufferedEnough;
+
+                    //Playback detection: to avoid buffering at start or after seek (if prebuffering is disabled)
+                    if (this._SeekTimeStamp == DateTime.MinValue)
+                        this._SeekTimeStamp = DateTime.Now;
+
+                    if (!this._PlaybackDetected && this.m_state == PlayState.Playing && 
+                        (bufferStatus >= BufferStatusEnum.AboveMinLevel || (DateTime.Now - this._SeekTimeStamp).TotalMilliseconds >= 5000) && 
+                        this.CurrentPosition - this._LastCurrentPosition >= 2.0)
+                    {
+                        this._PlaybackDetected = true;
+                        Log.Instance.Debug("[processLavBufferLevel] Playback detected.");
+                    }
+
+                    //GUI Buffering indicator
+                    if (this.m_state == PlayState.Playing && !this._Buffering && !bPlaybackEnds && 
+                        ((LAV_ALWAYS_PREBUFFER && (bufferStatus < BufferStatusEnum.AboveMinLevel || this._PreBufferNeeded)) 
+                        || (!LAV_ALWAYS_PREBUFFER && bufferStatus < BufferStatusEnum.AboveMinLevel && this._PlaybackDetected))
+                        )
+                    {
+                        if (this._PreBufferNeeded)
+                        {
+                            this._PreBufferNeeded = false;
+
+                            if (bufferStatus >= BufferStatusEnum.BufferedEnough) //allready enough
+                                return;
+                        }
+
+                        //Buffer is too low; pause the playback
+
+                        Log.Instance.Debug("[processLavBufferLevel] Buffering activated:  {0} / {1:0.0}s / {2}",
+                            iLAVlevel, dLAVtime, printFileSize(iLAVsize));
+
+                        GUIPropertyManager.SetProperty("#OnlineVideos.Buffering", "1");
+                        this._Buffering = true;
+
+                        if (!g_Player.Paused)
+                            g_Player.Pause();
+                    }
+                    else if (this._Buffering && (bPlaybackEnds || bufferStatus >= BufferStatusEnum.BufferedEnough))
+                    {
+                        //Buffer has sufficient level; resume the playback
+
+                        Log.Instance.Debug("[processLavBufferLevel] Buffering deactivated.");
+
+                        GUIPropertyManager.SetProperty("#OnlineVideos.Buffering", string.Empty);
+                        this._Buffering = false;
+
+                        if (g_Player.Paused)
+                            g_Player.Pause();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Instance.Error("[processLavBufferLevel] Error: {0} {1} {2}", ex.Message, ex.Source, ex.StackTrace);
+                }
+            }
         }
     }
 }
