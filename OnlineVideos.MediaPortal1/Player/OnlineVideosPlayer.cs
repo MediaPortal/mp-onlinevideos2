@@ -31,6 +31,8 @@ namespace OnlineVideos.MediaPortal1.Player
         private RefreshRateState refreshRateAdapted = RefreshRateState.None;
         private double reportedFPS_Matched;
 
+        private static string _VideoDecoder = null;
+
         void AdaptRefreshRateFromCacheFile()
         {
             if (!string.IsNullOrEmpty(cacheFile))
@@ -81,6 +83,117 @@ namespace OnlineVideos.MediaPortal1.Player
             else
             {
                 Log.Instance.Info("OnlineVideosPlayer: No cache file, skipping FPS detection via MediaInfo");
+
+                try
+                {
+                    if (!string.IsNullOrEmpty(_VideoDecoder))
+                    {
+                        IBaseFilter filterFound = DirectShowUtil.GetFilterByName(graphBuilder, _VideoDecoder);
+                        if (filterFound != null)
+                        {
+                            Log.Instance.Debug("[adaptRefreshRateFromCacheFile] Video Decoder found: '{0}'", _VideoDecoder);
+                            int iResult = filterFound.FindPin("Out", out IPin pin);
+                            if (iResult == 0)
+                            {
+                                Log.Instance.Debug("[adaptRefreshRateFromCacheFile] Output Pin of Video Decoder retrieved.");
+                                AMMediaType mediatype = new AMMediaType();
+                                iResult = pin.ConnectionMediaType(mediatype);
+
+                                if (iResult == 0)
+                                {
+                                    string strGUID = mediatype.formatType.ToString();
+                                    Log.Instance.Debug("[adaptRefreshRateFromCacheFile] AMMediaType: {0}", strGUID);
+                                    double dFps = -1;
+                                    bool bInterlaced = false;
+
+                                    if (strGUID.Equals("F72A76A0-EB0A-11D0-ACE4-0000C0CC16BA", StringComparison.OrdinalIgnoreCase) //VIDEOINFOHEADER2
+                                        || strGUID.Equals("E06D80E3-DB46-11CF-B4D1-00805F6CBBEA", StringComparison.OrdinalIgnoreCase)) //WMFORMAT_MPEG2Video
+                                    {
+                                        VideoInfoHeader2 videoHeader = new VideoInfoHeader2();
+                                        Marshal.PtrToStructure(mediatype.formatPtr, videoHeader);
+                                        if (videoHeader != null)
+                                        {
+                                            bInterlaced = (videoHeader.InterlaceFlags & AMInterlace.IsInterlaced) == AMInterlace.IsInterlaced;
+                                            dFps = Math.Round(10000000F / videoHeader.AvgTimePerFrame, 2);
+                                            Log.Instance.Debug("[adaptRefreshRateFromCacheFile] AvgTimePerFrame from VideoInfoHeader2: {0}, Interlaced: {1}",
+                                                videoHeader.AvgTimePerFrame, bInterlaced);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        VideoInfoHeader videoHeader = new VideoInfoHeader();
+                                        Marshal.PtrToStructure(mediatype.formatPtr, videoHeader);
+                                        if (videoHeader != null)
+                                        {
+                                            dFps = Math.Round(10000000F / videoHeader.AvgTimePerFrame, 2);
+                                            Log.Instance.Debug("[adaptRefreshRateFromCacheFile] AvgTimePerFrame from VideoInfoHeader: {0}", videoHeader.AvgTimePerFrame);
+                                        }
+                                    }
+
+                                    if (dFps > 0)
+                                    {
+                                        Log.Instance.Info("[adaptRefreshRateFromCacheFile] Detected FPS from Video Decoder: {0}", dFps);
+
+                                        if (bInterlaced)
+                                        {
+                                            switch (dFps)
+                                            {
+                                                case 25:
+                                                    dFps = 50.0;
+                                                    break;
+
+                                                case 29.97:
+                                                    dFps = 59.97;
+                                                    break;
+
+                                                case 30:
+                                                    dFps = 60.0;
+                                                    break;
+                                            }
+                                        }
+
+                                        double dMatchedFps = RefreshRateHelper.MatchConfiguredFPS(dFps);
+                                        if (dMatchedFps != default)
+                                        {
+                                            refreshRateAdapted = RefreshRateState.Done;
+                                            RefreshRateHelper.ChangeRefreshRateToMatchedFps(dMatchedFps, cacheFile);
+
+                                            try
+                                            {
+                                                if (GUIGraphicsContext.VideoRenderer == GUIGraphicsContext.VideoRendererType.EVR)
+                                                    EVRUpdateDisplayFPS();
+
+                                            }
+                                            catch (EntryPointNotFoundException)
+                                            {
+                                                Log.Instance.Warn("[adaptRefreshRateFromCacheFile] Your version of dshowhelper.dll does not support FPS updating.");
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                Log.Instance.Warn("[adaptRefreshRateFromCacheFile] Exception trying update refresh rate fo EVR: " + ex.ToString());
+                                            }
+                                        }
+                                        else
+                                            Log.Instance.Info("[adaptRefreshRateFromCacheFile] No matching configured FPS found - skipping RefreshRate Adaption from Video Decoder");
+                                    }
+
+                                }
+                                else
+                                    Log.Instance.Debug("[adaptRefreshRateFromCacheFile] Unable to get AMMediaType.");
+
+                                DirectShowUtil.ReleaseComObject(pin);
+                            }
+
+                            DirectShowUtil.ReleaseComObject(filterFound);
+                        }
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    Log.Instance.Warn("[adaptRefreshRateFromCacheFile] Exception trying refresh rate change from Video Decoder: " + ex.ToString());
+                }
+
             }
         }
 

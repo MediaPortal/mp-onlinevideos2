@@ -11,7 +11,7 @@ namespace OnlineVideos.MediaPortal1.Player
     {
         internal static List<double> fpsList = null;
 
-        internal static double MatchConfiguredFPS(double probedFps)
+        internal static double MatchConfiguredFPS(double dProbedFps)
         {
             if (fpsList == null)
             {
@@ -20,25 +20,40 @@ namespace OnlineVideos.MediaPortal1.Player
                 Settings xmlreader = new MPSettings();
                 for (int i = 1; i < 100; i++)
                 {
-                    string name = xmlreader.GetValueAsString("general", "refreshrate0" + Convert.ToString(i) + "_name", "");
-                    if (string.IsNullOrEmpty(name)) continue;
-                    string fps = xmlreader.GetValueAsString("general", name + "_fps", "");
-                    string[] fpsArray = fps.Split(';');
-                    foreach (string fpsItem in fpsArray)
+                    string strName = xmlreader.GetValueAsString("general", "refreshrate0" + Convert.ToString(i) + "_name", string.Empty);
+                    if (string.IsNullOrEmpty(strName)) 
+                        continue;
+
+                    string strFps = xmlreader.GetValueAsString("general", strName + "_fps", string.Empty);
+                    string[] fpsArray = strFps.Split(';');
+                    foreach (string strFpsItem in fpsArray)
                     {
-                        double fpsAsDouble = -1;
-                        double.TryParse(fpsItem, NumberStyles.AllowDecimalPoint, provider, out fpsAsDouble);
-                        if (fpsAsDouble > -1) fpsList.Add(fpsAsDouble);
+                        double dFps = -1;
+                        double.TryParse(strFpsItem, NumberStyles.AllowDecimalPoint, provider, out dFps);
+                        if (dFps > 0) 
+                            fpsList.Add(dFps);
                     }
                 }
+
                 fpsList = fpsList.Distinct().ToList();
                 fpsList.Sort();
             }
+
             if (fpsList != null && fpsList.Count > 0)
             {
-                return fpsList.FirstOrDefault(f => Math.Abs(f - probedFps) < 0.24f);
+                double dResult, dDiff;
+                double[] diffs = new double[] { 0, 0.024, 0.03, 0.06, 1 };
+                int i = 0;
+                while (i < diffs.Length)
+                {
+                    dDiff = diffs[i++];
+                    dResult = fpsList.FirstOrDefault(d => Math.Abs(d - dProbedFps) <= dDiff);
+                    if (dResult > 0)
+                        return dResult;
+                }
             }
-            return default(double);
+
+            return default;
         }
 
         internal static void ChangeRefreshRateToMatchedFps(double matchedFps, string file)
