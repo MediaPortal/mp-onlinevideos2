@@ -42,9 +42,9 @@ namespace OnlineVideos.Sites.Ard
             var filmInfos = LoadVideosWithDetails(detailUrls);
 
             return new Result<IEnumerable<ArdVideoInfoDto>>()
-                   {
-                       ContinuationToken = continuationToken,
-                       Value = filmInfos
+            {
+                ContinuationToken = continuationToken,
+                Value = filmInfos
             };
         }
 
@@ -74,10 +74,10 @@ namespace OnlineVideos.Sites.Ard
             var streamInfos = VideoStreamsDeserializer.ParseWidgets(json);
 
             return new Result<IEnumerable<DownloadDetailsDto>>()
-                   {
-                       ContinuationToken = continuationToken,
-                       Value = streamInfos
-                   };
+            {
+                ContinuationToken = continuationToken,
+                Value = streamInfos
+            };
         }
     }
 
@@ -134,13 +134,13 @@ namespace OnlineVideos.Sites.Ard
         public static Uri EntryUrl { get; } = new Uri("https://api.ardmediathek.de/page-gateway/widgets/ard/editorials/4hEeBDgtx6kWs6W6sa44yY");
 
         public override ArdCategoryInfoDto RootCategory { get; } = new ArdCategoryInfoDto("", EntryUrl.AbsoluteUri)
-                                                                   {
-                                                                       Title = "Live TV",
-                                                                       //Description = "",
-                                                                       HasSubCategories = false,
-                                                                       //ImageUrl = ,
-                                                                       //TargetUrl =
-                                                                   };
+        {
+            Title = "Live TV",
+            //Description = "",
+            HasSubCategories = false,
+            //ImageUrl = ,
+            //TargetUrl =
+        };
 
         public ArdLiveStreamsDeserializer(WebCache webClient) : base(webClient) { }
 
@@ -161,13 +161,13 @@ namespace OnlineVideos.Sites.Ard
         public static Uri EntryUrl { get; } = new Uri("https://api.ardmediathek.de/page-gateway/pages/ard/editorial/experiment-a-z");
 
         public override ArdCategoryInfoDto RootCategory { get; } = new ArdCategoryInfoDto("", EntryUrl.AbsoluteUri)
-                                                                   {
-                                                                       Title = "Sendungen A-Z",
-                                                                       //Description = "",
-                                                                       HasSubCategories = true,
-                                                                       //ImageUrl = ,
-                                                                       //TargetUrl =
-                                                                   };
+        {
+            Title = "Sendungen A-Z",
+            //Description = "",
+            HasSubCategories = true,
+            //ImageUrl = ,
+            //TargetUrl =
+        };
 
         public ArdTopicsPageDeserializer(WebCache webClient) : base(webClient) { }
 
@@ -219,17 +219,17 @@ namespace OnlineVideos.Sites.Ard
     {
         private static readonly string _categoryLevel = "Level";
 
-        private static readonly string DAY_PAGE  = "https://api.ardmediathek.de//page-gateway/compilations/{0}/pastbroadcasts?startDateTime={1}T00:00:00.000Z&endDateTime={2}T23:59:59.000Z&pageNumber=0&pageSize={3}";
+        private static readonly string DAY_PAGE = "https://api.ardmediathek.de//page-gateway/compilations/{0}/pastbroadcasts?startDateTime={1}T00:00:00.000Z&endDateTime={2}T23:59:59.000Z&pageNumber=0&pageSize={3}";
 
         /// <inheritdoc />
         public override ArdCategoryInfoDto RootCategory { get; } = new ArdCategoryInfoDto(nameof(ArdDayPageDeserializer), string.Empty)
-                                                                   {
-                                                                       Title = "Was lief",
-                                                                       Description = "Sendungen der letzten 7 Tage.",
-                                                                       HasSubCategories = true,
-                                                                       //ImageUrl = ,
-                                                                       //TargetUrl =
-                                                                   };
+        {
+            Title = "Was lief",
+            Description = "Sendungen der letzten 7 Tage.",
+            HasSubCategories = true,
+            //ImageUrl = ,
+            //TargetUrl =
+        };
 
         public ArdDayPageDeserializer(WebCache webClient) : base(webClient) { }
 
@@ -250,10 +250,10 @@ namespace OnlineVideos.Sites.Ard
             var newToken = new ContinuationToken(continuationToken);
             newToken[_categoryLevel] = currentLevel + 1;
             return new Result<IEnumerable<ArdCategoryInfoDto>>
-                   {
-                       ContinuationToken = newToken,
-                       Value = categoryInfos
-                   };
+            {
+                ContinuationToken = newToken,
+                Value = categoryInfos
+            };
 
         }
 
@@ -275,17 +275,17 @@ namespace OnlineVideos.Sites.Ard
                 var day = DateTime.Today.AddDays(-i);
                 var url = CreateDayUrl(day);
                 yield return new ArdCategoryInfoDto(nameof(ArdDayPageDeserializer) + i, url)
-                             {
-                                 Title = i switch
-                                 {
-                                     0 => "Heute",
-                                     1 => "Gestern",
-                                     _ => day.ToString("ddd, d.M.")
-                                 },
-                                 //Url = url,
-                                 HasSubCategories = true,
-                                 //ImageUrl =
-                             };
+                {
+                    Title = i switch
+                    {
+                        0 => "Heute",
+                        1 => "Gestern",
+                        _ => day.ToString("ddd, d.M.")
+                    },
+                    //Url = url,
+                    HasSubCategories = true,
+                    //ImageUrl =
+                };
             }
         }
 

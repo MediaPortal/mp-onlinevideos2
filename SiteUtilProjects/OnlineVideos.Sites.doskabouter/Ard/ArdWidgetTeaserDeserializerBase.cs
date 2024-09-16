@@ -42,8 +42,8 @@ namespace OnlineVideos.Sites.Ard
 
         protected static JToken TryGetWidgetsTokenOrInput(JToken jsonElement)
         {
-            return jsonElement?.Type == JTokenType.Object && jsonElement?[ELEMENT_WIDGETS] != null 
-                       ? jsonElement[ELEMENT_WIDGETS] 
+            return jsonElement?.Type == JTokenType.Object && jsonElement?[ELEMENT_WIDGETS] != null
+                       ? jsonElement[ELEMENT_WIDGETS]
                        : jsonElement;
         }
 
@@ -115,14 +115,14 @@ namespace OnlineVideos.Sites.Ard
             var selfUrl = widgetElement[ELEMENT_LINKS]?[ELEMENT_SELF]?.Value<string>(ATTRIBUTE_HREF);
 
             return new ArdCategoryInfoDto(id, selfUrl)
-                   {
-                       Title = widgetElement.Value<string>(ATTRIBUTE_TITLE),
-                       //Description =,
-                       //ImageUrl = ,
-                       //NavigationUrl = selfUrl, //string.Format(ArdConstants.EDITORIAL_URL, id),
-                       //Pagination = ,
-                       HasSubCategories = hasSubCategories,
-                   };
+            {
+                Title = widgetElement.Value<string>(ATTRIBUTE_TITLE),
+                //Description =,
+                //ImageUrl = ,
+                //NavigationUrl = selfUrl, //string.Format(ArdConstants.EDITORIAL_URL, id),
+                //Pagination = ,
+                HasSubCategories = hasSubCategories,
+            };
         }
 
         public ArdCategoryInfoDto ParseTeaser(JToken teaserElement, bool hasSubCategories = false)
@@ -245,14 +245,14 @@ namespace OnlineVideos.Sites.Ard
             var numberOfClips = itemElement.Value<int?>(ATTRIBUTE_NUMBER_OF_CLIPS) ?? 0;
 
             return new ArdVideoInfoDto(id, numberOfClips, url)
-                   {
-                       Title = itemElement.Value<string>(ATTRIBUTE_TITLE),
-                       AirDate = itemElement.Value<DateTime?>(ATTRIBUTE_AIR_DATETIME),
-                       AvailableUntilDate = itemElement.Value<DateTime?>(ATTRIBUTE_UNTIL_DATETIME),
-                       Description = itemElement.Value<string>(ATTRIBUTE_DESCRIPTION),
-                       Duration = ArdMediaStreamsDeserializer.GetDuration(itemElement),
-                       ImageUrl = imageUrl?.Replace(ArdMediathekUtil.PLACEHOLDER_IMAGE_WIDTH, ArdMediathekUtil.IMAGE_WIDTH)
-                   };
+            {
+                Title = itemElement.Value<string>(ATTRIBUTE_TITLE),
+                AirDate = itemElement.Value<DateTime?>(ATTRIBUTE_AIR_DATETIME),
+                AvailableUntilDate = itemElement.Value<DateTime?>(ATTRIBUTE_UNTIL_DATETIME),
+                Description = itemElement.Value<string>(ATTRIBUTE_DESCRIPTION),
+                Duration = ArdMediaStreamsDeserializer.GetDuration(itemElement),
+                ImageUrl = imageUrl?.Replace(ArdMediathekUtil.PLACEHOLDER_IMAGE_WIDTH, ArdMediathekUtil.IMAGE_WIDTH)
+            };
         }
     }
 

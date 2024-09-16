@@ -112,11 +112,11 @@ namespace OnlineVideos.Sites.Ard
         public override List<ContextMenuEntry> GetContextMenuEntries(Category selectedCategory, VideoInfo selectedItem)
         {
             var ctxMenu = new ContextMenuEntry()
-                          {
-                              DisplayText = _skipPlayackOptionsDialog ? "Manual select Playback Stream" : "Directly select Playback Stream",
-                              Action = ContextMenuEntry.UIAction.Execute,
+            {
+                DisplayText = _skipPlayackOptionsDialog ? "Manual select Playback Stream" : "Directly select Playback Stream",
+                Action = ContextMenuEntry.UIAction.Execute,
 
-                          };
+            };
             return new List<ContextMenuEntry>() { ctxMenu };
         }
 
@@ -151,16 +151,16 @@ namespace OnlineVideos.Sites.Ard
         public static RssLink AsRssLink(ArdCategoryInfoDto item, Category parentCategory, Context context)
         {
             return new RssLink()
-                   {
-                       Name = item.Title,
-                       Description = item.Description,
-                       Thumb = item.ImageUrl,
-                       Url = item.TargetUrl,
-                       ParentCategory = parentCategory,
-                       HasSubCategories = item.HasSubCategories,
-                       SubCategories = new List<Category>(),
-                       Other = context
-                   };
+            {
+                Name = item.Title,
+                Description = item.Description,
+                Thumb = item.ImageUrl,
+                Url = item.TargetUrl,
+                ParentCategory = parentCategory,
+                HasSubCategories = item.HasSubCategories,
+                SubCategories = new List<Category>(),
+                Other = context
+            };
         }
 
 
@@ -173,16 +173,16 @@ namespace OnlineVideos.Sites.Ard
         public static VideoInfo AsVideoInfo(this ArdVideoInfoDto item, Context context, bool skipPlaybackOptionsDialog = false)
         {
             return new VideoInfo
-                   {
-                       Title = item.Title,
-                       Description = item.Description ?? string.Empty,
-                       Length = item.FormatDuration(),
-                       Thumb = item.ImageUrl,
-                       Airdate = item.AirDate?.ToLocalTime().ToString("g", OnlineVideoSettings.Instance.Locale) ?? string.Empty,
-                       VideoUrl = item.TargetUrl,
-                       HasDetails = !skipPlaybackOptionsDialog,
-                       Other = context
-                   };
+            {
+                Title = item.Title,
+                Description = item.Description ?? string.Empty,
+                Length = item.FormatDuration(),
+                Thumb = item.ImageUrl,
+                Airdate = item.AirDate?.ToLocalTime().ToString("g", OnlineVideoSettings.Instance.Locale) ?? string.Empty,
+                VideoUrl = item.TargetUrl,
+                HasDetails = !skipPlaybackOptionsDialog,
+                Other = context
+            };
         }
 
 
