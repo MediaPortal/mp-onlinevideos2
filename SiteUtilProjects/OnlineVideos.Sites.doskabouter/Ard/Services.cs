@@ -52,7 +52,8 @@ namespace OnlineVideos.Sites.Ard
         {
             foreach (var url in urls)
             {
-                yield return GetVideoDetails(url);
+                if (url.Contains("api.ardmediathek"))
+                    yield return GetVideoDetails(url);
             }
         }
 
