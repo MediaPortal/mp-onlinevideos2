@@ -860,7 +860,7 @@ namespace OnlineVideos.Hoster
                     {
                         VideoType = format.Value<string>("mimeType"),
                         VideoBitrate = format.Value<int>("bitrate"),
-                        Url = format.Value<string>("url"),
+                        Url = strUrl,
                         VideoID = format.Value<int>("itag"),
                         VideoUrl = strUrl,
                         VideoWidth = format.Value<int>("width"),
