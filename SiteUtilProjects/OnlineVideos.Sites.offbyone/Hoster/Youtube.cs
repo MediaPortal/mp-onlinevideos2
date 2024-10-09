@@ -281,8 +281,8 @@ namespace OnlineVideos.Hoster
 
                         headers = new NameValueCollection
                         {
-                            { "X-Youtube-Client-Name", "62" },
-                            { "X-Youtube-Client-Version", "1.20240723.03.00" },
+                            { "X-Youtube-Client-Name", "2" },
+                            { "X-Youtube-Client-Version", "2.20240726.01.00" },
                             { "Origin", "https://www.youtube.com" },
                             { "Content-Type", "application/json" },
                             { "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.41 Safari/537.36" },
@@ -292,7 +292,7 @@ namespace OnlineVideos.Hoster
                             { "Accept-Language", "en-us,en;q=0.5" }
                         };
 
-                        postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""WEB_CREATOR"", ""clientVersion"": ""{1}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
+                        postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""MWEB"", ""clientVersion"": ""{1}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
                             videoId, headers["X-Youtube-Client-Version"], _YoutubeDecryptor.SignatureTimestamp);
                         jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
 
