@@ -183,6 +183,8 @@ namespace OnlineVideos.Hoster
         static readonly ushort[] fmtOptionsQualityAudioSorted = new ushort[] { 141, 251, 140, 171, 250, 249 };
 
         private static YoutubeSignatureDecryptor _YoutubeDecryptor = null;
+        private static DateTime _YtDlpLastCheck = DateTime.MinValue;
+        private static readonly string _YtDlpExeName = Environment.Is64BitOperatingSystem? "yt-dlp.exe" : "yt-dlp_x86.exe";
 
         public override Dictionary<string, string> GetPlaybackOptions(string url)
         {
@@ -209,77 +211,54 @@ namespace OnlineVideos.Hoster
             int iAttempts = 3;
             try
             {
+                string postdata;
+                NameValueCollection headers;
+
                 get:
-                CookieContainer cc = new CookieContainer();
-                cc.Add(new Cookie("CONSENT", "YES+cb.20210328-17-p0.en+FX+684", "", ".youtube.com"));
-
-                NameValueCollection headers = new NameValueCollection
-                {
-                    { "X-Youtube-Client-Name", "14" },
-                    { "X-Youtube-Client-Version", "22.30.100" },
-                    { "Origin", "https://www.youtube.com" },
-                    { "Content-Type", "application/json" },
-                    { "User-Agent", "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip" },
-                    { "Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7" },
-                    { "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
-                    { "Accept-Encoding", "gzip, deflate" },
-                    { "Accept-Language", "en-us,en;q=0.5" }
-                };
-
-                string postdata = String.Format(@"{{""context"": {{""client"": {{""clientName"": ""ANDROID_CREATOR"", ""clientVersion"": ""{1}"", ""androidSdkVersion"": 30, ""userAgent"": ""{2}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""params"": ""CgIQBg=="", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS""}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}", videoId,
-                    headers["X-Youtube-Client-Version"], headers["User-Agent"]);
-                JObject jData = WebCache.Instance.GetWebData<JObject>(YoutubePlayerUrl, postData: postdata, headers: headers);
-                parsePlayerStatus(jData["videoDetails"], jData["streamingData"], qualities, null);
 
                 //yt-dlp processing
-                JToken jDataYtDlp = null; //parsePlayerStatusFromYtDlp(qualities, videoId);
+                JToken jDataYtDlp = null;
 
                 JObject jDataWeb = null;
-                //if (qualities.Count == 0)
+
+                if (_YoutubeDecryptor != null && (DateTime.Now - _YoutubeDecryptor.LoadTimestamp).TotalDays >= 1)
+                    _YoutubeDecryptor = null; //don't use the same decryptor for more than 1 day
+
+                string strContentsWeb = null;
+                if (_YoutubeDecryptor == null)
                 {
-                    if (_YoutubeDecryptor != null && (DateTime.Now - _YoutubeDecryptor.LoadTimestamp).TotalDays >= 1)
-                        _YoutubeDecryptor = null; //don't use the same decryptor for more than 1 day
-
-
-                    string strContentsWeb = null;
-                    if (_YoutubeDecryptor == null)
+                    try
                     {
-                        //Load webpage; there is more available options (e.g. UHD)
-                        try
+                        strContentsWeb = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId),
+                            proxy: proxy,
+                            userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
+                            cache: false
+                            );
+                        Match m = Regex.Match(strContentsWeb, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
+                        if (m.Success)
                         {
-                            strContentsWeb = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId),
-                                proxy: proxy,
-                                cookies: cc,
-                                userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
-                                cache: false
-                                );
-                            Match m = Regex.Match(strContentsWeb, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
-                            if (m.Success)
-                            {
-                                jDataWeb = JObject.Parse(m.Groups["js"].Value);
+                            jDataWeb = JObject.Parse(m.Groups["js"].Value);
 
-                                try
-                                {
-                                    //Prepare signature decryptor
-                                    _YoutubeDecryptor = new YoutubeSignatureDecryptor(strContentsWeb, this.wv);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Log.Error("[YoutubeHoster] Error creating signature decryptor: {0}", ex.Message);
-                                    _YoutubeDecryptor = null;
-                                }
+                            try
+                            {
+                                //Prepare signature decryptor
+                                _YoutubeDecryptor = new YoutubeSignatureDecryptor(strContentsWeb, this.wv);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error("[YoutubeHoster] Error creating signature decryptor: {0}", ex.Message);
+                                _YoutubeDecryptor = null;
                             }
                         }
-                        catch { jDataWeb = null; };
                     }
-                    else
-                        Log.Debug("[YoutubeHoster] Using existing YouTube decryptor: {0}", _YoutubeDecryptor.SignatureTimestamp);
+                    catch { jDataWeb = null; };
+                }
+                else
+                    Log.Debug("[YoutubeHoster] Using existing YouTube decryptor: {0}", _YoutubeDecryptor.SignatureTimestamp);
 
-                    if (_YoutubeDecryptor != null)
-                    {
-                        //"WEB_CREATOR"
-
-                        headers = new NameValueCollection
+                if (_YoutubeDecryptor != null)
+                {
+                    headers = new NameValueCollection
                         {
                             { "X-Youtube-Client-Name", "2" },
                             { "X-Youtube-Client-Version", "2.20240726.01.00" },
@@ -292,41 +271,35 @@ namespace OnlineVideos.Hoster
                             { "Accept-Language", "en-us,en;q=0.5" }
                         };
 
-                        postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""MWEB"", ""clientVersion"": ""{1}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
-                            videoId, headers["X-Youtube-Client-Version"], _YoutubeDecryptor.SignatureTimestamp);
-                        jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
+                    postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""MWEB"", ""clientVersion"": ""{1}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
+                        videoId, headers["X-Youtube-Client-Version"], _YoutubeDecryptor.SignatureTimestamp);
+                    jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
 
-                        PlayerStatusEnum status = parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, _YoutubeDecryptor);
-                        if (status != PlayerStatusEnum.OK)
-                        {
-                            if (--iAttempts > 0)
-                            {
-                                Log.Warn("[YoutubeHoster] Failed to get working links. Try again. Remaining attempts: {0}", iAttempts);
-                                qualities.Clear();
-                                _YoutubeDecryptor = null;
-                                goto get; //try again
-                            }
-
-                            Log.Error("[YoutubeHoster] Failed to get working links.");
-                            //return null;
-                        }
-
-                        if (_YoutubeDecryptor != null)
-                            _YoutubeDecryptor.LastUseTimestamp = DateTime.Now;
-                    }
-
-                    if (qualities.Count == 0 && strContentsWeb != null)
+                    PlayerStatusEnum status = parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, _YoutubeDecryptor);
+                    if (status != PlayerStatusEnum.OK)
                     {
-                        //this one can be slow
-                        Match m = Regex.Match(strContentsWeb, @"""(?i)(?:sts|signatureTimestamp)"":(?<sts>[0-9]{5})", RegexOptions.IgnoreCase);
-                        if (m.Success)
+                        qualities.Clear();
+                        if (--iAttempts > 0)
                         {
-                            postdata = String.Format(@"{{""context"": {{""client"": {{""clientName"": ""WEB"", ""clientVersion"": ""2.20210622.10.00"", ""hl"": ""en"", ""clientScreen"": ""EMBED""}}, ""thirdParty"": {{""embedUrl"": ""https://google.com""}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {1}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}", videoId, m.Groups["sts"].Value);
-                            jData = WebCache.Instance.GetWebData<JObject>(YoutubePlayerUrl, postData: postdata, headers: headers);
-                            parsePlayerStatus(jData["videoDetails"], jData["streamingData"], qualities, null);
+                            Log.Warn("[YoutubeHoster] Failed to get AdaptiveFormat working links. Try again. Remaining attempts: {0}", iAttempts);
+                            _YoutubeDecryptor = null;
+                            goto get; //try again
                         }
+
+                        Log.Error("[YoutubeHoster] Failed to get AdaptiveFormat working links. Trying yt-dlp ...");
+
+                        jDataYtDlp = parsePlayerStatusFromYtDlp(qualities, videoId);
+                        if (jDataYtDlp == null)
+                            return null;
                     }
+
+                    if (_YoutubeDecryptor != null)
+                        _YoutubeDecryptor.LastUseTimestamp = DateTime.Now;
                 }
+
+                if (qualities.Count == 0)
+                    return null;
+
 
                 //Sort by quality
                 qualities.Sort(new Comparison<YoutubeQuality>((a, b) =>
@@ -448,7 +421,7 @@ namespace OnlineVideos.Hoster
                                 captions = jDataWeb["captions"]?["playerCaptionsTracklistRenderer"]?["captionTracks"] as JArray;
                             else
                             {
-                                string contents = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId), proxy: proxy, cookies: cc);
+                                string contents = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId), proxy: proxy);
                                 Match m = Regex.Match(contents, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
                                 if (m.Success)
                                 {
@@ -636,8 +609,58 @@ namespace OnlineVideos.Hoster
             }
         }
 
+        private static bool checkYtDlpVersion()
+        {
+            if ((DateTime.Now - _YtDlpLastCheck).TotalHours < 24)
+                return true;
+
+            Log.Debug("[YoutubeHoster] checkYtDlpVersion() Checking latest version...");
+
+            string strExePath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), _YtDlpExeName);
+
+            try
+            {
+                string strContent = WebCache.Instance.GetWebData("https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest", cache: false);
+                JToken j = JToken.Parse(strContent);
+                string strLatest = (string)j["tag_name"];
+
+                Log.Debug("[YoutubeHoster] checkYtDlpVersion() Latest available version: {0}", strLatest);
+
+                if (System.IO.File.Exists(strExePath))
+                {
+                    FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(strExePath);
+
+                    if (strLatest == fvi.FileVersion)
+                    {
+                        Log.Debug("[YoutubeHoster] checkYtDlpVersion() Current version is up to date.");
+                        goto ok;
+                    }
+                }
+
+                JToken jAsset = j["assets"].First(asset => (string)asset["name"] == _YtDlpExeName);
+                string strUrlDownload = (string)jAsset["browser_download_url"];
+
+                Log.Debug("[YoutubeHoster] checkYtDlpVersion() Downloading latest version: {0}", strLatest);
+                string strDownloadPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), _YtDlpExeName);
+                WebClient wc = new();
+                wc.DownloadFile(strUrlDownload, strDownloadPath);
+                System.IO.File.Replace(strDownloadPath, strExePath, null);
+ok:
+                _YtDlpLastCheck = DateTime.Now;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Debug("[YoutubeHoster] checkYtDlpVersion() Error: {0}", ex.Message);
+                return System.IO.File.Exists(strExePath);
+            }
+        }
+
         private static JToken parsePlayerStatusFromYtDlp(List<YoutubeQuality> qualities, string strVideoId)
         {
+            if (!checkYtDlpVersion())
+                return null;
+
             Log.Debug("[YoutubeHoster] parsePlayerStatusFromYtDlp() loading json data: " + strVideoId);
 
             JToken jStreamingData = null;
@@ -655,7 +678,7 @@ namespace OnlineVideos.Hoster
                     CreateNoWindow = true,
                     StandardOutputEncoding = Encoding.UTF8,
                     StandardErrorEncoding = Encoding.UTF8,
-                    FileName = "yt-dlp.exe",
+                    FileName = _YtDlpExeName,
                     Arguments = "--proxy \"\" -j https://www.youtube.com/watch?v=" + strVideoId //Ignore proxy; ytdlp can fail due to certificate error
                 };
 
