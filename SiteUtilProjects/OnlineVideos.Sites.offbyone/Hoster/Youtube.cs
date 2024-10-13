@@ -208,13 +208,10 @@ namespace OnlineVideos.Hoster
 
             List<YoutubeQuality> qualities = new List<YoutubeQuality>();
 
-            int iAttempts = 3;
             try
             {
                 string postdata;
                 NameValueCollection headers;
-
-                get:
 
                 //yt-dlp processing
                 JToken jDataYtDlp = null;
@@ -279,27 +276,21 @@ namespace OnlineVideos.Hoster
                     if (status != PlayerStatusEnum.OK)
                     {
                         qualities.Clear();
-                        if (--iAttempts > 0)
-                        {
-                            Log.Warn("[YoutubeHoster] Failed to get AdaptiveFormat working links. Try again. Remaining attempts: {0}", iAttempts);
-                            _YoutubeDecryptor = null;
-                            goto get; //try again
-                        }
-
-                        Log.Error("[YoutubeHoster] Failed to get AdaptiveFormat working links. Trying yt-dlp ...");
-
-                        jDataYtDlp = parsePlayerStatusFromYtDlp(qualities, videoId);
-                        if (jDataYtDlp == null)
-                            return null;
+                        Log.Error("[YoutubeHoster] Failed to get AdaptiveFormat working links.");
+                        _YoutubeDecryptor = null;
                     }
-
-                    if (_YoutubeDecryptor != null)
+                    else
                         _YoutubeDecryptor.LastUseTimestamp = DateTime.Now;
                 }
 
                 if (qualities.Count == 0)
-                    return null;
+                {
+                    Log.Error("[YoutubeHoster] Failed to get AdaptiveFormat working links. Trying yt-dlp ...");
 
+                    jDataYtDlp = parsePlayerStatusFromYtDlp(qualities, videoId);
+                    if (jDataYtDlp == null || qualities.Count == 0)
+                        return null;
+                }
 
                 //Sort by quality
                 qualities.Sort(new Comparison<YoutubeQuality>((a, b) =>
