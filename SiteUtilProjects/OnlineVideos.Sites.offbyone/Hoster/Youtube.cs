@@ -65,18 +65,18 @@ namespace OnlineVideos.Hoster
 
                 NameValueCollection headers = new NameValueCollection
                 {
-                    { "X-Youtube-Client-Name", "14" },
-                    { "X-Youtube-Client-Version", "22.30.100" },
+                    { "X-Youtube-Client-Name", "95" },
+                    { "X-Youtube-Client-Version", "0.1" },
                     { "Origin", "https://www.youtube.com" },
                     { "Content-Type", "application/json" },
-                    { "User-Agent", "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip" },
+                    { "User-Agent", "com.google.android.apps.youtube.producer/0.111.1 (Linux; U; Android 11) gzip" },
                     { "Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7" },
                     { "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
                     { "Accept-Encoding", "gzip, deflate" },
                     { "Accept-Language", "en-us,en;q=0.5" }
                 };
 
-                string postdata = String.Format(@"{{""context"": {{""client"": {{""clientName"": ""ANDROID_CREATOR"", ""clientVersion"": ""{1}"", ""androidSdkVersion"": 30, ""userAgent"": ""{2}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""params"": ""CgIQBg=="", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS""}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}", videoId,
+                string postdata = String.Format(@"{{""context"": {{""client"": {{""clientName"": ""MEDIA_CONNECT_FRONTEND"", ""clientVersion"": ""{1}"", ""androidSdkVersion"": 30, ""userAgent"": ""{2}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""params"": ""CgIQBg=="", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS""}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}", videoId,
                     headers["X-Youtube-Client-Version"], headers["User-Agent"]);
                 var apicontents = WebCache.Instance.GetWebData<JObject>(YoutubePlayerUrl, postData: postdata, headers: headers);
                 parsePlayerStatus(apicontents["streamingData"], qualities);
