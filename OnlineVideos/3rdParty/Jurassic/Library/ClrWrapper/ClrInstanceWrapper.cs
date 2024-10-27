@@ -1,12 +1,13 @@
 ﻿using System;
-using System.Reflection;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Jurassic.Library
 {
     /// <summary>
     /// Represents a non-native CLR object instance.
     /// </summary>
-    [Serializable]
     public class ClrInstanceWrapper : ObjectInstance
     {
 
@@ -33,14 +34,30 @@ namespace Jurassic.Library
         private static ObjectInstance GetPrototypeObject(ScriptEngine engine, object instance)
         {
             if (engine == null)
-                throw new ArgumentNullException("engine");
+                throw new ArgumentNullException(nameof(engine));
             if (instance == null)
-                throw new ArgumentNullException("instance");
+                throw new ArgumentNullException(nameof(instance));
             return ClrInstanceTypeWrapper.FromCache(engine, instance.GetType());
         }
 
+        /// <summary>
+        /// Creates an instance of ClrInstanceWrapper or ArrayInstance based on object type.
+        /// </summary>
+        /// <param name="engine"> The associated script engine. </param>
+        /// <param name="instance"> The CLR object instance to wrap. </param>
+        public static ObjectInstance Create(ScriptEngine engine, object instance)
+        {
+            if (instance is IEnumerable enumerable)
+            {
+                var wrappedList = instance is ICollection ? new List<object>(((ICollection)instance).Count) : new List<object>();
+                var enumerator = enumerable.GetEnumerator();
+                while (enumerator.MoveNext())
+                    wrappedList.Add(Create(engine, enumerator.Current));
+                return engine.Array.New(wrappedList.ToArray());
+            }
 
-
+            return new ClrInstanceWrapper(engine, instance);
+        }
 
         //     PROPERTIES
         //_________________________________________________________________________________________
@@ -56,7 +73,6 @@ namespace Jurassic.Library
 
 
 
-
         //     OBJECTINSTANCE OVERRIDES
         //_________________________________________________________________________________________
 
@@ -66,7 +82,7 @@ namespace Jurassic.Library
         ///// </summary>
         ///// <param name="hint"> Indicates the preferred type of the result. </param>
         ///// <returns> A primitive value that represents the current object. </returns>
-        //protected internal override object GetPrimitiveValue(PrimitiveTypeHint typeHint)
+        //internal override object GetPrimitiveValue(PrimitiveTypeHint typeHint)
         //{
         //    // If this wrapper is for a primitive.
         //    if (TypeUtilities.IsPrimitive(this.WrappedInstance) == true)

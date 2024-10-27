@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace Jurassic.Library
+﻿namespace Jurassic.Library
 {
     /// <summary>
     /// Represents an instance of the JavaScript Boolean object.
     /// </summary>
-    [Serializable]
-    public class BooleanInstance : ObjectInstance
+    public partial class BooleanInstance : ObjectInstance
     {
-        private bool value;
+        private readonly bool value;
 
 
 
@@ -27,19 +23,24 @@ namespace Jurassic.Library
             this.value = value;
         }
 
+        /// <summary>
+        /// Creates the Boolean prototype object.
+        /// </summary>
+        /// <param name="engine"> The script environment. </param>
+        /// <param name="constructor"> A reference to the constructor that owns the prototype. </param>
+        internal static ObjectInstance CreatePrototype(ScriptEngine engine, BooleanConstructor constructor)
+        {
+            var result = engine.Object.Construct();
+            var properties = GetDeclarativeProperties(engine);
+            properties.Add(new PropertyNameAndValue("constructor", constructor, PropertyAttributes.NonEnumerable));
+            result.InitializeProperties(properties);
+            return result;
+        }
+
 
 
         //     .NET ACCESSOR PROPERTIES
         //_________________________________________________________________________________________
-
-        /// <summary>
-        /// Gets the internal class name of the object.  Used by the default toString()
-        /// implementation.
-        /// </summary>
-        protected override string InternalClassName
-        {
-            get { return "Boolean"; }
-        }
 
         /// <summary>
         /// Gets the primitive value of this object.
@@ -48,7 +49,6 @@ namespace Jurassic.Library
         {
             get { return this.value; }
         }
-
 
 
 

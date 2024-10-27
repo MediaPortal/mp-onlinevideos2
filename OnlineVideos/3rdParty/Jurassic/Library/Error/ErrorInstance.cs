@@ -1,49 +1,69 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Jurassic.Library
+﻿namespace Jurassic.Library
 {
     /// <summary>
     /// Represents the base class of all the javascript errors.
     /// </summary>
-    [Serializable]
-    public class ErrorInstance : ObjectInstance
+    public partial class ErrorInstance : ObjectInstance
     {
 
         //     INITIALIZATION
         //_________________________________________________________________________________________
 
         /// <summary>
-        /// Creates a new Error instance with the given name, message and optionally a stack trace.
+        /// Creates a new Error instance with the given message.
         /// </summary>
         /// <param name="prototype"> The next object in the prototype chain. </param>
-        /// <param name="name"> The initial value of the name property.  Pass <c>null</c> to avoid
-        /// creating this property. </param>
         /// <param name="message"> The initial value of the message property.  Pass <c>null</c> to
         /// avoid creating this property. </param>
-        internal ErrorInstance(ObjectInstance prototype, string name, string message)
+        internal ErrorInstance(ObjectInstance prototype, string message)
             : base(prototype)
         {
-            if (name != null)
-                this.FastSetProperty("name", name, PropertyAttributes.FullAccess);
-            if (message != null)
-                this.FastSetProperty("message", message, PropertyAttributes.FullAccess);
+            FastSetProperty("message", message, PropertyAttributes.NonEnumerable);
+        }
+
+        /// <summary>
+        /// Creates the Error prototype object.
+        /// </summary>
+        /// <param name="engine"> The script environment. </param>
+        /// <param name="constructor"> A reference to the constructor that owns the prototype. </param>
+        /// <param name="type"> The type of error, e.g. Error, RangeError, etc. </param>
+        internal static ObjectInstance CreatePrototype(ScriptEngine engine, ErrorConstructor constructor, ErrorType type)
+        {
+            var result = CreateRawObject(GetPrototype(engine, type));
+            var properties = GetDeclarativeProperties(engine);
+            properties.Add(new PropertyNameAndValue("constructor", constructor, PropertyAttributes.NonEnumerable));
+            properties.Add(new PropertyNameAndValue("name", type.ToString(), PropertyAttributes.NonEnumerable));
+            properties.Add(new PropertyNameAndValue("message", string.Empty, PropertyAttributes.NonEnumerable));
+            result.InitializeProperties(properties);
+            return result;
+        }
+
+        /// <summary>
+        /// Determine the prototype for the given error type.
+        /// </summary>
+        /// <param name="engine"> The script engine associated with this object. </param>
+        /// <param name="type"> The type of error, e.g. Error, RangeError, etc. </param>
+        /// <returns> The prototype. </returns>
+        private static ObjectInstance GetPrototype(ScriptEngine engine, ErrorType type)
+        {
+            if (type == ErrorType.Error)
+            {
+                // This constructor is for regular Error objects.
+                // Prototype chain: Error instance -> Error prototype -> Object prototype
+                return engine.Object.InstancePrototype;
+            }
+            else
+            {
+                // This constructor is for derived Error objects like RangeError, etc.
+                // Prototype chain: XXXError instance -> XXXError prototype -> Error prototype -> Object prototype
+                return engine.Error.InstancePrototype;
+            }
         }
 
 
 
         //     .NET ACCESSOR PROPERTIES
         //_________________________________________________________________________________________
-
-        /// <summary>
-        /// Gets the internal class name of the object.  Used by the default toString()
-        /// implementation.
-        /// </summary>
-        protected override string InternalClassName
-        {
-            get { return "Error"; }
-        }
 
         /// <summary>
         /// Gets the name for the type of error.
@@ -73,8 +93,6 @@ namespace Jurassic.Library
         /// <summary>
         /// Sets the stack trace information.
         /// </summary>
-        /// <param name="errorName"> The name of the error (e.g. "ReferenceError"). </param>
-        /// <param name="message"> The error message. </param>
         /// <param name="path"> The path of the javascript source file that is currently executing. </param>
         /// <param name="function"> The name of the currently executing function. </param>
         /// <param name="line"> The line number of the statement that is currently executing. </param>
@@ -92,16 +110,30 @@ namespace Jurassic.Library
         /// <summary>
         /// Returns a string representing the current object.
         /// </summary>
+        /// <param name="engine"> The current script environment. </param>
+        /// <param name="thisObj"> The object that is being operated on. </param>
         /// <returns> A string representing the current object. </returns>
-        [JSInternalFunction(Name = "toString")]
-        public string ToStringJS()
+        [JSInternalFunction(Name = "toString", Flags = JSFunctionFlags.HasEngineParameter | JSFunctionFlags.HasThisObject)]
+        public static string ToString(ScriptEngine engine, object thisObj)
         {
-            if (string.IsNullOrEmpty(this.Message))
-                return this.Name;
-            else if (string.IsNullOrEmpty(this.Name))
-                return this.Message;
-            else
-                return string.Format("{0}: {1}", this.Name, this.Message);
+            if (!(thisObj is ObjectInstance))
+                throw new JavaScriptException(ErrorType.TypeError, "this is not an object.");
+
+            // Get the relevant properties.
+            var obj = (ObjectInstance)thisObj;
+            var nameObj = obj["name"];
+            var messageObj = obj["message"];
+
+            // Convert them to strings.
+            var name = TypeUtilities.IsUndefined(nameObj) ? "Error" : TypeConverter.ToString(nameObj);
+            var message = TypeUtilities.IsUndefined(messageObj) ? "" : TypeConverter.ToString(messageObj);
+
+            // Concatenate them.
+            if (string.IsNullOrEmpty(name))
+                return message;
+            if (string.IsNullOrEmpty(message))
+                return name;
+            return string.Format("{0}: {1}", name, message);
         }
     }
 }

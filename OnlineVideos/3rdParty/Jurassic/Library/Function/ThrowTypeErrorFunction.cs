@@ -7,7 +7,6 @@ namespace Jurassic.Library
     /// <summary>
     /// Represents a JavaScript function that throws a type error.
     /// </summary>
-    [Serializable]
     internal sealed class ThrowTypeErrorFunction : FunctionInstance
     {
         private string message;
@@ -34,8 +33,9 @@ namespace Jurassic.Library
         internal ThrowTypeErrorFunction(ObjectInstance prototype, string message)
             : base(prototype)
         {
-            this.FastSetProperty("length", 0);
-            this.IsExtensible = false;
+            this.FastSetProperty("name", "ThrowTypeError", PropertyAttributes.Configurable);
+            this.FastSetProperty("length", 0, PropertyAttributes.Configurable);
+            this.PreventExtensions(throwOnError: false);    // Should never throw.
             this.message = message;
         }
 
@@ -47,20 +47,11 @@ namespace Jurassic.Library
         /// Calls this function, passing in the given "this" value and zero or more arguments.
         /// </summary>
         /// <param name="thisObject"> The value of the "this" keyword within the function. </param>
-        /// <param name="arguments"> An array of argument values to pass to the function. </param>
+        /// <param name="argumentValues"> An array of argument values to pass to the function. </param>
         /// <returns> The value that was returned from the function. </returns>
         public override object CallLateBound(object thisObject, params object[] argumentValues)
         {
-            throw new JavaScriptException(this.Engine, "TypeError", this.message);
-        }
-
-        /// <summary>
-        /// Returns a string representing this object.
-        /// </summary>
-        /// <returns> A string representing this object. </returns>
-        public override string ToString()
-        {
-            return "function ThrowTypeError() {{ [native code] }}";
+            throw new JavaScriptException(ErrorType.TypeError, this.message);
         }
     }
 }

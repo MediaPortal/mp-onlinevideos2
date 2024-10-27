@@ -4,9 +4,9 @@ using System.Collections.Generic;
 namespace Jurassic.Compiler
 {
     /// <summary>
-    /// Represents a generated method and it's dependencies.  For internal use only.
+    /// Represents a generated method and it's dependencies.
     /// </summary>
-    public class GeneratedMethod
+    internal class GeneratedMethod
     {
         /// <summary>
         /// Creates a new GeneratedMethod instance.
@@ -16,7 +16,7 @@ namespace Jurassic.Compiler
         public GeneratedMethod(Delegate delegateToMethod, IList<GeneratedMethod> dependencies)
         {
             if (delegateToMethod == null)
-                throw new ArgumentNullException("delegateToMethod");
+                throw new ArgumentNullException(nameof(delegateToMethod));
             this.GeneratedDelegate = delegateToMethod;
             this.Dependencies = dependencies;
         }
@@ -84,7 +84,7 @@ namespace Jurassic.Compiler
         public static long Save(GeneratedMethod generatedMethod)
         {
             if (generatedMethod == null)
-                throw new ArgumentNullException("generatedMethod");
+                throw new ArgumentNullException(nameof(generatedMethod));
             lock (cacheLock)
             {
                 // Create a cache (if it hasn't already been created).

@@ -1,4 +1,5 @@
 ﻿using System;
+using ErrorType = Jurassic.Library.ErrorType;
 
 namespace Jurassic.Compiler
 {
@@ -53,38 +54,37 @@ namespace Jurassic.Compiler
         /// Emits a JavaScriptException.
         /// </summary>
         /// <param name="generator"> The IL generator. </param>
-        /// <param name="name"> The type of error to generate. </param>
+        /// <param name="type"> The type of error to generate, e.g. Error, RangeError, etc. </param>
         /// <param name="message"> The error message. </param>
-        public static void EmitThrow(ILGenerator generator, string name, string message)
+        public static void EmitThrow(ILGenerator generator, ErrorType type, string message)
         {
-            EmitThrow(generator, name, message, null, null, 0);
+            EmitThrow(generator, type, message, null, null, 0);
         }
 
         /// <summary>
         /// Emits a JavaScriptException.
         /// </summary>
         /// <param name="generator"> The IL generator. </param>
-        /// <param name="name"> The type of error to generate. </param>
+        /// <param name="type"> The type of error to generate, e.g. Error, RangeError, etc. </param>
         /// <param name="message"> The error message. </param>
         /// <param name="optimizationInfo"> Information about the line number, function and path. </param>
-        public static void EmitThrow(ILGenerator generator, string name, string message, OptimizationInfo optimizationInfo)
+        public static void EmitThrow(ILGenerator generator, ErrorType type, string message, OptimizationInfo optimizationInfo)
         {
-            EmitThrow(generator, name, message, optimizationInfo.Source.Path, optimizationInfo.FunctionName, optimizationInfo.SourceSpan.StartLine);
+            EmitThrow(generator, type, message, optimizationInfo.Source.Path, optimizationInfo.FunctionName, optimizationInfo.SourceSpan.StartLine);
         }
 
         /// <summary>
         /// Emits a JavaScriptException.
         /// </summary>
         /// <param name="generator"> The IL generator. </param>
-        /// <param name="name"> The type of error to generate. </param>
+        /// <param name="type"> The type of error to generate, e.g. Error, RangeError, etc. </param>
         /// <param name="message"> The error message. </param>
         /// <param name="path"> The path of the javascript source file that is currently executing. </param>
         /// <param name="function"> The name of the currently executing function. </param>
         /// <param name="line"> The line number of the statement that is currently executing. </param>
-        public static void EmitThrow(ILGenerator generator, string name, string message, string path, string function, int line)
+        public static void EmitThrow(ILGenerator generator, ErrorType type, string message, string path, string function, int line)
         {
-            EmitHelpers.LoadScriptEngine(generator);
-            generator.LoadString(name);
+            generator.LoadEnumValue(type);
             generator.LoadString(message);
             generator.LoadInt32(line);
             generator.LoadStringOrNull(path);
@@ -161,30 +161,22 @@ namespace Jurassic.Compiler
         //_________________________________________________________________________________________
 
         /// <summary>
+        /// Pushes the value of the execution context onto the stack.
+        /// </summary>
+        /// <param name="generator"> The IL generator. </param>
+        public static void LoadExecutionContext(ILGenerator generator)
+        {
+            generator.LoadArgument(0);
+        }
+
+        /// <summary>
         /// Pushes a reference to the script engine onto the stack.
         /// </summary>
         /// <param name="generator"> The IL generator. </param>
         public static void LoadScriptEngine(ILGenerator generator)
         {
             generator.LoadArgument(0);
-        }
-
-        /// <summary>
-        /// Pushes a reference to the current scope onto the stack.
-        /// </summary>
-        /// <param name="generator"> The IL generator. </param>
-        public static void LoadScope(ILGenerator generator)
-        {
-            generator.LoadArgument(1);
-        }
-
-        /// <summary>
-        /// Stores the reference on top of the stack as the new scope.
-        /// </summary>
-        /// <param name="generator"> The IL generator. </param>
-        public static void StoreScope(ILGenerator generator)
-        {
-            generator.StoreArgument(1);
+            generator.Call(ReflectionHelpers.ExecutionContext_GetEngine);
         }
 
         /// <summary>
@@ -193,16 +185,8 @@ namespace Jurassic.Compiler
         /// <param name="generator"> The IL generator. </param>
         public static void LoadThis(ILGenerator generator)
         {
-            generator.LoadArgument(2);
-        }
-
-        /// <summary>
-        /// Stores the reference on top of the stack as the new value of the <c>this</c> keyword.
-        /// </summary>
-        /// <param name="generator"> The IL generator. </param>
-        public static void StoreThis(ILGenerator generator)
-        {
-            generator.StoreArgument(2);
+            generator.LoadArgument(0);
+            generator.Call(ReflectionHelpers.ExecutionContext_GetThisValue);
         }
 
         /// <summary>
@@ -211,7 +195,18 @@ namespace Jurassic.Compiler
         /// <param name="generator"> The IL generator. </param>
         public static void LoadFunction(ILGenerator generator)
         {
-            generator.LoadArgument(3);
+            generator.LoadArgument(0);
+            generator.Call(ReflectionHelpers.ExecutionContext_GetExecutingFunction);
+        }
+
+        /// <summary>
+        /// Pushes a reference to the 'new.target' value for the current function onto the stack.
+        /// </summary>
+        /// <param name="generator"> The IL generator. </param>
+        public static void LoadNewTarget(ILGenerator generator)
+        {
+            generator.LoadArgument(0);
+            generator.Call(ReflectionHelpers.ExecutionContext_GetNewTargetObject);
         }
 
         /// <summary>
@@ -221,7 +216,7 @@ namespace Jurassic.Compiler
         /// <param name="generator"> The IL generator. </param>
         public static void LoadArgumentsArray(ILGenerator generator)
         {
-            generator.LoadArgument(4);
+            generator.LoadArgument(1);
         }
     }
 

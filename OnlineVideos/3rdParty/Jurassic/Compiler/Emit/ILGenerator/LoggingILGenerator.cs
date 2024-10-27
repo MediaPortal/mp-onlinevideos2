@@ -30,7 +30,7 @@ namespace Jurassic.Compiler
         public LoggingILGenerator(ILGenerator generator)
         {
             if (generator == null)
-                throw new ArgumentNullException("generator");
+                throw new ArgumentNullException(nameof(generator));
             this.generator = generator;
             this.header = new StringBuilder();
             this.log = new StringBuilder();
@@ -38,9 +38,17 @@ namespace Jurassic.Compiler
             this.fixUps = new List<LabelFixUp>();
         }
 
+        /// <summary>
+        /// Gets a reference to the method that we are generating IL for.
+        /// </summary>
+        public override System.Reflection.MethodInfo MethodInfo
+        {
+            get { return this.generator.MethodInfo; }
+        }
 
 
-        //     BUFFER MANAGEMENT
+
+        //     LIFECYCLE MANAGEMENT
         //_________________________________________________________________________________________
 
         /// <summary>
@@ -725,7 +733,7 @@ namespace Jurassic.Compiler
         /// callsite.
         /// </summary>
         /// <param name="method"> The method to call. </param>
-        public override void CallStatic(System.Reflection.MethodBase method)
+        public override void CallStatic(System.Reflection.MethodInfo method)
         {
             Log("call", method);
             this.generator.CallStatic(method);
@@ -738,7 +746,7 @@ namespace Jurassic.Compiler
         /// </summary>
         /// <param name="method"> The method to call. </param>
         /// <exception cref="ArgumentException"> The method is static. </exception>
-        public override void CallVirtual(System.Reflection.MethodBase method)
+        public override void CallVirtual(System.Reflection.MethodInfo method)
         {
             Log("callvirt", method);
             this.generator.CallVirtual(method);
@@ -751,7 +759,7 @@ namespace Jurassic.Compiler
         public override void LoadField(System.Reflection.FieldInfo field)
         {
             if (field == null)
-                throw new ArgumentNullException("field");
+                throw new ArgumentNullException(nameof(field));
             if (field.IsStatic == false)
                 Log("ldfld", field);
             else
@@ -766,7 +774,7 @@ namespace Jurassic.Compiler
         public override void StoreField(System.Reflection.FieldInfo field)
         {
             if (field == null)
-                throw new ArgumentNullException("field");
+                throw new ArgumentNullException(nameof(field));
             if (field.IsStatic == false)
                 Log("stfld", field);
             else
@@ -926,6 +934,15 @@ namespace Jurassic.Compiler
         }
 
         /// <summary>
+        /// Rethrows the current exception.
+        /// </summary>
+        public override void Rethrow()
+        {
+            Log("rethrow");
+            this.generator.Rethrow();
+        }
+
+        /// <summary>
         /// Begins a try-catch-finally block.  After issuing this instruction any following
         /// instructions are conceptually within the try block.
         /// </summary>
@@ -1041,19 +1058,6 @@ namespace Jurassic.Compiler
         {
             Log("break");
             this.generator.Breakpoint();
-        }
-
-        /// <summary>
-        /// Marks a sequence point in the Microsoft intermediate language (MSIL) stream.
-        /// </summary>
-        /// <param name="document"> The document for which the sequence point is being defined. </param>
-        /// <param name="startLine"> The line where the sequence point begins. </param>
-        /// <param name="startColumn"> The column in the line where the sequence point begins. </param>
-        /// <param name="endLine"> The line where the sequence point ends. </param>
-        /// <param name="endColumn"> The column in the line where the sequence point ends. </param>
-        public override void MarkSequencePoint(System.Diagnostics.SymbolStore.ISymbolDocumentWriter document, int startLine, int startColumn, int endLine, int endColumn)
-        {
-            this.generator.MarkSequencePoint(document, startLine, startColumn, endLine, endColumn);
         }
 
 

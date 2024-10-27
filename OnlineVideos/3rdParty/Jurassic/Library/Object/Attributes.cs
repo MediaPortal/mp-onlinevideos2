@@ -92,7 +92,7 @@ namespace Jurassic.Library
         /// attempting to modify the property will fail.  The default value of this property
         /// is <c>true</c>.
         /// </summary>
-        /// <seealso cref="Jurassic.Library.PropertyAttributes"/>
+        /// <seealso cref="PropertyAttributes"/>
         public bool IsWritable
         {
             get;
@@ -104,7 +104,7 @@ namespace Jurassic.Library
         /// <c>for...in</c> construct) in JavaScript code.  The default value of this
         /// property is <c>false</c>.
         /// </summary>
-        /// <seealso cref="Jurassic.Library.PropertyAttributes"/>
+        /// <seealso cref="PropertyAttributes"/>
         public bool IsEnumerable
         {
             get;
@@ -116,7 +116,7 @@ namespace Jurassic.Library
         /// the property may be changed or have its descriptor changed by JavaScript
         /// code.  The default value of this property is <c>true</c>.
         /// </summary>
-        /// <seealso cref="Jurassic.Library.PropertyAttributes"/>
+        /// <seealso cref="PropertyAttributes"/>
         public bool IsConfigurable
         {
             get;
@@ -130,6 +130,15 @@ namespace Jurassic.Library
     /// </summary>
     internal class JSInternalFunctionAttribute : JSFunctionAttribute
     {
+        /// <summary>
+        /// Gets or sets the number of parameters that are required.  If the function is called
+        /// with fewer than this number of arguments, then a TypeError will be thrown.
+        /// </summary>
+        public int RequiredArgumentCount
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -143,7 +152,7 @@ namespace Jurassic.Library
         /// </summary>
         public JSPropertyAttribute()
         {
-            this.IsEnumerable = true;
+            this.IsConfigurable = true;
         }
 
         /// <summary>
@@ -158,9 +167,9 @@ namespace Jurassic.Library
         /// <summary>
         /// Gets or sets whether the property should be enumerable (exposed via the 
         /// <c>for...in</c> construct) in JavaScript code.  The default value of this
-        /// property is <c>true</c>.
+        /// property is <c>false</c>.
         /// </summary>
-        /// <seealso cref="Jurassic.Library.PropertyAttributes"/>
+        /// <seealso cref="PropertyAttributes"/>
         public bool IsEnumerable
         {
             get;
@@ -170,9 +179,9 @@ namespace Jurassic.Library
         /// <summary>
         /// Gets or sets whether the property should be configurable, that is, whether
         /// the property may be changed or have its descriptor changed by JavaScript
-        /// code.  The default value of this property is <c>false</c>.
+        /// code.  The default value of this property is <c>true</c>.
         /// </summary>
-        /// <seealso cref="Jurassic.Library.PropertyAttributes"/>
+        /// <seealso cref="PropertyAttributes"/>
         public bool IsConfigurable
         {
             get;
@@ -204,72 +213,5 @@ namespace Jurassic.Library
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false)]
     public sealed class JSFieldAttribute : Attribute
     {
-    }
-
-    [AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false)]
-    public sealed class JSParameterAttribute : Attribute
-    {
-        /// <summary>
-        /// Creates a new JSParameterAttribute instance.
-        /// </summary>
-        /// <param name="flags"> One or more flags. </param>
-        public JSParameterAttribute(JSParameterFlags flags)
-        {
-            this.Flags = flags;
-        }
-
-        /// <summary>
-        /// Gets or sets the flags associated with the parameter.
-        /// </summary>
-        public JSParameterFlags Flags
-        {
-            get;
-            set;
-        }
-    }
-
-    public enum JSParameterFlags
-    {
-        /// <summary>
-        /// No flags were specified.
-        /// </summary>
-        None = 0,
-
-        /// <summary>
-        /// Prevents argument values from being converted to the argument type.  If an argument of
-        /// the wrong type is passed to the function, a TypeError exception will be thrown.
-        /// </summary>
-        DoNotConvert = 1,
-
-        /// <summary>
-        /// Indicates the parameter may be modified by the function.  Only applicable to object
-        /// types.
-        /// </summary>
-        Mutated = 2,
-    }
-
-    /// <summary>
-    /// Workaround for the lack of support for default value reflection in WP7.1.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Parameter)]
-    public class DefaultParameterValueAttribute : Attribute
-    {
-        /// <summary>
-        /// Initializes a new instance of the DefaultValueAttribute class.
-        /// </summary>
-        /// <param name="defaultValue"> An Object that represents the default value. </param>
-        public DefaultParameterValueAttribute(object defaultValue)
-        {
-            this.Value = defaultValue;
-        }
-
-        /// <summary>
-        /// Gets the default value.
-        /// </summary>
-        public object Value
-        {
-            get;
-            private set;
-        }
     }
 }

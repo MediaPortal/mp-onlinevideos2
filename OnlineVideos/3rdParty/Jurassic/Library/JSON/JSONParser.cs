@@ -25,9 +25,9 @@ namespace Jurassic.Library
         public JSONParser(ScriptEngine engine, JSONLexer lexer)
         {
             if (engine == null)
-                throw new ArgumentNullException("engine");
+                throw new ArgumentNullException(nameof(engine));
             if (lexer == null)
-                throw new ArgumentNullException("lexer");
+                throw new ArgumentNullException(nameof(lexer));
             this.engine = engine;
             this.lexer = lexer;
             this.Consume();
@@ -73,28 +73,8 @@ namespace Jurassic.Library
             if (this.nextToken == token)
                 Consume();
             else
-                throw new JavaScriptException(this.engine, "SyntaxError", string.Format("Expected '{0}'", token.Text));
+                throw new JavaScriptException(ErrorType.SyntaxError, string.Format("Expected '{0}'", token.Text));
         }
-
-        /// <summary>
-        /// Indicates that the next token should be an identifier.  Throws an exception if this is
-        /// not the case.  Consumes the token.
-        /// </summary>
-        /// <returns> The identifier name. </returns>
-        private string ExpectIdentifier()
-        {
-            var token = this.nextToken;
-            if (token is IdentifierToken)
-            {
-                Consume();
-                return ((IdentifierToken)token).Name;
-            }
-            else
-            {
-                throw new JavaScriptException(this.engine, "SyntaxError", "Expected identifier");
-            }
-        }
-
 
 
 
@@ -112,7 +92,7 @@ namespace Jurassic.Library
 
             // We should now be at the end of the input.
             if (this.nextToken != null)
-                throw new JavaScriptException(this.engine, "SyntaxError", "Expected end of input");
+                throw new JavaScriptException(ErrorType.SyntaxError, "Expected end of input");
 
             // Apply the reviver function, if there is one.
             if (this.ReviverFunction != null)
@@ -146,9 +126,9 @@ namespace Jurassic.Library
                 result = ParseArrayLiteral();
             }
             else if (this.nextToken == null)
-                throw new JavaScriptException(this.engine, "SyntaxError", "Unexpected end of input");
+                throw new JavaScriptException(ErrorType.SyntaxError, "Unexpected end of input");
             else
-                throw new JavaScriptException(this.engine, "SyntaxError", string.Format("Unexpected token {0}", this.nextToken));
+                throw new JavaScriptException(ErrorType.SyntaxError, string.Format("Unexpected token {0}", this.nextToken));
             return result;
         }
 
@@ -228,11 +208,11 @@ namespace Jurassic.Library
                     // The property name must be a string.
                     object literalValue = ((LiteralToken)this.nextToken).Value;
                     if ((literalValue is string) == false)
-                        throw new JavaScriptException(this.engine, "SyntaxError", "Expected property name");
+                        throw new JavaScriptException(ErrorType.SyntaxError, "Expected property name");
                     propertyName = (string)literalValue;
                 }
                 else
-                    throw new JavaScriptException(this.engine, "SyntaxError", "Expected property name");
+                    throw new JavaScriptException(ErrorType.SyntaxError, "Expected property name");
                 this.Consume();
 
                 // Read the colon.

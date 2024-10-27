@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using OpCodes = System.Reflection.Emit.OpCodes;
 
 namespace Jurassic.Compiler
@@ -8,22 +9,33 @@ namespace Jurassic.Compiler
     /// </summary>
     internal class ReflectionEmitILGenerator : ILGenerator
     {
+        private MethodInfo method;
         private System.Reflection.Emit.ILGenerator generator;
+        private bool emitDebugInfo;
 
         /// <summary>
-        /// Creates a new ReflectionEmitILGenerator instance.
+        /// Creates a new ReflectionEmitILGenerator instance from a DynamicMethod.
         /// </summary>
-        /// <param name="generator"> The ILGenerator that is used to output the IL. </param>
-        public ReflectionEmitILGenerator(System.Reflection.Emit.ILGenerator generator)
+        /// <param name="dynamicMethod"> The DynamicMethod to emit IL for. </param>
+        /// <param name="emitDebugInfo"> Indicates whether to emit debugging information, like symbol names. </param>
+        public ReflectionEmitILGenerator(System.Reflection.Emit.DynamicMethod dynamicMethod, bool emitDebugInfo)
         {
-            if (generator == null)
-                throw new ArgumentNullException("generator");
-            this.generator = generator;
+            this.method = dynamicMethod ?? throw new ArgumentNullException(nameof(dynamicMethod));
+            this.generator = dynamicMethod.GetILGenerator();
+            this.emitDebugInfo = emitDebugInfo;
+        }
+
+        /// <summary>
+        /// Gets a reference to the method that we are generating IL for.
+        /// </summary>
+        public override MethodInfo MethodInfo
+        {
+            get { return this.method; }
         }
 
 
 
-        //     BUFFER MANAGEMENT
+        //     LIFECYCLE MANAGEMENT
         //_________________________________________________________________________________________
 
         /// <summary>
@@ -77,7 +89,7 @@ namespace Jurassic.Compiler
         public override void DefineLabelPosition(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.MarkLabel(((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -88,7 +100,7 @@ namespace Jurassic.Compiler
         public override void Branch(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.Emit(OpCodes.Br, ((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -99,7 +111,7 @@ namespace Jurassic.Compiler
         public override void BranchIfZero(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.Emit(OpCodes.Brfalse, ((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -111,7 +123,7 @@ namespace Jurassic.Compiler
         public override void BranchIfNotZero(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.Emit(OpCodes.Brtrue, ((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -122,7 +134,7 @@ namespace Jurassic.Compiler
         public override void BranchIfEqual(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.Emit(OpCodes.Beq, ((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -133,7 +145,7 @@ namespace Jurassic.Compiler
         public override void BranchIfNotEqual(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.Emit(OpCodes.Bne_Un, ((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -145,7 +157,7 @@ namespace Jurassic.Compiler
         public override void BranchIfGreaterThan(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.Emit(OpCodes.Bgt, ((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -159,7 +171,7 @@ namespace Jurassic.Compiler
         public override void BranchIfGreaterThanUnsigned(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.Emit(OpCodes.Bgt_Un, ((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -171,7 +183,7 @@ namespace Jurassic.Compiler
         public override void BranchIfGreaterThanOrEqual(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.Emit(OpCodes.Bge, ((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -185,7 +197,7 @@ namespace Jurassic.Compiler
         public override void BranchIfGreaterThanOrEqualUnsigned(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.Emit(OpCodes.Bge_Un, ((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -197,7 +209,7 @@ namespace Jurassic.Compiler
         public override void BranchIfLessThan(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.Emit(OpCodes.Blt, ((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -211,7 +223,7 @@ namespace Jurassic.Compiler
         public override void BranchIfLessThanUnsigned(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.Emit(OpCodes.Blt_Un, ((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -223,7 +235,7 @@ namespace Jurassic.Compiler
         public override void BranchIfLessThanOrEqual(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.Emit(OpCodes.Ble, ((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -237,7 +249,7 @@ namespace Jurassic.Compiler
         public override void BranchIfLessThanOrEqualUnsigned(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.Emit(OpCodes.Ble_Un, ((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -258,7 +270,7 @@ namespace Jurassic.Compiler
         public override void Switch(ILLabel[] labels)
         {
             if (labels == null)
-                throw new ArgumentNullException("labels");
+                throw new ArgumentNullException(nameof(labels));
 
             var reflectionLabels = new System.Reflection.Emit.Label[labels.Length];
             for (int i = 0; i < labels.Length; i++)
@@ -279,7 +291,8 @@ namespace Jurassic.Compiler
         /// <returns> A new local variable. </returns>
         public override ILLocalVariable DeclareVariable(Type type, string name = null)
         {
-            return new ReflectionEmitILLocalVariable(this.generator.DeclareLocal(type), name);
+            var localBuilder = this.generator.DeclareLocal(type);
+            return new ReflectionEmitILLocalVariable(localBuilder, name);
         }
 
         /// <summary>
@@ -289,7 +302,7 @@ namespace Jurassic.Compiler
         public override void LoadVariable(ILLocalVariable variable)
         {
             if (variable as ReflectionEmitILLocalVariable == null)
-                throw new ArgumentNullException("variable");
+                throw new ArgumentNullException(nameof(variable));
             this.generator.Emit(OpCodes.Ldloc, ((ReflectionEmitILLocalVariable)variable).UnderlyingLocal);
         }
 
@@ -300,7 +313,7 @@ namespace Jurassic.Compiler
         public override void LoadAddressOfVariable(ILLocalVariable variable)
         {
             if (variable as ReflectionEmitILLocalVariable == null)
-                throw new ArgumentNullException("variable");
+                throw new ArgumentNullException(nameof(variable));
             this.generator.Emit(OpCodes.Ldloca, ((ReflectionEmitILLocalVariable)variable).UnderlyingLocal);
         }
 
@@ -311,7 +324,7 @@ namespace Jurassic.Compiler
         public override void StoreVariable(ILLocalVariable variable)
         {
             if (variable as ReflectionEmitILLocalVariable == null)
-                throw new ArgumentNullException("variable");
+                throw new ArgumentNullException(nameof(variable));
             this.generator.Emit(OpCodes.Stloc, ((ReflectionEmitILLocalVariable)variable).UnderlyingLocal);
         }
 
@@ -414,7 +427,7 @@ namespace Jurassic.Compiler
                         this.generator.Emit(OpCodes.Ldc_I4_8);
                         break;
                 }
-                
+
             }
             else if (value >= -128 && value < 128)
                 this.generator.Emit(OpCodes.Ldc_I4_S, (byte)value);
@@ -636,9 +649,9 @@ namespace Jurassic.Compiler
         public override void Box(Type type)
         {
             if (type == null)
-                throw new ArgumentNullException("type");
+                throw new ArgumentNullException(nameof(type));
             if (type.IsValueType == false)
-                throw new ArgumentException("The type to box must be a value type.", "type");
+                throw new ArgumentException(nameof(type));
             this.generator.Emit(OpCodes.Box, type);
         }
 
@@ -650,9 +663,9 @@ namespace Jurassic.Compiler
         public override void Unbox(Type type)
         {
             if (type == null)
-                throw new ArgumentNullException("type");
+                throw new ArgumentNullException(nameof(type));
             if (type.IsValueType == false)
-                throw new ArgumentException("The type of the boxed value must be a value type.", "type");
+                throw new ArgumentException(nameof(type));
             this.generator.Emit(OpCodes.Unbox, type);
         }
 
@@ -664,9 +677,9 @@ namespace Jurassic.Compiler
         public override void UnboxAny(Type type)
         {
             if (type == null)
-                throw new ArgumentNullException("type");
+                throw new ArgumentNullException(nameof(type));
             if (type.IsValueType == false)
-                throw new ArgumentException("The type of the boxed value must be a value type.", "type");
+                throw new ArgumentException(nameof(type));
             this.generator.Emit(OpCodes.Unbox_Any, type);
         }
 
@@ -733,7 +746,7 @@ namespace Jurassic.Compiler
         /// Pops the constructor arguments off the stack and creates a new instance of the object.
         /// </summary>
         /// <param name="constructor"> The constructor that is used to initialize the object. </param>
-        public override void NewObject(System.Reflection.ConstructorInfo constructor)
+        public override void NewObject(ConstructorInfo constructor)
         {
             this.generator.Emit(OpCodes.Newobj, constructor);
         }
@@ -745,14 +758,9 @@ namespace Jurassic.Compiler
         /// callsite.
         /// </summary>
         /// <param name="method"> The method to call. </param>
-        public override void CallStatic(System.Reflection.MethodBase method)
+        public override void CallStatic(MethodInfo method)
         {
-            if (method is System.Reflection.ConstructorInfo)
-                this.generator.Emit(OpCodes.Call, (System.Reflection.ConstructorInfo)method);
-            else if (method is System.Reflection.MethodInfo)
-                this.generator.Emit(OpCodes.Call, (System.Reflection.MethodInfo)method);
-            else
-                throw new InvalidOperationException("Unsupported subtype of MethodBase.");
+            this.generator.Emit(OpCodes.Call, method);
         }
 
         /// <summary>
@@ -762,28 +770,21 @@ namespace Jurassic.Compiler
         /// </summary>
         /// <param name="method"> The method to call. </param>
         /// <exception cref="ArgumentException"> The method is static. </exception>
-        public override void CallVirtual(System.Reflection.MethodBase method)
+        public override void CallVirtual(MethodInfo method)
         {
             if (method == null)
-                throw new ArgumentNullException("method");
-            if (method.IsStatic == true)
-                throw new ArgumentException("Static methods cannot be called this method.", "method");
-            if (method is System.Reflection.ConstructorInfo)
-                this.generator.Emit(OpCodes.Callvirt, (System.Reflection.ConstructorInfo)method);
-            else if (method is System.Reflection.MethodInfo)
-                this.generator.Emit(OpCodes.Callvirt, (System.Reflection.MethodInfo)method);
-            else
-                throw new InvalidOperationException("Unsupported subtype of MethodBase.");
+                throw new ArgumentNullException(nameof(method));
+            this.generator.Emit(OpCodes.Callvirt, method);
         }
 
         /// <summary>
         /// Pushes the value of the given field onto the stack.
         /// </summary>
         /// <param name="field"> The field whose value will be pushed. </param>
-        public override void LoadField(System.Reflection.FieldInfo field)
+        public override void LoadField(FieldInfo field)
         {
             if (field == null)
-                throw new ArgumentNullException("field");
+                throw new ArgumentNullException(nameof(field));
             if (field.IsStatic == true)
                 this.generator.Emit(OpCodes.Ldsfld, field);
             else
@@ -794,10 +795,10 @@ namespace Jurassic.Compiler
         /// Pops a value off the stack and stores it in the given field.
         /// </summary>
         /// <param name="field"> The field to modify. </param>
-        public override void StoreField(System.Reflection.FieldInfo field)
+        public override void StoreField(FieldInfo field)
         {
             if (field == null)
-                throw new ArgumentNullException("field");
+                throw new ArgumentNullException(nameof(field));
             if (field.IsStatic == true)
                 this.generator.Emit(OpCodes.Stsfld, field);
             else
@@ -842,12 +843,12 @@ namespace Jurassic.Compiler
         /// stack.
         /// </summary>
         /// <param name="method"> The method to convert to a RuntimeMethodHandle. </param>
-        public override void LoadToken(System.Reflection.MethodBase method)
+        public override void LoadToken(MethodBase method)
         {
-            if (method is System.Reflection.ConstructorInfo)
-                this.generator.Emit(OpCodes.Ldtoken, (System.Reflection.ConstructorInfo)method);
-            else if (method is System.Reflection.MethodInfo)
-                this.generator.Emit(OpCodes.Ldtoken, (System.Reflection.MethodInfo)method);
+            if (method is ConstructorInfo)
+                this.generator.Emit(OpCodes.Ldtoken, (ConstructorInfo)method);
+            else if (method is MethodInfo)
+                this.generator.Emit(OpCodes.Ldtoken, (MethodInfo)method);
             else
                 throw new InvalidOperationException("Unsupported subtype of MethodBase.");
         }
@@ -856,7 +857,7 @@ namespace Jurassic.Compiler
         /// Pushes a RuntimeFieldHandle corresponding to the given field onto the evaluation stack.
         /// </summary>
         /// <param name="field"> The type to convert to a RuntimeFieldHandle. </param>
-        public override void LoadToken(System.Reflection.FieldInfo field)
+        public override void LoadToken(FieldInfo field)
         {
             this.generator.Emit(OpCodes.Ldtoken, field);
         }
@@ -866,12 +867,12 @@ namespace Jurassic.Compiler
         /// stack.  The virtual qualifier will be ignored, if present.
         /// </summary>
         /// <param name="method"> The method to retrieve a pointer for. </param>
-        public override void LoadStaticMethodPointer(System.Reflection.MethodBase method)
+        public override void LoadStaticMethodPointer(MethodBase method)
         {
-            if (method is System.Reflection.ConstructorInfo)
-                this.generator.Emit(OpCodes.Ldftn, (System.Reflection.ConstructorInfo)method);
-            else if (method is System.Reflection.MethodInfo)
-                this.generator.Emit(OpCodes.Ldftn, (System.Reflection.MethodInfo)method);
+            if (method is ConstructorInfo)
+                this.generator.Emit(OpCodes.Ldftn, (ConstructorInfo)method);
+            else if (method is MethodInfo)
+                this.generator.Emit(OpCodes.Ldftn, (MethodInfo)method);
             else
                 throw new InvalidOperationException("Unsupported subtype of MethodBase.");
         }
@@ -882,14 +883,14 @@ namespace Jurassic.Compiler
         /// </summary>
         /// <param name="method"> The method to retrieve a pointer for. </param>
         /// <exception cref="ArgumentException"> The method is static. </exception>
-        public override void LoadVirtualMethodPointer(System.Reflection.MethodBase method)
+        public override void LoadVirtualMethodPointer(MethodBase method)
         {
             if (method != null && method.IsStatic == true)
-                throw new ArgumentException("The given method cannot be static.", "method");
-            if (method is System.Reflection.ConstructorInfo)
-                this.generator.Emit(OpCodes.Ldvirtftn, (System.Reflection.ConstructorInfo)method);
-            else if (method is System.Reflection.MethodInfo)
-                this.generator.Emit(OpCodes.Ldvirtftn, (System.Reflection.MethodInfo)method);
+                throw new ArgumentException(nameof(method));
+            if (method is ConstructorInfo)
+                this.generator.Emit(OpCodes.Ldvirtftn, (ConstructorInfo)method);
+            else if (method is MethodInfo)
+                this.generator.Emit(OpCodes.Ldvirtftn, (MethodInfo)method);
             else
                 throw new InvalidOperationException("Unsupported subtype of MethodBase.");
         }
@@ -902,7 +903,7 @@ namespace Jurassic.Compiler
         public override void InitObject(Type type)
         {
             if (type == null)
-                throw new ArgumentNullException("type");
+                throw new ArgumentNullException(nameof(type));
             this.generator.Emit(OpCodes.Initobj, type);
         }
 
@@ -1021,6 +1022,14 @@ namespace Jurassic.Compiler
         }
 
         /// <summary>
+        /// Rethrows the current exception.
+        /// </summary>
+        public override void Rethrow()
+        {
+            this.generator.Emit(OpCodes.Rethrow);
+        }
+
+        /// <summary>
         /// Begins a try-catch-finally block.  After issuing this instruction any following
         /// instructions are conceptually within the try block.
         /// </summary>
@@ -1078,7 +1087,7 @@ namespace Jurassic.Compiler
         public override void Leave(ILLabel label)
         {
             if (label as ReflectionEmitILLabel == null)
-                throw new ArgumentNullException("label");
+                throw new ArgumentNullException(nameof(label));
             this.generator.Emit(OpCodes.Leave, ((ReflectionEmitILLabel)label).UnderlyingLabel);
         }
 
@@ -1113,19 +1122,6 @@ namespace Jurassic.Compiler
         public override void Breakpoint()
         {
             this.generator.Emit(OpCodes.Break);
-        }
-
-        /// <summary>
-        /// Marks a sequence point in the Microsoft intermediate language (MSIL) stream.
-        /// </summary>
-        /// <param name="document"> The document for which the sequence point is being defined. </param>
-        /// <param name="startLine"> The line where the sequence point begins. </param>
-        /// <param name="startColumn"> The column in the line where the sequence point begins. </param>
-        /// <param name="endLine"> The line where the sequence point ends. </param>
-        /// <param name="endColumn"> The column in the line where the sequence point ends. </param>
-        public override void MarkSequencePoint(System.Diagnostics.SymbolStore.ISymbolDocumentWriter document, int startLine, int startColumn, int endLine, int endColumn)
-        {
-            this.generator.MarkSequencePoint(document, startLine, startColumn, endLine, endColumn);
         }
 
 

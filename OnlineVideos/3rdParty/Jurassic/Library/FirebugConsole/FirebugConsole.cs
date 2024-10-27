@@ -10,8 +10,7 @@ namespace Jurassic.Library
     /// non-standard - it is based on the Firebug console API
     /// (http://getfirebug.com/wiki/index.php/Console_API).
     /// </summary>
-    [Serializable]
-    public class FirebugConsole : ObjectInstance
+    public partial class FirebugConsole : ObjectInstance
     {
         private IFirebugConsoleOutput output;
         private Dictionary<string, Stopwatch> timers;
@@ -41,7 +40,7 @@ namespace Jurassic.Library
             set
             {
                 if (value == null)
-                    throw new ArgumentNullException("value");
+                    throw new ArgumentNullException(nameof(value));
                 this.output = value;
             }
         }
@@ -189,39 +188,13 @@ namespace Jurassic.Library
             this.output.EndGroup();
         }
 
-
-#if SILVERLIGHT
-
-        // Silverlight does not have a StopWatch class.
-        private class Stopwatch
-        {
-            private int tickCount;
-
-            private Stopwatch()
-            {
-                this.tickCount = Environment.TickCount;
-            }
-
-            public static Stopwatch StartNew()
-            {
-                return new Stopwatch();
-            }
-
-            public long ElapsedMilliseconds
-            {
-                get { return Environment.TickCount - this.tickCount; }
-            }
-        }
-
-#endif
-
         /// <summary>
         /// Creates a new timer under the given name. Call console.timeEnd(name) with the same name
         /// to stop the timer and print the time elapsed.
         /// </summary>
         /// <param name="name"> The name of the time to create. </param>
         [JSInternalFunction(Name = "time", Flags = JSFunctionFlags.MutatesThisObject)]
-        public void Time([DefaultParameterValue("")] string name = "")
+        public void Time(string name = "")
         {
             if (name == null)
                 name = string.Empty;
@@ -237,7 +210,7 @@ namespace Jurassic.Library
         /// </summary>
         /// <param name="name"> The name of the timer to stop. </param>
         [JSInternalFunction(Name = "timeEnd", Flags = JSFunctionFlags.MutatesThisObject)]
-        public void TimeEnd([DefaultParameterValue("")] string name = "")
+        public void TimeEnd(string name = "")
         {
             if (name == null)
                 name = string.Empty;

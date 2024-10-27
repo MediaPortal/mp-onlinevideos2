@@ -501,10 +501,16 @@ namespace Jurassic
         /// <paramref name="divisor"/>. </returns>
         public static int Quorem(ref BigInteger dividend, BigInteger divisor)
         {
-            int n = divisor.wordCount;
-            if (dividend.wordCount > n)
-                throw new ArgumentException("b is too large");
-            if (dividend.wordCount < n)
+            if (dividend.wordCount > divisor.wordCount)
+            {
+                if (divisor.bits.Length < dividend.wordCount)
+                {
+                    var newBits = new uint[dividend.wordCount];
+                    Array.Copy(divisor.bits, 0, newBits, 0, divisor.wordCount);
+                }
+                divisor.wordCount = dividend.wordCount;
+            }
+            else if (dividend.wordCount < divisor.wordCount)
                 return 0;
             uint q = dividend.bits[dividend.wordCount - 1] / (divisor.bits[divisor.wordCount - 1] + 1);	/* ensure q <= true quotient */
 
@@ -662,8 +668,8 @@ namespace Jurassic
         /// <summary>
         /// Gets the absolute value of a BigInteger object.
         /// </summary>
-        /// <param name="value"> A number. </param>
-        /// <returns> The absolute value of <paramref name="value"/> </returns>
+        /// <param name="b"> A number. </param>
+        /// <returns> The absolute value of <paramref name="b"/>. </returns>
         public static BigInteger Abs(BigInteger b)
         {
             return new BigInteger(b.bits, b.wordCount, Math.Abs(b.sign));
@@ -739,7 +745,7 @@ namespace Jurassic
         /// </summary>
         /// <param name="str"> A string that contains the number to convert. </param>
         /// <returns> A value that is equivalent to the number specified in the
-        /// <paramref name="value"/> parameter. </returns>
+        /// <paramref name="str"/> parameter. </returns>
         public static BigInteger Parse(string str)
         {
             BigInteger result = BigInteger.Zero;
@@ -845,11 +851,9 @@ namespace Jurassic
         }
 
         /// <summary>
-        /// Returns a new instance BigInteger structure from a 64-bit double precision floating
-        /// point value.
+        /// Returns a double that corresponds to the BigInteger value.
         /// </summary>
-        /// <param name="value"> A 64-bit double precision floating point value. </param>
-        /// <returns> The corresponding BigInteger value. </returns>
+        /// <returns> A double that corresponds to the BigInteger value. </returns>
         public double ToDouble()
         {
             // Special case: zero.
@@ -865,7 +869,15 @@ namespace Jurassic
 
             // Base-2 exponent is however much we shifted, plus 52 (because the decimal point is
             // effectively at the 52nd bit), plus 1023 (the bias).
-            doubleBits |= (ulong)(bitCount - 53 + 52 + 1023) << 52;
+            int biasedExponent = bitCount - 53 + 52 + 1023;
+
+            // The biased exponent must be between 0 and 2047, since there are 11 bits available,
+            // otherwise bad things happen.
+            if (biasedExponent >= 2048)
+                return double.PositiveInfinity;
+
+            // Move the exponent to the right position.
+            doubleBits |= (ulong)(biasedExponent) << 52;
 
             // Handle the sign bit.
             if (this.sign == -1)

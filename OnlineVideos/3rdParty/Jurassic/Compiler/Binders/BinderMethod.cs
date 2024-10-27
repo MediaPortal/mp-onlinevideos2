@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Jurassic.Library;
+using System.Security;
 
 namespace Jurassic.Compiler
 {
@@ -11,11 +12,7 @@ namespace Jurassic.Compiler
     /// <summary>
     /// Represents a single method that a binder can call.
     /// </summary>
-    [Serializable]
     internal class BinderMethod
-#if !SILVERLIGHT
-        : System.Runtime.Serialization.ISerializable
-#endif
     {
         private bool initialized;
         private int requiredParameterCount;
@@ -34,7 +31,7 @@ namespace Jurassic.Compiler
         public BinderMethod(MethodBase method)
         {
             if (method == null)
-                throw new ArgumentNullException("method");
+                throw new ArgumentNullException(nameof(method));
             this.Method = method;
         }
 
@@ -72,73 +69,6 @@ namespace Jurassic.Compiler
             // The class is now initialized.
             this.initialized = true;
         }
-
-
-
-        //     SERIALIZATION
-        //_________________________________________________________________________________________
-
-#if !SILVERLIGHT
-
-        /// <summary>
-        /// Initializes a new instance of the FunctionBinderMethod class with serialized data.
-        /// </summary>
-        /// <param name="info"> The SerializationInfo that holds the serialized object data about
-        /// the exception being thrown. </param>
-        /// <param name="context"> The StreamingContext that contains contextual information about
-        /// the source or destination. </param>
-        protected BinderMethod(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context)
-        {
-            // Get the type which declared the method.
-            var typeName = info.GetString("methodType");
-            var type = Type.GetType(typeName, true, false);
-
-            // Get the method name.
-            var methodName = info.GetString("methodName");
-
-            // Get the method attributes and convert it into binding flags.
-            var attributes = (MethodAttributes)info.GetInt32("methodAttributes");
-            BindingFlags bindingFlags = 0;
-            if ((attributes & MethodAttributes.Public) != 0)
-                bindingFlags |= BindingFlags.Public;
-            else
-                bindingFlags |= BindingFlags.NonPublic;
-            if ((attributes & MethodAttributes.Static) != 0)
-                bindingFlags |= BindingFlags.Static;
-            else
-                bindingFlags |= BindingFlags.Instance;
-
-            // Get the argument types.
-            var argumentTypeNames = (string[])info.GetValue("methodArgumentTypes", typeof(string[]));
-            var argumentTypes = new Type[argumentTypeNames.Length];
-            for (int i = 0; i < argumentTypeNames.Length; i ++)
-                argumentTypes[i] = Type.GetType(argumentTypeNames[i], true, false); 
-
-            // Resolve the above information into a method.
-            this.Method = type.GetMethod(methodName, bindingFlags, null, argumentTypes, null);
-        }
-
-        /// <summary>
-        /// Sets the SerializationInfo with information about the exception.
-        /// </summary>
-        /// <param name="info"> The SerializationInfo that holds the serialized object data about
-        /// the exception being thrown. </param>
-        /// <param name="context"> The StreamingContext that contains contextual information about
-        /// the source or destination. </param>
-        public virtual void GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context)
-        {
-            // Save the object state.
-            info.AddValue("methodType", this.Method.DeclaringType.AssemblyQualifiedName);
-            info.AddValue("methodName", this.Method.Name);
-            info.AddValue("methodAttributes", this.Method.Attributes);
-            var parameters = this.Method.GetParameters();
-            var argumentTypeNames = new string[parameters.Length];
-            for (int i = 0; i < parameters.Length; i++)
-                argumentTypeNames[i] = parameters[i].ParameterType.AssemblyQualifiedName;
-            info.AddValue("methodArgumentTypes", argumentTypeNames);
-        }
-
-#endif
 
 
 
@@ -284,7 +214,7 @@ namespace Jurassic.Compiler
         public virtual IEnumerable<BinderArgument> GetArguments(int argumentCount)
         {
             if (IsArgumentCountCompatible(argumentCount) == false)
-                throw new ArgumentException("This method cannot be called with the given number of arguments.", "argumentCount");
+                throw new ArgumentException(nameof(argumentCount));
 
             // The first argument is the "this" object, if the method is an instance method.
             if (this.Method is MethodInfo && this.Method.IsStatic == false)
@@ -318,7 +248,7 @@ namespace Jurassic.Compiler
         public IEnumerable<BinderArgument> GenerateArguments(ILGenerator generator, int argumentCount)
         {
             if (generator == null)
-                throw new ArgumentNullException("generator");
+                throw new ArgumentNullException(nameof(generator));
 
             int paramArrayIndex = 0;
             foreach (var argument in this.GetArguments(argumentCount))
@@ -486,14 +416,11 @@ namespace Jurassic.Compiler
             {
                 if (this.parameterInfo == null || this.HasDefaultValue == false)
                     return null;
-                var attribute = GetCustomAttribute<DefaultParameterValueAttribute>();
-                if (attribute == null)
-                    throw new InvalidOperationException(string.Format("Expected [DefaultParameterValue] on parameter '{0}'.", this.parameterInfo.Name));
-                if (attribute.Value == null && this.Type.IsValueType == true)
+                if (parameterInfo.DefaultValue == null && this.Type.IsValueType == true)
                     throw new InvalidOperationException(string.Format("Null is not a valid default value for parameter '{0}'.", this.parameterInfo.Name));
-                if (attribute.Value != null && attribute.Value.GetType() != this.Type)
+                if (parameterInfo.DefaultValue != null && parameterInfo.DefaultValue.GetType() != this.Type)
                     throw new InvalidOperationException(string.Format("Default value for parameter '{0}' should be '{1}'.", this.parameterInfo.Name, this.Type));
-                return attribute.Value;
+                return parameterInfo.DefaultValue;
             }
         }
 

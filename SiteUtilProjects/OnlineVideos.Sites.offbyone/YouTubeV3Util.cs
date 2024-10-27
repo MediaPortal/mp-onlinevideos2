@@ -80,7 +80,7 @@ namespace OnlineVideos.Sites
 
         #endregion
 
-        public enum VideoQuality { Low, Medium, High, HD, FullHD };
+        public enum VideoQuality { Low, Medium, High, HD, FullHD, Highest };
 
         public enum VideoFormat { flv, mp4, webm };
 
@@ -236,27 +236,70 @@ namespace OnlineVideos.Sites
                 else
                 {
                     KeyValuePair<string, string> foundQuality = default(KeyValuePair<string, string>);
-                    switch (videoQuality)
+
+                    if (videoQuality == VideoQuality.Low)
+                        foundQuality = video.PlaybackOptions.First();
+                    else
                     {
-                        case VideoQuality.Low:		//use first available option
-                            foundQuality = video.PlaybackOptions.First(); break;
-                        case VideoQuality.Medium:	//first above 320 that is not 3D
-                            foundQuality = video.PlaybackOptions.FirstOrDefault(q => !q.Key.Contains("320") && !q.Key.Contains("3D")); break;
-                        case VideoQuality.High:		//highest below the HD formats that is not 3D
-                            foundQuality = video.PlaybackOptions.LastOrDefault(q => !q.Key.Contains("1920") && !q.Key.Contains("1280") && !q.Key.Contains("3D")); break;
-                        case VideoQuality.HD:		//first below full HD that is not 3D
-                            foundQuality = video.PlaybackOptions.LastOrDefault(q => !q.Key.Contains("1920") && !q.Key.Contains("3D")); break;
-                        case VideoQuality.FullHD:	//use highest available quality that is not 3D
-                            foundQuality = video.PlaybackOptions.Last(q => !q.Key.Contains("3D")); break;
+                        Regex regex = new Regex(@"(?<w>\d+)x(?<h>\d+)(.+\s(?<td>3D))?");
+                        for (int i = video.PlaybackOptions.Count - 1; i >= 0; i--)
+                        {
+                            KeyValuePair<string, string> q = video.PlaybackOptions.ElementAt(i);
+                            Match m = regex.Match(q.Key);
+                            if (m.Success)
+                            {
+                                //Height 
+                                int iHeight = int.Parse(m.Groups["h"].Value);
+
+                                //Width 
+                                int iWidth = int.Parse(m.Groups["w"].Value);
+
+                                //3D
+                                if (m.Groups["td"].Success)
+                                    continue;
+
+                                switch (videoQuality)
+                                {
+                                    case VideoQuality.Medium:
+                                        if (iHeight > 240)
+                                            continue;
+                                        break;
+                                    case VideoQuality.High:
+                                        if (iHeight > 480)
+                                            continue;
+                                        break;
+                                    case VideoQuality.HD:
+                                        if (iHeight > 720 || iWidth > 1440)
+                                            continue;
+                                        break;
+                                    case VideoQuality.FullHD:
+                                        if (iHeight > 1080 || iWidth > 1920)
+                                            continue;
+                                        break;
+                                }
+
+                                foundQuality = q;
+                                break;
+                            }
+                        }
                     }
+
                     if (!string.IsNullOrEmpty(foundQuality.Key))
                     {
-                        string resolution = foundQuality.Key.Substring(0, foundQuality.Key.IndexOf('|'));
+                        string resolution = foundQuality.Key.Substring(0, foundQuality.Key.IndexOf('/'));
+                        // try to find one that has the same resolution and the preferred format and not the undesired format
+                        KeyValuePair<string, string> bestMatch = video.PlaybackOptions.LastOrDefault(q => q.Key.Contains(resolution) && !q.Key.Contains("3D") && q.Key.Contains(preferredFormat.ToString()) && !q.Key.Contains(undesiredFormat.ToString()));
+
                         // try to find one that has the same resolution and the preferred format
-                        var bestMatch = video.PlaybackOptions.FirstOrDefault(q => q.Key.Contains(resolution) && !q.Key.Contains("3D") && q.Key.Contains(preferredFormat.ToString()));
+                        if (string.IsNullOrEmpty(bestMatch.Key))
+                            bestMatch = video.PlaybackOptions.LastOrDefault(q => q.Key.Contains(resolution) && !q.Key.Contains("3D") && q.Key.Contains(preferredFormat.ToString()));
+
                         // try to find one that has the same resolution and not the undesired format
-                        if (string.IsNullOrEmpty(bestMatch.Key)) bestMatch = video.PlaybackOptions.FirstOrDefault(q => q.Key.Contains(resolution) && !q.Key.Contains("3D") && !q.Key.Contains(undesiredFormat.ToString()));
-                        if (!string.IsNullOrEmpty(bestMatch.Key)) foundQuality = bestMatch;
+                        if (string.IsNullOrEmpty(bestMatch.Key))
+                            bestMatch = video.PlaybackOptions.LastOrDefault(q => q.Key.Contains(resolution) && !q.Key.Contains("3D") && !q.Key.Contains(undesiredFormat.ToString()));
+
+                        if (!string.IsNullOrEmpty(bestMatch.Key))
+                            foundQuality = bestMatch;
                     }
                     // fallback when no match was found -> use first choice
                     if (string.IsNullOrEmpty(foundQuality.Key)) foundQuality = video.PlaybackOptions.First();

@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Jurassic.Library;
+using System;
 using System.Collections.Generic;
+using ErrorType = Jurassic.Library.ErrorType;
 
 namespace Jurassic.Compiler
 {
@@ -9,12 +11,15 @@ namespace Jurassic.Compiler
     internal class FunctionCallExpression : OperatorExpression
     {
         /// <summary>
-        /// Creates a new instance of FunctionCallJSExpression.
+        /// Creates a new instance of FunctionCallExpression.
         /// </summary>
         /// <param name="operator"> The binary operator to base this expression on. </param>
-        public FunctionCallExpression(Operator @operator)
+        /// <param name="scope"> The scope that was in effect at the time of the function call
+        /// (used by eval() calls). </param>
+        public FunctionCallExpression(Operator @operator, Scope scope)
             : base(@operator)
         {
+            this.Scope = scope ?? throw new ArgumentNullException(nameof(scope));
         }
 
         /// <summary>
@@ -32,6 +37,11 @@ namespace Jurassic.Compiler
         {
             get { return PrimitiveType.Any; }
         }
+
+        /// <summary>
+        /// The scope that was in effect at the time of the function call (used by eval() calls.)
+        /// </summary>
+        private Scope Scope { get; set; }
 
         /// <summary>
         /// Used to implement function calls without evaluating the left operand twice.
@@ -70,6 +80,16 @@ namespace Jurassic.Compiler
                 return;
             }
 
+            // Check if this is a super() call.
+            if (this.Target is SuperExpression)
+            {
+                // executionContext.CallSuperClass(arguments)
+                EmitHelpers.LoadExecutionContext(generator);
+                GenerateArgumentsArray(generator, optimizationInfo);
+                generator.Call(ReflectionHelpers.ExecutionContext_CallSuperClass);
+                return;
+            }
+
             // Emit the function instance first.
             ILLocalVariable targetBase = null;
             if (this.Target is MemberAccessExpression)
@@ -92,23 +112,24 @@ namespace Jurassic.Compiler
             }
             else
             {
-                // Something else (e.g. "eval()").
+                // Something else (e.g. "my_func()").
                 this.Target.GenerateCode(generator, optimizationInfo);
                 EmitConversion.ToAny(generator, this.Target.ResultType);
             }
 
             // Check the object really is a function - if not, throw an exception.
-            generator.IsInstance(typeof(Library.FunctionInstance));
             generator.Duplicate();
+            generator.IsInstance(typeof(FunctionInstance));
             var endOfTypeCheck = generator.CreateLabel();
-            generator.BranchIfNotNull(endOfTypeCheck);
+            generator.BranchIfTrue(endOfTypeCheck);
 
             // Throw an nicely formatted exception.
             generator.Pop();
-            EmitHelpers.EmitThrow(generator, "TypeError", string.Format("'{0}' is not a function", this.Target.ToString()));
+            EmitHelpers.EmitThrow(generator, ErrorType.TypeError, string.Format("'{0}' is not a function", this.Target.ToString()), optimizationInfo);
             generator.DefineLabelPosition(endOfTypeCheck);
 
             // Pass in the path, function name and line.
+            generator.ReinterpretCast(typeof(FunctionInstance));
             generator.LoadStringOrNull(optimizationInfo.Source.Path);
             generator.LoadStringOrNull(optimizationInfo.FunctionName);
             generator.LoadInt32(optimizationInfo.SourceSpan.StartLine);
@@ -117,17 +138,20 @@ namespace Jurassic.Compiler
             if (this.Target is NameExpression)
             {
                 // 1. The function is a name expression (e.g. "parseInt()").
-                //    In this case this = scope.ImplicitThisValue, if there is one, otherwise undefined.
-                ((NameExpression)this.Target).GenerateThis(generator);
+                //    If we are inside a with() block, then there is an implicit 'this' value,
+                //    otherwise 'this' is undefined.
+                Scope.GenerateReference(generator, optimizationInfo);
+                generator.Call(ReflectionHelpers.RuntimeScope_ImplicitThis);
             }
-            else if (this.Target is MemberAccessExpression)
+            else if (this.Target is MemberAccessExpression targetMemberAccessExpression)
             {
                 // 2. The function is a member access expression (e.g. "Math.cos()").
                 //    In this case this = Math.
-                //var baseExpression = ((MemberAccessExpression)this.Target).Base;
-                //baseExpression.GenerateCode(generator, optimizationInfo);
-                //EmitConversion.ToAny(generator, baseExpression.ResultType);
-                generator.LoadVariable(targetBase);
+                //    Unless it's a super call like super.blah().
+                if (targetMemberAccessExpression.Base is SuperExpression)
+                    EmitHelpers.LoadThis(generator);
+                else
+                    generator.LoadVariable(targetBase);
             }
             else
             {
@@ -172,6 +196,13 @@ namespace Jurassic.Compiler
                     // Multiple parameters were passed to the function.
                     arguments = ((ListExpression)argumentsOperand).Items;
                 }
+                else if (argumentsOperand is TemplateLiteralExpression)
+                {
+                    // Tagged template literal.
+                    var templateLiteral = (TemplateLiteralExpression)argumentsOperand;
+                    GenerateTemplateArgumentsArray(generator, optimizationInfo, templateLiteral);
+                    return;
+                }
                 else
                 {
                     // A single parameter was passed to the function.
@@ -189,6 +220,87 @@ namespace Jurassic.Compiler
                     EmitConversion.ToAny(generator, arguments[i].ResultType);
                     generator.StoreArrayElement(typeof(object));
                 }
+            }
+        }
+
+        private static int templateCallSiteId = 0;
+
+        /// <summary>
+        /// Generates an array containing the argument values for a tagged template literal.
+        /// </summary>
+        /// <param name="generator"> The generator to output the CIL to. </param>
+        /// <param name="optimizationInfo"> Information about any optimizations that should be performed. </param>
+        /// <param name="templateLiteral"> The template literal expression containing the parameter
+        /// values. </param>
+        internal void GenerateTemplateArgumentsArray(ILGenerator generator, OptimizationInfo optimizationInfo, TemplateLiteralExpression templateLiteral)
+        {
+            // Generate an array containing the value of each argument.
+            generator.LoadInt32(templateLiteral.Values.Count + 1);
+            generator.NewArray(typeof(object));
+
+            // Load the first parameter.
+            generator.Duplicate();
+            generator.LoadInt32(0);
+
+            // Generate a unique integer that is used as the cache key.
+            int callSiteId = System.Threading.Interlocked.Increment(ref templateCallSiteId);
+
+            // Call GetCachedTemplateStringsArray(ScriptEngine engine, int callSiteId)
+            EmitHelpers.LoadScriptEngine(generator);
+            generator.LoadInt32(callSiteId);
+            generator.CallStatic(ReflectionHelpers.ReflectionHelpers_GetCachedTemplateStringsArray);
+
+            // If that's null, do it the long way.
+            var afterCreateTemplateStringsArray = generator.CreateLabel();
+            generator.Duplicate();
+            generator.BranchIfNotNull(afterCreateTemplateStringsArray);
+            generator.Pop();
+
+            // Start emitting arguments for CreateTemplateStringsArray.
+            EmitHelpers.LoadScriptEngine(generator);
+
+            // int callSiteId
+            generator.LoadInt32(callSiteId);
+
+            // string[] strings
+            generator.LoadInt32(templateLiteral.Strings.Count);
+            generator.NewArray(typeof(string));
+            for (int i = 0; i < templateLiteral.Strings.Count; i++)
+            {
+                // strings[i] = templateLiteral.Strings[i]
+                generator.Duplicate();
+                generator.LoadInt32(i);
+                generator.LoadString(templateLiteral.Strings[i]);
+                generator.StoreArrayElement(typeof(string));
+            }
+
+            // string[] raw
+            generator.LoadInt32(templateLiteral.RawStrings.Count);
+            generator.NewArray(typeof(string));
+            for (int i = 0; i < templateLiteral.RawStrings.Count; i++)
+            {
+                // raw[i] = templateLiteral.RawStrings[i]
+                generator.Duplicate();
+                generator.LoadInt32(i);
+                generator.LoadString(templateLiteral.RawStrings[i]);
+                generator.StoreArrayElement(typeof(string));
+            }
+
+            // CreateTemplateStringsArray(ScriptEngine engine, int callSiteId, object[] strings, object[] rawStrings)
+            generator.CallStatic(ReflectionHelpers.ReflectionHelpers_CreateTemplateStringsArray);
+            generator.DefineLabelPosition(afterCreateTemplateStringsArray);
+
+            // Store in the array.
+            generator.StoreArrayElement(typeof(object));
+
+            // Values are passed as subsequent parameters.
+            for (int i = 0; i < templateLiteral.Values.Count; i++)
+            {
+                generator.Duplicate();
+                generator.LoadInt32(i + 1);
+                templateLiteral.Values[i].GenerateCode(generator, optimizationInfo);
+                EmitConversion.ToAny(generator, templateLiteral.Values[i].ResultType);
+                generator.StoreArrayElement(typeof(object));
             }
         }
 
@@ -217,7 +329,7 @@ namespace Jurassic.Compiler
             }
 
             // scope
-            EmitHelpers.LoadScope(generator);
+            Scope.GenerateReference(generator, optimizationInfo);
 
             // thisObject
             EmitHelpers.LoadThis(generator);
@@ -228,6 +340,25 @@ namespace Jurassic.Compiler
             // Call Global.Eval(engine, code, scope, thisValue, strictMode)
             generator.Call(ReflectionHelpers.Global_Eval);
         }
-    }
 
+        /// <summary>
+        /// Checks the expression is valid and throws a SyntaxErrorException if not.
+        /// Called after the expression tree is fully built out.
+        /// </summary>
+        /// <param name="context"> Indicates where the code is located e.g. inside a function, or a constructor, etc. </param>
+        /// <param name="lineNumber"> The line number to use when throwing an exception. </param>
+        /// <param name="sourcePath"> The source path to use when throwing an exception. </param>
+        public override void CheckValidity(CodeContext context, int lineNumber, string sourcePath)
+        {
+            // Super calls are valid only in derived constructors.
+            if (this.Target is SuperExpression superExpression)
+            {
+                if (context == CodeContext.DerivedConstructor)
+                    superExpression.IsInValidContext = true;
+                else
+                    throw new SyntaxErrorException("'super' calls can only be made from a derived constructor.", lineNumber, sourcePath);
+            }
+            base.CheckValidity(context, lineNumber, sourcePath);
+        }
+    }
 }

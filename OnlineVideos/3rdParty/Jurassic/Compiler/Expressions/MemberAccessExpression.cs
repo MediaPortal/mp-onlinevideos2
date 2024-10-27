@@ -1,4 +1,4 @@
-﻿using System;
+﻿using Jurassic.Library;
 
 namespace Jurassic.Compiler
 {
@@ -49,28 +49,45 @@ namespace Jurassic.Compiler
         public override void GenerateCode(ILGenerator generator, OptimizationInfo optimizationInfo)
         {
             // NOTE: this is a get reference because assignment expressions do not call this method.
+            GenerateReference(generator, optimizationInfo);
             GenerateGet(generator, optimizationInfo, false);
         }
 
-        /// <summary>
-        /// Pushes the value of the reference onto the stack.
-        /// </summary>
-        /// <param name="generator"> The generator to output the CIL to. </param>
-        /// <param name="optimizationInfo"> Information about any optimizations that should be performed. </param>
-        /// <param name="throwIfUnresolvable"> <c>true</c> to throw a ReferenceError exception if
-        /// the name is unresolvable; <c>false</c> to output <c>null</c> instead. </param>
-        public void GenerateGet(ILGenerator generator, OptimizationInfo optimizationInfo, bool throwIfUnresolvable)
+        private enum TypeOfMemberAccess
         {
-            string propertyName = null;
-            bool isArrayIndex = false;
+            /// <summary>
+            /// Static property access e.g. a.b or a['b']
+            /// </summary>
+            Static,
 
+            /// <summary>
+            /// Numeric array indexer e.g. a[1]
+            /// </summary>
+            ArrayIndex,
+
+            /// <summary>
+            /// Dynamic property access e.g. a[someVariable]
+            /// </summary>
+            Dynamic,
+        }
+
+        /// <summary>
+        /// Determines the type of member access.
+        /// </summary>
+        /// <param name="optimizationInfo"> Information about any optimizations that should be performed. </param>
+        /// <param name="propertyName"> Outputs the name of the property that is being accessed, if
+        /// it is available at compile time, or <c>null</c> otherwise. </param>
+        /// <returns></returns>
+        private TypeOfMemberAccess DetermineTypeOfMemberAccess(OptimizationInfo optimizationInfo, out string propertyName)
+        {
             // Right-hand-side can be a property name (a.b)
             if (this.OperatorType == OperatorType.MemberAccess)
             {
                 var rhs = this.GetOperand(1) as NameExpression;
                 if (rhs == null)
-                    throw new JavaScriptException(optimizationInfo.Engine, "SyntaxError", "Invalid member access", optimizationInfo.SourceSpan.StartLine, optimizationInfo.Source.Path, optimizationInfo.FunctionName);
+                    throw new SyntaxErrorException("Invalid member access", optimizationInfo.SourceSpan.StartLine, optimizationInfo.Source.Path, optimizationInfo.FunctionName);
                 propertyName = rhs.Name;
+                return TypeOfMemberAccess.Static;
             }
 
             // Or a constant indexer (a['b'])
@@ -83,15 +100,30 @@ namespace Jurassic.Compiler
 
                     // Or a array index (a[0])
                     if (rhs.ResultType == PrimitiveType.Int32 || (propertyName != null && Library.ArrayInstance.ParseArrayIndex(propertyName) != uint.MaxValue))
-                        isArrayIndex = true;
+                        return TypeOfMemberAccess.ArrayIndex;
+                    return TypeOfMemberAccess.Static;
                 }
             }
 
-            if (isArrayIndex == true)
+            propertyName = null;
+            return TypeOfMemberAccess.Dynamic;
+        }
+
+
+        /// <summary>
+        /// Outputs the values needed to get or set this reference.
+        /// </summary>
+        /// <param name="generator"> The generator to output the CIL to. </param>
+        /// <param name="optimizationInfo"> Information about any optimizations that should be performed. </param>
+        public void GenerateReference(ILGenerator generator, OptimizationInfo optimizationInfo)
+        {
+            string propertyName = null;
+            TypeOfMemberAccess memberAccessType = DetermineTypeOfMemberAccess(optimizationInfo, out propertyName);
+
+            if (memberAccessType == TypeOfMemberAccess.ArrayIndex)
             {
                 // Array indexer
                 // -------------
-                // xxx = object[index]
 
                 // Load the left-hand side and convert to an object instance.
                 var lhs = this.GetOperand(0);
@@ -102,94 +134,142 @@ namespace Jurassic.Compiler
                 var rhs = this.GetOperand(1);
                 rhs.GenerateCode(generator, optimizationInfo);
                 EmitConversion.ToUInt32(generator, rhs.ResultType);
-
-                // Call the indexer.
-                generator.Call(ReflectionHelpers.ObjectInstance_GetPropertyValue_Int);
             }
-            else if (propertyName != null)
+            else if (memberAccessType == TypeOfMemberAccess.Static)
             {
-                //// Load the left-hand side and convert to an object instance.
-                //var lhs = this.GetOperand(0);
-                //lhs.GenerateCode(generator, optimizationInfo);
-                //EmitConversion.ToObject(generator, lhs.ResultType);
-
-                //// Call Get(string)
-                //generator.LoadString(propertyName);
-                //generator.Call(ReflectionHelpers.ObjectInstance_GetPropertyValue_String);
-
-
-
-                // Named property access (e.g. x = y.property)
-                // -------------------------------------------
-                // __object_cacheKey = null;
-                // __object_property_cachedIndex = 0;
-                // ...
-                // if (__object_cacheKey != object.InlineCacheKey)
-                //     xxx = object.InlineGetPropertyValue("property", out __object_property_cachedIndex, out __object_cacheKey)
-                // else
-                //     xxx = object.InlinePropertyValues[__object_property_cachedIndex];
+                // Named property access (e.g. x = y.property or x = y['property'])
+                // ----------------------------------------------------------------
 
                 // Load the left-hand side and convert to an object instance.
                 var lhs = this.GetOperand(0);
                 lhs.GenerateCode(generator, optimizationInfo);
                 EmitConversion.ToObject(generator, lhs.ResultType, optimizationInfo);
-
-                // TODO: share these variables somehow.
-                var cacheKey = generator.DeclareVariable(typeof(object));
-                var cachedIndex = generator.DeclareVariable(typeof(int));
-
-                // Store the object into a temp variable.
-                var objectInstance = generator.DeclareVariable(PrimitiveType.Object);
-                generator.StoreVariable(objectInstance);
-
-                // if (__object_cacheKey != object.InlineCacheKey)
-                generator.LoadVariable(cacheKey);
-                generator.LoadVariable(objectInstance);
-                generator.Call(ReflectionHelpers.ObjectInstance_InlineCacheKey);
-                var elseClause = generator.CreateLabel();
-                generator.BranchIfEqual(elseClause);
-
-                // value = object.InlineGetProperty("property", out __object_property_cachedIndex, out __object_cacheKey)
-                generator.LoadVariable(objectInstance);
-                generator.LoadString(propertyName);
-                generator.LoadAddressOfVariable(cachedIndex);
-                generator.LoadAddressOfVariable(cacheKey);
-                generator.Call(ReflectionHelpers.ObjectInstance_InlineGetPropertyValue);
-
-                var endOfIf = generator.CreateLabel();
-                generator.Branch(endOfIf);
-
-                // else
-                generator.DefineLabelPosition(elseClause);
-
-                // value = object.InlinePropertyValues[__object_property_cachedIndex];
-                generator.LoadVariable(objectInstance);
-                generator.Call(ReflectionHelpers.ObjectInstance_InlinePropertyValues);
-                generator.LoadVariable(cachedIndex);
-                generator.LoadArrayElement(typeof(object));
-
-                // End of the if statement
-                generator.DefineLabelPosition(endOfIf);
-
             }
             else
             {
                 // Dynamic property access
                 // -----------------------
-                // xxx = object.Get(x)
 
                 // Load the left-hand side and convert to an object instance.
                 var lhs = this.GetOperand(0);
                 lhs.GenerateCode(generator, optimizationInfo);
                 EmitConversion.ToObject(generator, lhs.ResultType, optimizationInfo);
 
-                // Load the property name and convert to a string.
+                // Load the value and convert it to a property key.
                 var rhs = this.GetOperand(1);
                 rhs.GenerateCode(generator, optimizationInfo);
-                EmitConversion.ToString(generator, rhs.ResultType);
+                EmitConversion.ToPropertyKey(generator, rhs.ResultType);
+            }
+        }
 
-                // Call Get(string)
-                generator.Call(ReflectionHelpers.ObjectInstance_GetPropertyValue_String);
+        /// <summary>
+        /// Outputs the values needed to get or set this reference.
+        /// </summary>
+        /// <param name="generator"> The generator to output the CIL to. </param>
+        /// <param name="optimizationInfo"> Information about any optimizations that should be performed. </param>
+        public void DuplicateReference(ILGenerator generator, OptimizationInfo optimizationInfo)
+        {
+            string propertyName = null;
+            TypeOfMemberAccess memberAccessType = DetermineTypeOfMemberAccess(optimizationInfo, out propertyName);
+
+            if (memberAccessType == TypeOfMemberAccess.ArrayIndex)
+            {
+                // Array indexer
+                var arg1 = generator.CreateTemporaryVariable(typeof(ObjectInstance));
+                var arg2 = generator.CreateTemporaryVariable(typeof(uint));
+                generator.StoreVariable(arg2);
+                generator.StoreVariable(arg1);
+                generator.LoadVariable(arg1);
+                generator.LoadVariable(arg2);
+                generator.LoadVariable(arg1);
+                generator.LoadVariable(arg2);
+                generator.ReleaseTemporaryVariable(arg1);
+                generator.ReleaseTemporaryVariable(arg2);
+            }
+            else if (memberAccessType == TypeOfMemberAccess.Static)
+            {
+                // Named property access
+                generator.Duplicate();
+            }
+            else
+            {
+                // Dynamic property access
+                var arg1 = generator.CreateTemporaryVariable(typeof(ObjectInstance));
+                var arg2 = generator.CreateTemporaryVariable(typeof(object));
+                generator.StoreVariable(arg2);
+                generator.StoreVariable(arg1);
+                generator.LoadVariable(arg1);
+                generator.LoadVariable(arg2);
+                generator.LoadVariable(arg1);
+                generator.LoadVariable(arg2);
+                generator.ReleaseTemporaryVariable(arg1);
+                generator.ReleaseTemporaryVariable(arg2);
+            }
+        }
+
+        /// <summary>
+        /// Pushes the value of the reference onto the stack.
+        /// </summary>
+        /// <param name="generator"> The generator to output the CIL to. </param>
+        /// <param name="optimizationInfo"> Information about any optimizations that should be performed. </param>
+        /// <param name="throwIfUnresolvable"> <c>true</c> to throw a ReferenceError exception if
+        /// the name is unresolvable; <c>false</c> to output <c>null</c> instead. </param>
+        public void GenerateGet(ILGenerator generator, OptimizationInfo optimizationInfo, bool throwIfUnresolvable)
+        {
+            string propertyName = null;
+            TypeOfMemberAccess memberAccessType = DetermineTypeOfMemberAccess(optimizationInfo, out propertyName);
+
+            if (memberAccessType == TypeOfMemberAccess.ArrayIndex)
+            {
+                // Array indexer
+                // -------------
+                // xxx = object[index]
+
+                // Call the indexer.
+                generator.Call(ReflectionHelpers.ObjectInstance_Indexer_UInt);
+            }
+            else if (memberAccessType == TypeOfMemberAccess.Static)
+            {
+                // Named property access (e.g. x = y.property)
+                // -------------------------------------------
+
+                // Use a PropertyReference to speed up access if we are inside a loop.
+                if (optimizationInfo.InsideLoop)
+                {
+                    // C#
+                    // if (propertyReference != null)
+                    //     propertyReference = new PropertyReference("property");
+                    // value = object.GetPropertyValue(propertyReference)
+
+                    ILLocalVariable propertyReference = optimizationInfo.GetPropertyReferenceVariable(generator, propertyName);
+                    generator.LoadVariable(propertyReference);
+                    generator.Duplicate();
+                    var afterIf = generator.CreateLabel();
+                    generator.BranchIfNotNull(afterIf);
+                    generator.Pop();
+                    generator.LoadString(propertyName);
+                    generator.NewObject(ReflectionHelpers.PropertyName_Constructor);
+                    generator.Duplicate();
+                    generator.StoreVariable(propertyReference);
+                    generator.DefineLabelPosition(afterIf);
+                    generator.Call(ReflectionHelpers.ObjectInstance_GetPropertyValue_PropertyReference);
+                }
+                else
+                {
+                    // C#
+                    // value = object.GetPropertyValue("property")
+
+                    generator.LoadString(propertyName);
+                    generator.Call(ReflectionHelpers.ObjectInstance_Indexer_Object);
+                }
+            }
+            else
+            {
+                // Dynamic property access
+                // -----------------------
+                // x = y.GetPropertyValue("property")
+
+                generator.Call(ReflectionHelpers.ObjectInstance_Indexer_Object);
             }
         }
 
@@ -199,158 +279,76 @@ namespace Jurassic.Compiler
         /// <param name="generator"> The generator to output the CIL to. </param>
         /// <param name="optimizationInfo"> Information about any optimizations that should be performed. </param>
         /// <param name="valueType"> The primitive type of the value that is on the top of the stack. </param>
-        /// <param name="throwIfUnresolvable"> <c>true</c> to throw a ReferenceError exception if
-        /// the name is unresolvable; <c>false</c> to create a new property instead. </param>
-        public void GenerateSet(ILGenerator generator, OptimizationInfo optimizationInfo, PrimitiveType valueType, bool throwIfUnresolvable)
+        public void GenerateSet(ILGenerator generator, OptimizationInfo optimizationInfo, PrimitiveType valueType)
         {
             string propertyName = null;
-            bool isArrayIndex = false;
-            //optimizationInfo = optimizationInfo.RemoveFlags(OptimizationFlags.SuppressReturnValue);
+            TypeOfMemberAccess memberAccessType = DetermineTypeOfMemberAccess(optimizationInfo, out propertyName);
 
-            // Right-hand-side can be a property name (a.b)
-            if (this.OperatorType == OperatorType.MemberAccess)
-            {
-                var rhs = this.GetOperand(1) as NameExpression;
-                if (rhs == null)
-                    throw new JavaScriptException(optimizationInfo.Engine, "SyntaxError", "Invalid member access", optimizationInfo.SourceSpan.StartLine, optimizationInfo.Source.Path, optimizationInfo.FunctionName);
-                propertyName = rhs.Name;
-            }
-
-            // Or a constant indexer (a['b'])
-            if (this.OperatorType == OperatorType.Index)
-            {
-                var rhs = this.GetOperand(1) as LiteralExpression;
-                if (rhs != null)
-                {
-                    propertyName = TypeConverter.ToString(rhs.Value);
-
-                    // Or a array index (a[0])
-                    if (rhs.ResultType == PrimitiveType.Int32 || (propertyName != null && Library.ArrayInstance.ParseArrayIndex(propertyName) != uint.MaxValue))
-                        isArrayIndex = true;
-                }
-            }
-
-            // Convert the value to an object and store it in a temporary variable.
-            var value = generator.CreateTemporaryVariable(typeof(object));
-            EmitConversion.ToAny(generator, valueType);
-            generator.StoreVariable(value);
-
-            if (isArrayIndex == true)
+            if (memberAccessType == TypeOfMemberAccess.ArrayIndex)
             {
                 // Array indexer
                 // -------------
                 // xxx = object[index]
 
-                // Load the left-hand side and convert to an object instance.
-                var lhs = this.GetOperand(0);
-                lhs.GenerateCode(generator, optimizationInfo);
-                EmitConversion.ToObject(generator, lhs.ResultType, optimizationInfo);
-
-                // Load the right-hand side and convert to a uint32.
-                var rhs = this.GetOperand(1);
-                rhs.GenerateCode(generator, optimizationInfo);
-                EmitConversion.ToUInt32(generator, rhs.ResultType);
-
                 // Call the indexer.
-                generator.LoadVariable(value);
+                EmitConversion.ToAny(generator, valueType);
                 generator.LoadBoolean(optimizationInfo.StrictMode);
                 generator.Call(ReflectionHelpers.ObjectInstance_SetPropertyValue_Int);
+                generator.Pop();
             }
-            else if (propertyName != null)
+            else if (memberAccessType == TypeOfMemberAccess.Static)
             {
-                //// Load the left-hand side and convert to an object instance.
-                //var lhs = this.GetOperand(0);
-                //lhs.GenerateCode(generator, optimizationInfo);
-                //EmitConversion.ToObject(generator, lhs.ResultType);
+                // Named property modification (e.g. object.property = value)
+                // ----------------------------------------------------------
+                // object.SetPropertyValue(property, value, strictMode)
 
-                //// Call the indexer.
-                //generator.LoadString(propertyName);
-                //generator.LoadVariable(value);
-                //generator.LoadBoolean(optimizationInfo.StrictMode);
-                //generator.Call(ReflectionHelpers.ObjectInstance_SetPropertyValue_String);
+                // Convert the value to an object and store it in a temporary variable.
+                var value = generator.CreateTemporaryVariable(typeof(object));
+                EmitConversion.ToAny(generator, valueType);
+                generator.StoreVariable(value);
 
+                // Use a PropertyReference to speed up access if we are inside a loop.
+                if (optimizationInfo.InsideLoop)
+                {
+                    ILLocalVariable propertyReference = optimizationInfo.GetPropertyReferenceVariable(generator, propertyName);
+                    generator.LoadVariable(propertyReference);
+                    generator.Duplicate();
+                    var afterIf = generator.CreateLabel();
+                    generator.BranchIfNotNull(afterIf);
+                    generator.Pop();
+                    generator.LoadString(propertyName);
+                    generator.NewObject(ReflectionHelpers.PropertyName_Constructor);
+                    generator.Duplicate();
+                    generator.StoreVariable(propertyReference);
+                    generator.DefineLabelPosition(afterIf);
 
+                    generator.LoadVariable(value);
+                    generator.LoadBoolean(optimizationInfo.StrictMode);
+                    generator.Call(ReflectionHelpers.ObjectInstance_SetPropertyValue_PropertyReference);
+                    generator.Pop();
+                }
+                else
+                {
+                    generator.LoadString(propertyName);
+                    generator.LoadVariable(value);
+                    generator.LoadBoolean(optimizationInfo.StrictMode);
+                    generator.Call(ReflectionHelpers.ObjectInstance_SetPropertyValue_Object);
+                    generator.Pop();
+                }
 
-                // Named property modification (e.g. x.property = y)
-                // -------------------------------------------------
-                // __object_cacheKey = null;
-                // __object_property_cachedIndex = 0;
-                // ...
-                // if (__object_cacheKey != object.InlineCacheKey)
-                //     object.InlineSetPropertyValue("property", value, strictMode, out __object_property_cachedIndex, out __object_cacheKey)
-                // else
-                //     object.InlinePropertyValues[__object_property_cachedIndex] = value;
-
-                // Load the left-hand side and convert to an object instance.
-                var lhs = this.GetOperand(0);
-                lhs.GenerateCode(generator, optimizationInfo);
-                EmitConversion.ToObject(generator, lhs.ResultType, optimizationInfo);
-
-                // TODO: share these variables somehow.
-                var cacheKey = generator.DeclareVariable(typeof(object));
-                var cachedIndex = generator.DeclareVariable(typeof(int));
-
-                // Store the object into a temp variable.
-                var objectInstance = generator.DeclareVariable(PrimitiveType.Object);
-                generator.StoreVariable(objectInstance);
-
-                // if (__object_cacheKey != object.InlineCacheKey)
-                generator.LoadVariable(cacheKey);
-                generator.LoadVariable(objectInstance);
-                generator.Call(ReflectionHelpers.ObjectInstance_InlineCacheKey);
-                var elseClause = generator.CreateLabel();
-                generator.BranchIfEqual(elseClause);
-
-                // xxx = object.InlineSetPropertyValue("property", value, strictMode, out __object_property_cachedIndex, out __object_cacheKey)
-                generator.LoadVariable(objectInstance);
-                generator.LoadString(propertyName);
-                generator.LoadVariable(value);
-                generator.LoadBoolean(optimizationInfo.StrictMode);
-                generator.LoadAddressOfVariable(cachedIndex);
-                generator.LoadAddressOfVariable(cacheKey);
-                generator.Call(ReflectionHelpers.ObjectInstance_InlineSetPropertyValue);
-
-                var endOfIf = generator.CreateLabel();
-                generator.Branch(endOfIf);
-
-                // else
-                generator.DefineLabelPosition(elseClause);
-
-                // object.InlinePropertyValues[__object_property_cachedIndex] = value;
-                generator.LoadVariable(objectInstance);
-                generator.Call(ReflectionHelpers.ObjectInstance_InlinePropertyValues);
-                generator.LoadVariable(cachedIndex);
-                generator.LoadVariable(value);
-                generator.StoreArrayElement(typeof(object));
-
-                // End of the if statement
-                generator.DefineLabelPosition(endOfIf);
-
+                generator.ReleaseTemporaryVariable(value);
             }
             else
             {
                 // Dynamic property access
                 // -----------------------
-                // xxx = object.Get(x)
+                // object.SetPropertyValue(property, value, strictMode)
 
-                // Load the left-hand side and convert to an object instance.
-                var lhs = this.GetOperand(0);
-                lhs.GenerateCode(generator, optimizationInfo);
-                EmitConversion.ToObject(generator, lhs.ResultType, optimizationInfo);
-
-                // Load the property name and convert to a string.
-                var rhs = this.GetOperand(1);
-                rhs.GenerateCode(generator, optimizationInfo);
-                EmitConversion.ToString(generator, rhs.ResultType);
-
-                // Call the indexer.
-                generator.LoadVariable(value);
+                EmitConversion.ToAny(generator, valueType);
                 generator.LoadBoolean(optimizationInfo.StrictMode);
-                generator.Call(ReflectionHelpers.ObjectInstance_SetPropertyValue_String);
+                generator.Call(ReflectionHelpers.ObjectInstance_SetPropertyValue_Object);
+                generator.Pop();
             }
-
-            // The temporary variable is no longer needed.
-            generator.ReleaseTemporaryVariable(value);
         }
 
         /// <summary>
@@ -363,17 +361,31 @@ namespace Jurassic.Compiler
         {
             // Load the left-hand side and convert to an object instance.
             var lhs = this.GetOperand(0);
+            if (lhs is SuperExpression)
+            {
+                // Deleting a super reference is not allowed.
+                EmitHelpers.EmitThrow(generator, ErrorType.ReferenceError, "Unsupported reference to 'super'.");
+                generator.LoadNull();   // Extraneous, but helps with verification.
+                return;
+            }
             lhs.GenerateCode(generator, optimizationInfo);
             EmitConversion.ToObject(generator, lhs.ResultType, optimizationInfo);
 
             // Load the property name and convert to a string.
             var rhs = this.GetOperand(1);
-            if (this.OperatorType == OperatorType.MemberAccess && rhs is NameExpression)
-                generator.LoadString((rhs as NameExpression).Name);
+            if (this.OperatorType == OperatorType.MemberAccess)
+            {
+                // delete a.b
+                if (rhs is NameExpression nameExpession)
+                    generator.LoadString(nameExpession.Name);
+                else
+                    throw new SyntaxErrorException("Invalid member access", optimizationInfo.SourceSpan.StartLine, optimizationInfo.Source.Path, optimizationInfo.FunctionName);
+            }
             else
             {
+                // delete a['1']
                 rhs.GenerateCode(generator, optimizationInfo);
-                EmitConversion.ToString(generator, rhs.ResultType);
+                EmitConversion.ToPropertyKey(generator, rhs.ResultType);
             }
 
             // Call Delete()
@@ -383,6 +395,28 @@ namespace Jurassic.Compiler
             // If the return value is not wanted then pop it from the stack.
             //if (optimizationInfo.SuppressReturnValue == true)
             //    generator.Pop();
+        }
+
+        /// <summary>
+        /// Checks the expression is valid and throws a SyntaxErrorException if not.
+        /// Called after the expression tree is fully built out.
+        /// </summary>
+        /// <param name="context"> Indicates where the code is located e.g. inside a function, or a constructor, etc. </param>
+        /// <param name="lineNumber"> The line number to use when throwing an exception. </param>
+        /// <param name="sourcePath"> The source path to use when throwing an exception. </param>
+        public override void CheckValidity(CodeContext context, int lineNumber, string sourcePath)
+        {
+            if (GetRawOperand(0) is SuperExpression superExpression)
+            {
+                if (context == CodeContext.ObjectLiteralFunction ||
+                    context == CodeContext.Constructor ||
+                    context == CodeContext.DerivedConstructor ||
+                    context == CodeContext.ClassFunction)
+                    superExpression.IsInValidContext = true;
+                else
+                    throw new SyntaxErrorException("'super' keyword unexpected here.", lineNumber, sourcePath);
+            }
+            base.CheckValidity(context, lineNumber, sourcePath);
         }
 
         /// <summary>

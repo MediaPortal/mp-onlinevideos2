@@ -6,8 +6,7 @@ namespace Jurassic.Library
     /// <summary>
     /// Represents the built-in javascript RegExp object.
     /// </summary>
-    [Serializable]
-    public class RegExpConstructor : ClrFunction
+    public partial class RegExpConstructor : ClrStubFunction
     {
         private string lastInput;
         private System.Text.RegularExpressions.Match lastMatch;
@@ -21,11 +20,27 @@ namespace Jurassic.Library
         /// </summary>
         /// <param name="prototype"> The next object in the prototype chain. </param>
         internal RegExpConstructor(ObjectInstance prototype)
-            : base(prototype, "RegExp", new RegExpInstance(prototype.Engine.Object.InstancePrototype, string.Empty))
+            : base(prototype, __STUB__Construct, __STUB__Call)
         {
-            this.InitializeDeprecatedProperties();
+            // Initialize the constructor properties.
+            var properties = GetDeclarativeProperties(Engine);
+            InitializeConstructorProperties(properties, "RegExp", 2, RegExpInstance.CreatePrototype(Engine, this));
+            AddDeprecatedProperties(properties);
+            InitializeProperties(properties);
         }
 
+
+        //     JAVASCRIPT PROPERTIES
+        //_________________________________________________________________________________________
+
+        /// <summary>
+        /// A reference to the constructor function that is used to create derived objects.
+        /// </summary>
+        [JSProperty(Name = "@@species")]
+        public FunctionInstance Species
+        {
+            get { return this; }
+        }
 
 
 
@@ -41,41 +56,44 @@ namespace Jurassic.Library
         // rightContext ($')    The substring following the most recent match.
 
         /// <summary>
-        /// Initializes the deprecated RegExp properties.
+        /// Adds the deprecated RegExp properties to the given list.
         /// </summary>
-        private void InitializeDeprecatedProperties()
+        /// <param name="properties"> The list to add to. </param>
+        private void AddDeprecatedProperties(List<PropertyNameAndValue> properties)
         {
             // Set the deprecated properties to their default values.
-            this.InitializeDeprecatedProperty("$1", GetGroup1, PropertyAttributes.Enumerable);
-            this.InitializeDeprecatedProperty("$2", GetGroup2, PropertyAttributes.Enumerable);
-            this.InitializeDeprecatedProperty("$3", GetGroup3, PropertyAttributes.Enumerable);
-            this.InitializeDeprecatedProperty("$4", GetGroup4, PropertyAttributes.Enumerable);
-            this.InitializeDeprecatedProperty("$5", GetGroup5, PropertyAttributes.Enumerable);
-            this.InitializeDeprecatedProperty("$6", GetGroup6, PropertyAttributes.Enumerable);
-            this.InitializeDeprecatedProperty("$7", GetGroup7, PropertyAttributes.Enumerable);
-            this.InitializeDeprecatedProperty("$8", GetGroup8, PropertyAttributes.Enumerable);
-            this.InitializeDeprecatedProperty("$9", GetGroup9, PropertyAttributes.Enumerable);
-            this.InitializeDeprecatedProperty("input", GetInput, PropertyAttributes.Enumerable);
-            this.InitializeDeprecatedProperty("$_", GetInput, PropertyAttributes.Sealed);
-            this.InitializeDeprecatedProperty("lastMatch", GetLastMatch, PropertyAttributes.Enumerable);
-            this.InitializeDeprecatedProperty("$&", GetLastMatch, PropertyAttributes.Sealed);
-            this.InitializeDeprecatedProperty("lastParen", GetLastParen, PropertyAttributes.Enumerable);
-            this.InitializeDeprecatedProperty("$+", GetLastParen, PropertyAttributes.Sealed);
-            this.InitializeDeprecatedProperty("leftContext", GetLeftContext, PropertyAttributes.Enumerable);
-            this.InitializeDeprecatedProperty("$`", GetLeftContext, PropertyAttributes.Sealed);
-            this.InitializeDeprecatedProperty("rightContext", GetRightContext, PropertyAttributes.Enumerable);
-            this.InitializeDeprecatedProperty("$'", GetRightContext, PropertyAttributes.Sealed);
+            this.AddDeprecatedProperty(properties, "$1", GetGroup1Adapter, PropertyAttributes.Enumerable);
+            this.AddDeprecatedProperty(properties, "$2", GetGroup2Adapter, PropertyAttributes.Enumerable);
+            this.AddDeprecatedProperty(properties, "$3", GetGroup3Adapter, PropertyAttributes.Enumerable);
+            this.AddDeprecatedProperty(properties, "$4", GetGroup4Adapter, PropertyAttributes.Enumerable);
+            this.AddDeprecatedProperty(properties, "$5", GetGroup5Adapter, PropertyAttributes.Enumerable);
+            this.AddDeprecatedProperty(properties, "$6", GetGroup6Adapter, PropertyAttributes.Enumerable);
+            this.AddDeprecatedProperty(properties, "$7", GetGroup7Adapter, PropertyAttributes.Enumerable);
+            this.AddDeprecatedProperty(properties, "$8", GetGroup8Adapter, PropertyAttributes.Enumerable);
+            this.AddDeprecatedProperty(properties, "$9", GetGroup9Adapter, PropertyAttributes.Enumerable);
+            this.AddDeprecatedProperty(properties, "input", GetInputAdapter, PropertyAttributes.Enumerable);
+            this.AddDeprecatedProperty(properties, "$_", GetInputAdapter, PropertyAttributes.Sealed);
+            this.AddDeprecatedProperty(properties, "lastMatch", GetLastMatchAdapter, PropertyAttributes.Enumerable);
+            this.AddDeprecatedProperty(properties, "$&", GetLastMatchAdapter, PropertyAttributes.Sealed);
+            this.AddDeprecatedProperty(properties, "lastParen", GetLastParenAdapter, PropertyAttributes.Enumerable);
+            this.AddDeprecatedProperty(properties, "$+", GetLastParenAdapter, PropertyAttributes.Sealed);
+            this.AddDeprecatedProperty(properties, "leftContext", GetLeftContextAdapter, PropertyAttributes.Enumerable);
+            this.AddDeprecatedProperty(properties, "$`", GetLeftContextAdapter, PropertyAttributes.Sealed);
+            this.AddDeprecatedProperty(properties, "rightContext", GetRightContextAdapter, PropertyAttributes.Enumerable);
+            this.AddDeprecatedProperty(properties, "$'", GetRightContextAdapter, PropertyAttributes.Sealed);
         }
 
         /// <summary>
         /// Initializes a single deprecated property.
         /// </summary>
+        /// <param name="properties"> The list to add to. </param>
         /// <param name="propertyName"> The name of the property. </param>
         /// <param name="getter"> The property getter. </param>
         /// <param name="attributes"> The property attributes (determines whether the property is enumerable). </param>
-        private void InitializeDeprecatedProperty(string propertyName, Func<string> getter, PropertyAttributes attributes)
+        private void AddDeprecatedProperty(List<PropertyNameAndValue> properties, string propertyName, Func<ScriptEngine, object, object[], object> getter, PropertyAttributes attributes)
         {
-            this.DefineProperty(propertyName, new PropertyDescriptor(new PropertyAccessorValue(new ClrFunction(this.Engine.Function.InstancePrototype, getter), null), attributes), false);
+            var getterFunction = new ClrStubFunction(this.Engine.Function.InstancePrototype, getter);
+            properties.Add(new PropertyNameAndValue(propertyName, new PropertyDescriptor(new PropertyAccessorValue(getterFunction, null), attributes)));
         }
 
         /// <summary>
@@ -101,6 +119,18 @@ namespace Jurassic.Library
         }
 
         /// <summary>
+        /// Adapter for GetInput().
+        /// </summary>
+        /// <param name="engine"></param>
+        /// <param name="thisObj"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object GetInputAdapter(ScriptEngine engine, object thisObj, object[] args)
+        {
+            return GetInput();
+        }
+
+        /// <summary>
         /// Gets the value of RegExp.$1.
         /// </summary>
         /// <returns> The value of RegExp.$1. </returns>
@@ -109,6 +139,18 @@ namespace Jurassic.Library
             if (this.lastMatch == null || this.lastMatch.Groups.Count < 1)
                 return string.Empty;
             return this.lastMatch.Groups[1].Value;
+        }
+
+        /// <summary>
+        /// Adapter for GetGroup1().
+        /// </summary>
+        /// <param name="engine"></param>
+        /// <param name="thisObj"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object GetGroup1Adapter(ScriptEngine engine, object thisObj, object[] args)
+        {
+            return GetGroup1();
         }
 
         /// <summary>
@@ -123,6 +165,18 @@ namespace Jurassic.Library
         }
 
         /// <summary>
+        /// Adapter for GetGroup2().
+        /// </summary>
+        /// <param name="engine"></param>
+        /// <param name="thisObj"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object GetGroup2Adapter(ScriptEngine engine, object thisObj, object[] args)
+        {
+            return GetGroup2();
+        }
+
+        /// <summary>
         /// Gets the value of RegExp.$3.
         /// </summary>
         /// <returns> The value of RegExp.$3. </returns>
@@ -131,6 +185,18 @@ namespace Jurassic.Library
             if (this.lastMatch == null || this.lastMatch.Groups.Count < 3)
                 return string.Empty;
             return this.lastMatch.Groups[3].Value;
+        }
+
+        /// <summary>
+        /// Adapter for GetGroup3().
+        /// </summary>
+        /// <param name="engine"></param>
+        /// <param name="thisObj"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object GetGroup3Adapter(ScriptEngine engine, object thisObj, object[] args)
+        {
+            return GetGroup3();
         }
 
         /// <summary>
@@ -145,6 +211,18 @@ namespace Jurassic.Library
         }
 
         /// <summary>
+        /// Adapter for GetGroup4().
+        /// </summary>
+        /// <param name="engine"></param>
+        /// <param name="thisObj"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object GetGroup4Adapter(ScriptEngine engine, object thisObj, object[] args)
+        {
+            return GetGroup4();
+        }
+
+        /// <summary>
         /// Gets the value of RegExp.$5.
         /// </summary>
         /// <returns> The value of RegExp.$5. </returns>
@@ -153,6 +231,18 @@ namespace Jurassic.Library
             if (this.lastMatch == null || this.lastMatch.Groups.Count < 5)
                 return string.Empty;
             return this.lastMatch.Groups[5].Value;
+        }
+
+        /// <summary>
+        /// Adapter for GetGroup5().
+        /// </summary>
+        /// <param name="engine"></param>
+        /// <param name="thisObj"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object GetGroup5Adapter(ScriptEngine engine, object thisObj, object[] args)
+        {
+            return GetGroup5();
         }
 
         /// <summary>
@@ -167,6 +257,18 @@ namespace Jurassic.Library
         }
 
         /// <summary>
+        /// Adapter for GetGroup6().
+        /// </summary>
+        /// <param name="engine"></param>
+        /// <param name="thisObj"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object GetGroup6Adapter(ScriptEngine engine, object thisObj, object[] args)
+        {
+            return GetGroup6();
+        }
+
+        /// <summary>
         /// Gets the value of RegExp.$7.
         /// </summary>
         /// <returns> The value of RegExp.$7. </returns>
@@ -175,6 +277,18 @@ namespace Jurassic.Library
             if (this.lastMatch == null || this.lastMatch.Groups.Count < 7)
                 return string.Empty;
             return this.lastMatch.Groups[7].Value;
+        }
+
+        /// <summary>
+        /// Adapter for GetGroup7().
+        /// </summary>
+        /// <param name="engine"></param>
+        /// <param name="thisObj"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object GetGroup7Adapter(ScriptEngine engine, object thisObj, object[] args)
+        {
+            return GetGroup7();
         }
 
         /// <summary>
@@ -189,6 +303,18 @@ namespace Jurassic.Library
         }
 
         /// <summary>
+        /// Adapter for GetGroup8().
+        /// </summary>
+        /// <param name="engine"></param>
+        /// <param name="thisObj"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object GetGroup8Adapter(ScriptEngine engine, object thisObj, object[] args)
+        {
+            return GetGroup8();
+        }
+
+        /// <summary>
         /// Gets the value of RegExp.$9.
         /// </summary>
         /// <returns> The value of RegExp.$9. </returns>
@@ -200,14 +326,38 @@ namespace Jurassic.Library
         }
 
         /// <summary>
-        /// Gets the value of RegExp.lastMatch and RegExp.$&.
+        /// Adapter for GetGroup9().
         /// </summary>
-        /// <returns> The value of RegExp.lastMatch and RegExp.$&. </returns>
+        /// <param name="engine"></param>
+        /// <param name="thisObj"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object GetGroup9Adapter(ScriptEngine engine, object thisObj, object[] args)
+        {
+            return GetGroup9();
+        }
+
+        /// <summary>
+        /// Gets the value of RegExp.lastMatch and RegExp.$&amp;.
+        /// </summary>
+        /// <returns> The value of RegExp.lastMatch and RegExp.$&amp;. </returns>
         public string GetLastMatch()
         {
             if (this.lastMatch == null)
                 return string.Empty;
             return this.lastMatch.Value;
+        }
+
+        /// <summary>
+        /// Adapter for GetLastMatch().
+        /// </summary>
+        /// <param name="engine"></param>
+        /// <param name="thisObj"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object GetLastMatchAdapter(ScriptEngine engine, object thisObj, object[] args)
+        {
+            return GetLastMatch();
         }
 
         /// <summary>
@@ -224,6 +374,18 @@ namespace Jurassic.Library
         }
 
         /// <summary>
+        /// Adapter for GetLastParen().
+        /// </summary>
+        /// <param name="engine"></param>
+        /// <param name="thisObj"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object GetLastParenAdapter(ScriptEngine engine, object thisObj, object[] args)
+        {
+            return GetLastParen();
+        }
+
+        /// <summary>
         /// Gets the value of RegExp.leftContext and RegExp.$`.
         /// </summary>
         /// <returns> The value of RegExp.leftContext and RegExp.$`. </returns>
@@ -235,6 +397,18 @@ namespace Jurassic.Library
         }
 
         /// <summary>
+        /// Adapter for GetLeftContext().
+        /// </summary>
+        /// <param name="engine"></param>
+        /// <param name="thisObj"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object GetLeftContextAdapter(ScriptEngine engine, object thisObj, object[] args)
+        {
+            return GetLeftContext();
+        }
+
+        /// <summary>
         /// Gets the value of RegExp.rightContext and RegExp.$'.
         /// </summary>
         /// <returns> The value of RegExp.rightContext and RegExp.$'. </returns>
@@ -243,6 +417,18 @@ namespace Jurassic.Library
             if (this.lastMatch == null)
                 return string.Empty;
             return this.lastInput.Substring(this.lastMatch.Index + this.lastMatch.Length);
+        }
+
+        /// <summary>
+        /// Adapter for GetRightContext().
+        /// </summary>
+        /// <param name="engine"></param>
+        /// <param name="thisObj"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
+        private object GetRightContextAdapter(ScriptEngine engine, object thisObj, object[] args)
+        {
+            return GetRightContext();
         }
 
 
@@ -263,23 +449,14 @@ namespace Jurassic.Library
         /// i (ignore case)
         /// m (multiline search)</param>
         [JSCallFunction]
-        public RegExpInstance Call(object patternOrRegExp, [DefaultParameterValue(null)] string flags = null)
+        public ObjectInstance Call(object patternOrRegExp, string flags = null)
         {
-            if (patternOrRegExp is RegExpInstance)
-            {
-                // RegExp(/abc/)
-                if (flags != null)
-                    throw new JavaScriptException(this.Engine, "TypeError", "Cannot supply flags when constructing one RegExp from another");
-                return (RegExpInstance)patternOrRegExp;
-            }
-            else
-            {
-                // RegExp('abc', 'g')
-                var pattern = string.Empty;
-                if (TypeUtilities.IsUndefined(patternOrRegExp) == false)
-                    pattern = TypeConverter.ToString(patternOrRegExp);
-                return new RegExpInstance(this.InstancePrototype, pattern, flags);
-            }
+            if (flags == null &&
+                patternOrRegExp is ObjectInstance regExp &&
+                TypeConverter.ToBoolean(regExp[Symbol.Match]) &&
+                regExp["constructor"] == this)
+                return regExp;
+            return Construct(patternOrRegExp, flags);
         }
 
         /// <summary>
@@ -292,23 +469,46 @@ namespace Jurassic.Library
         /// g (global search for all occurrences of pattern)
         /// i (ignore case)
         /// m (multiline search)</param>
-        [JSConstructorFunction]
-        public RegExpInstance Construct(object patternOrRegExp, [DefaultParameterValue(null)] string flags = null)
+        public RegExpInstance Construct(object patternOrRegExp, string flags = null)
         {
-            if (patternOrRegExp is RegExpInstance)
+            return Construct(this, patternOrRegExp, flags);
+        }
+
+        /// <summary>
+        /// Called when the new keyword is used on the RegExp object e.g. new RegExp(/abc/).
+        /// Creates a new regular expression instance.
+        /// </summary>
+        /// <param name="newTarget"> The value of the new.target expression. </param>
+        /// <param name="patternOrRegExp"> The regular expression pattern, or a regular expression
+        /// to clone. </param>
+        /// <param name="flags"> Available flags, which may be combined, are:
+        /// g (global search for all occurrences of pattern)
+        /// i (ignore case)
+        /// m (multiline search)</param>
+        [JSConstructorFunction]
+        private RegExpInstance Construct(FunctionInstance newTarget, object patternOrRegExp, string flags = null)
+        {
+            var prototype = (newTarget["prototype"] as ObjectInstance) ?? this.InstancePrototype;
+            if (patternOrRegExp is RegExpInstance regExp)
             {
                 // new RegExp(regExp, flags)
                 if (flags != null)
-                    throw new JavaScriptException(this.Engine, "TypeError", "Cannot supply flags when constructing one RegExp from another");
-                return new RegExpInstance(this.InstancePrototype, (RegExpInstance)patternOrRegExp);
+                    return new RegExpInstance(prototype, regExp.Source, flags);
+                return new RegExpInstance(prototype, regExp);
+            }
+            else if (patternOrRegExp is ObjectInstance regExpLike && TypeConverter.ToBoolean(regExpLike[Symbol.Match]))
+            {
+                // new RegExp(regExp-like, flags)
+                var pattern = TypeConverter.ToString(regExpLike["source"], string.Empty);
+                if (flags == null)
+                    flags = TypeConverter.ToString(regExpLike["flags"], null);
+                return new RegExpInstance(prototype, pattern, flags);
             }
             else
             {
                 // new RegExp(pattern, flags)
-                var pattern = string.Empty;
-                if (TypeUtilities.IsUndefined(patternOrRegExp) == false)
-                    pattern = TypeConverter.ToString(patternOrRegExp);
-                return new RegExpInstance(this.InstancePrototype, pattern, flags);
+                var pattern = TypeConverter.ToString(patternOrRegExp, string.Empty);
+                return new RegExpInstance(prototype, pattern, flags);
             }
         }
     }

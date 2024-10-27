@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using Jurassic.Compiler;
 
@@ -9,7 +10,6 @@ namespace Jurassic.Library
     /// Represents the static portion of a CLR type that cannot be exposed directly but instead
     /// must be wrapped.
     /// </summary>
-    [Serializable]
     internal class ClrStaticTypeWrapper : FunctionInstance
     {
         private ClrBinder constructBinder;
@@ -29,7 +29,7 @@ namespace Jurassic.Library
         public static ClrStaticTypeWrapper FromCache(ScriptEngine engine, Type type)
         {
             if (!engine.EnableExposedClrTypes)
-                throw new JavaScriptException(engine, "TypeError", "Unsupported type: CLR types are not supported.  Enable CLR types by setting the ScriptEngine's EnableExposedClrTypes property to true.");
+                throw new JavaScriptException(ErrorType.TypeError, "Unsupported type: CLR types are not supported.  Enable CLR types by setting the ScriptEngine's EnableExposedClrTypes property to true.");
 
             ClrStaticTypeWrapper cachedInstance;
             if (engine.StaticTypeWrapperCache.TryGetValue(type, out cachedInstance) == true)
@@ -44,8 +44,6 @@ namespace Jurassic.Library
         /// </summary>
         /// <param name="engine"> The associated script engine. </param>
         /// <param name="type"> The CLR type to wrap. </param>
-        /// <param name="flags"> <c>BindingFlags.Static</c> to populate static methods;
-        /// <c>BindingFlags.Instance</c> to populate instance methods. </param>
         private ClrStaticTypeWrapper(ScriptEngine engine, Type type)
             : base(engine, GetPrototypeObject(engine, type))
         {
@@ -68,9 +66,9 @@ namespace Jurassic.Library
                 }
             }
 
-            this.FastSetProperty("name", type.Name);
+            this.FastSetProperty("name", type.Name, PropertyAttributes.Configurable);
             if (this.constructBinder != null)
-                this.FastSetProperty("length", this.constructBinder.FunctionLength);
+                this.FastSetProperty("length", this.constructBinder.FunctionLength, PropertyAttributes.Configurable);
 
             // Populate the fields, properties and methods.
             PopulateMembers(this, type, BindingFlags.Static);
@@ -85,9 +83,9 @@ namespace Jurassic.Library
         private static ObjectInstance GetPrototypeObject(ScriptEngine engine, Type type)
         {
             if (engine == null)
-                throw new ArgumentNullException("engine");
+                throw new ArgumentNullException(nameof(engine));
             if (type == null)
-                throw new ArgumentNullException("type");
+                throw new ArgumentNullException(nameof(type));
             if (type.BaseType == null)
                 return null;
             return ClrStaticTypeWrapper.FromCache(engine, type.BaseType);
@@ -110,7 +108,6 @@ namespace Jurassic.Library
 
 
 
-
         //     JAVASCRIPT INTERNAL FUNCTIONS
         //_________________________________________________________________________________________
 
@@ -122,19 +119,30 @@ namespace Jurassic.Library
         /// <returns> The value that was returned from the function. </returns>
         public override object CallLateBound(object thisObject, params object[] argumentValues)
         {
-            throw new JavaScriptException(this.Engine, "TypeError", "CLR types cannot be called like methods");
+            throw new JavaScriptException(ErrorType.TypeError, "CLR types cannot be called like methods");
         }
 
         /// <summary>
         /// Creates an object, using this function as the constructor.
         /// </summary>
+        /// <param name="newTarget"> The value of 'new.target'. </param>
         /// <param name="argumentValues"> An array of argument values. </param>
         /// <returns> The object that was created. </returns>
-        public override ObjectInstance ConstructLateBound(params object[] argumentValues)
+        public override ObjectInstance ConstructLateBound(FunctionInstance newTarget, params object[] argumentValues)
         {
-            if (this.constructBinder == null)
-                throw new JavaScriptException(this.Engine, "TypeError", string.Format("The type '{0}' has no public constructors", this.WrappedType));
-            var result = this.constructBinder.Call(this.Engine, this, argumentValues);
+            object result;
+
+            if (argumentValues.Length == 0 && this.WrappedType.IsValueType)
+            {
+                result = Activator.CreateInstance(this.WrappedType);
+            }
+            else
+            {
+                if (this.constructBinder == null)
+                    throw new JavaScriptException(ErrorType.TypeError, string.Format("The type '{0}' has no public constructors", this.WrappedType));
+                result = this.constructBinder.Call(this.Engine, this, argumentValues);
+            }
+
             if (result is ObjectInstance)
                 return (ObjectInstance)result;
             return new ClrInstanceWrapper(this.Engine, result);

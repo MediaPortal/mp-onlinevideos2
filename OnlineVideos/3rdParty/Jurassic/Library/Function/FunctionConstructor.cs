@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Jurassic.Library
 {
     /// <summary>
     /// Represents the built-in JavaScript Function object.
     /// </summary>
-    [Serializable]
-    public class FunctionConstructor : ClrFunction
+    public partial class FunctionConstructor : ClrStubFunction
     {
-
         //     INITIALIZATION
         //_________________________________________________________________________________________
 
@@ -19,8 +18,12 @@ namespace Jurassic.Library
         /// <param name="prototype"> The next object in the prototype chain. </param>
         /// <param name="instancePrototype"> The prototype for instances created by this function. </param>
         internal FunctionConstructor(ObjectInstance prototype, FunctionInstance instancePrototype)
-            : base(prototype, "Function", instancePrototype)
+            : base(prototype, __STUB__Construct, __STUB__Call)
         {
+            // Initialize the constructor properties.
+            var properties = new List<PropertyNameAndValue>(3);
+            InitializeConstructorProperties(properties, "Function", 1, instancePrototype);
+            InitializeProperties(properties);
         }
 
 
@@ -50,34 +53,13 @@ namespace Jurassic.Library
         {
             // Passing no arguments results in an empty function.
             if (argumentsAndBody.Length == 0)
-                return new UserDefinedFunction(this.InstancePrototype, "anonymous", new string[0], string.Empty);
+                return new UserDefinedFunction(this.InstancePrototype, "anonymous", string.Empty, string.Empty);
 
-            // Split any comma-delimited names.
-            var argumentNames = new List<string>();
-            for (int i = 0; i < argumentsAndBody.Length - 1; i++)
-            {
-                var splitNames = argumentsAndBody[i].Split(',');
-                if (splitNames.Length > 1 || StringInstance.Trim(splitNames[0]) != string.Empty)
-                {
-                    for (int j = 0; j < splitNames.Length; j++)
-                    {
-                        // Trim any whitespace from the start and end of the argument name.
-                        string argumentName = StringInstance.Trim(splitNames[j]);
-                        if (argumentName == string.Empty)
-                            throw new JavaScriptException(this.Engine, "SyntaxError", "Unexpected ',' in argument");
-
-                        // Check the name is valid and resolve any escape sequences.
-                        argumentName = Compiler.Lexer.ResolveIdentifier(this.Engine, argumentName);
-                        if (argumentName == null)
-                            throw new JavaScriptException(this.Engine, "SyntaxError", "Expected identifier");
-                        splitNames[j] = argumentName;
-                    }
-                }
-                argumentNames.AddRange(splitNames);
-            }
+            // Concatenate the function arguments (every parameter except the last one).
+            var argumentsString = string.Join(",", argumentsAndBody, 0, argumentsAndBody.Length - 1);
 
             // Create a new function.
-            return new UserDefinedFunction(this.InstancePrototype, "anonymous", argumentNames, argumentsAndBody[argumentsAndBody.Length - 1]);
+            return new UserDefinedFunction(this.InstancePrototype, "anonymous", argumentsString, argumentsAndBody[argumentsAndBody.Length - 1]);
         }
     }
 }

@@ -33,6 +33,9 @@ namespace OnlineVideos.MediaPortal1.Player
             {
                 Uri uri = new Uri(PreparedUrl);
                 // send all supported schemes to internal player
+                if (uri.Scheme == MixedUrl.MixedUrlScheme)
+                    PreparedPlayerType = PlayerType.Internal;
+                else
                 if (uri.Scheme.StartsWith("rtmp") || uri.Scheme.StartsWith("http") || uri.Scheme == "sop" || uri.Scheme == "mms")
                 {
                     PreparedPlayerType = PlayerType.Internal;

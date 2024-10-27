@@ -1,4 +1,5 @@
 ﻿using System;
+using Jurassic.Library;
 
 namespace Jurassic.Compiler
 {
@@ -44,10 +45,6 @@ namespace Jurassic.Compiler
         /// <param name="line"> The line number of the statement that is currently executing. </param>
         public static void Convert(ILGenerator generator, PrimitiveType fromType, PrimitiveType toType, string path, string function, int line)
         {
-            // Check that a conversion is actually necessary.
-            if (fromType == toType)
-                return;
-
             switch (toType)
             {
                 case PrimitiveType.Any:
@@ -258,8 +255,15 @@ namespace Jurassic.Compiler
         public static void ToInt32(ILGenerator generator, PrimitiveType fromType)
         {
             // Check that a conversion is actually necessary.
-            if (fromType == PrimitiveType.Int32 || fromType == PrimitiveType.UInt32 || fromType == PrimitiveType.Bool)
+            if (fromType == PrimitiveType.Int32 || fromType == PrimitiveType.UInt32)
                 return;
+            if (fromType == PrimitiveType.Bool)
+            {
+                // ToInt32(false) = 0, ToInt32(true) = 1, this corresponds exactly with the .NET
+                // representation of booleans.
+                generator.ReinterpretCast(typeof(int));
+                return;
+            }
 
             switch (fromType)
             {
@@ -297,6 +301,7 @@ namespace Jurassic.Compiler
         public static void ToUInt32(ILGenerator generator, PrimitiveType fromType)
         {
             ToInt32(generator, fromType);
+            generator.ConvertToUnsignedInteger();
         }
 
         /// <summary>
@@ -452,19 +457,6 @@ namespace Jurassic.Compiler
             
         }
 
-        //        /// <summary>
-        ///// Pops the value on the stack, converts it to a javascript object, then pushes the result
-        ///// onto the stack.
-        ///// </summary>
-        ///// <param name="generator"> The IL generator. </param>
-        ///// <param name="fromType"> The type to convert from. </param>
-        ///// <param name="path"> The path of the javascript source file that is currently executing. </param>
-        ///// <param name="function"> The name of the currently executing function. </param>
-        ///// <param name="line"> The line number of the statement that is currently executing. </param>
-        //public static void ToObject(ILGenerator generator, PrimitiveType fromType, string path, string function, int line)
-        //{
-        //}
-
         /// <summary>
         /// Pops the value on the stack, converts it to a javascript object, then pushes the result
         /// onto the stack.
@@ -490,18 +482,23 @@ namespace Jurassic.Compiler
         {
             // Check that a conversion is actually necessary.
             if (fromType == PrimitiveType.Object)
+            {
+                generator.ReinterpretCast(typeof(ObjectInstance));
                 return;
+            }
 
             switch (fromType)
             {
                 case PrimitiveType.Undefined:
                     // Converting from undefined always throws an exception.
-                    EmitHelpers.EmitThrow(generator, "TypeError", "Undefined cannot be converted to an object", path, function, line);
+                    EmitHelpers.EmitThrow(generator, ErrorType.TypeError, "Undefined cannot be converted to an object", path, function, line);
+                    generator.ReinterpretCast(typeof(ObjectInstance));
                     break;
 
                 case PrimitiveType.Null:
                     // Converting from null always throws an exception.
-                    EmitHelpers.EmitThrow(generator, "TypeError", "Null cannot be converted to an object", path, function, line);
+                    EmitHelpers.EmitThrow(generator, ErrorType.TypeError, "Null cannot be converted to an object", path, function, line);
+                    generator.ReinterpretCast(typeof(ObjectInstance));
                     break;
 
                 case PrimitiveType.Bool:
@@ -555,9 +552,7 @@ namespace Jurassic.Compiler
                 case PrimitiveType.Any:
                 case PrimitiveType.Object:
                     // Otherwise, fall back to calling TypeConverter.ToPrimitive()
-                    if (PrimitiveTypeUtilities.IsValueType(fromType))
-                        generator.Box(fromType);
-                    generator.LoadInt32((int)preferredType);
+                    generator.LoadEnumValue(preferredType);
                     generator.Call(ReflectionHelpers.TypeConverter_ToPrimitive);
                     break;
 
@@ -576,6 +571,27 @@ namespace Jurassic.Compiler
         {
             if (PrimitiveTypeUtilities.IsValueType(fromType))
                 generator.Box(fromType);
+            else
+                generator.ReinterpretCast(typeof(object));
+        }
+
+        /// <summary>
+        /// Pops the value on the stack, converts it to a property key (either a symbol or a
+        /// string), then pushes the result onto the stack.
+        /// </summary>
+        /// <param name="generator"> The IL generator. </param>
+        /// <param name="fromType"> The type to convert from. </param>
+        public static void ToPropertyKey(ILGenerator generator, PrimitiveType fromType)
+        {
+            // Symbols are of type object.
+            if (fromType == PrimitiveType.Object || fromType == PrimitiveType.Any)
+            {
+                generator.Call(ReflectionHelpers.TypeConverter_ToPropertyKey);
+                return;
+            }
+
+            // Fall back to calling ToString().
+            ToString(generator, fromType);
         }
     }
 

@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
+using ErrorType = Jurassic.Library.ErrorType;
 
 namespace Jurassic.Compiler
 {
     /// <summary>
-    /// Represents an assignment expression (++, --, =, +=, -=, *=, /=, %=, &=, |=, ^=, &lt;&lt;=, &gt;&gt;=, &gt;&gt;&gt;=).
+    /// Represents an assignment expression (++, --, =, +=, -=, *=, /=, %=, &amp;=, |=, ^=, &lt;&lt;=, &gt;&gt;=, &gt;&gt;&gt;=).
     /// </summary>
     internal class AssignmentExpression : OperatorExpression
     {
@@ -70,6 +70,8 @@ namespace Jurassic.Compiler
                     return Operator.Subtract;
                 case OperatorType.CompoundUnsignedRightShift:
                     return Operator.UnsignedRightShift;
+                case OperatorType.CompoundExponentiation:
+                    return Operator.Exponentiation;
             }
             return null;
         }
@@ -86,7 +88,7 @@ namespace Jurassic.Compiler
                     type == OperatorType.PostDecrement ||
                     type == OperatorType.PreIncrement ||
                     type == OperatorType.PreDecrement)
-                    return PrimitiveType.Number;
+                    return this.GetOperand(0).ResultType == PrimitiveType.Int32 ? PrimitiveType.Int32 : PrimitiveType.Number;
                 if (type == OperatorType.Assignment)
                     return this.GetOperand(1).ResultType;
                 var compoundOperator = new BinaryExpression(GetCompoundBaseOperator(type), this.GetOperand(0), this.GetOperand(1));
@@ -110,15 +112,15 @@ namespace Jurassic.Compiler
                 {
                     case OperatorType.PostIncrement:
                     case OperatorType.PostDecrement:
-                        EmitHelpers.EmitThrow(generator, "ReferenceError", "Invalid left-hand side in postfix operation", optimizationInfo);
+                        EmitHelpers.EmitThrow(generator, ErrorType.ReferenceError, "Invalid left-hand side in postfix operation", optimizationInfo);
                         break;
                     case OperatorType.PreIncrement:
                     case OperatorType.PreDecrement:
-                        EmitHelpers.EmitThrow(generator, "ReferenceError", "Invalid left-hand side in prefix operation", optimizationInfo);
+                        EmitHelpers.EmitThrow(generator, ErrorType.ReferenceError, "Invalid left-hand side in prefix operation", optimizationInfo);
                         break;
                     case OperatorType.Assignment:
                     default:
-                        EmitHelpers.EmitThrow(generator, "ReferenceError", "Invalid left-hand side in assignment", optimizationInfo);
+                        EmitHelpers.EmitThrow(generator, ErrorType.ReferenceError, "Invalid left-hand side in assignment", optimizationInfo);
                         break;
                 }
                 //if (optimizationInfo.SuppressReturnValue == false)
@@ -130,9 +132,9 @@ namespace Jurassic.Compiler
             if (optimizationInfo.StrictMode == true && target is NameExpression)
             {
                 if (((NameExpression)target).Name == "eval")
-                    throw new JavaScriptException(optimizationInfo.Engine, "SyntaxError", "The variable 'eval' cannot be modified in strict mode.", optimizationInfo.SourceSpan.StartLine, optimizationInfo.Source.Path, optimizationInfo.FunctionName);
+                    throw new SyntaxErrorException("The variable 'eval' cannot be modified in strict mode.", optimizationInfo.SourceSpan.StartLine, optimizationInfo.Source.Path, optimizationInfo.FunctionName);
                 if (((NameExpression)target).Name == "arguments")
-                    throw new JavaScriptException(optimizationInfo.Engine, "SyntaxError", "The variable 'arguments' cannot be modified in strict mode.", optimizationInfo.SourceSpan.StartLine, optimizationInfo.Source.Path, optimizationInfo.FunctionName);
+                    throw new SyntaxErrorException("The variable 'arguments' cannot be modified in strict mode.", optimizationInfo.SourceSpan.StartLine, optimizationInfo.Source.Path, optimizationInfo.FunctionName);
             }
 
             switch (this.OperatorType)
@@ -175,20 +177,33 @@ namespace Jurassic.Compiler
         /// <param name="target"> The target to modify. </param>
         private void GenerateAssignment(ILGenerator generator, OptimizationInfo optimizationInfo, IReferenceExpression target)
         {
+            // Evaluate the left hand side first!
+            target.GenerateReference(generator, optimizationInfo);
+
             // Load the value to assign.
             var rhs = this.GetOperand(1);
             rhs.GenerateCode(generator, optimizationInfo);
 
-            // Support the inferred function displayName property.
-            if (rhs is FunctionExpression)
-                ((FunctionExpression)rhs).GenerateDisplayName(generator, optimizationInfo, target.ToString(), false);
-
-            // Duplicate the value so it remains on the stack afterwards.
-            //if (optimizationInfo.SuppressReturnValue == false)
-            generator.Duplicate();
+            ILLocalVariable result = null;
+            if (optimizationInfo.IgnoreReturnValue != this)
+            {
+                // Store the RHS value so we can return it as the result of the expression.
+                result = generator.CreateTemporaryVariable(rhs.ResultType);
+                generator.Duplicate();
+                generator.StoreVariable(result);
+            }
 
             // Store the value.
-            target.GenerateSet(generator, optimizationInfo, rhs.ResultType, optimizationInfo.StrictMode);
+            target.GenerateSet(generator, optimizationInfo, rhs.ResultType);
+
+            if (optimizationInfo.IgnoreReturnValue != this)
+            {
+                // Restore the RHS value.
+                generator.LoadVariable(result);
+                generator.ReleaseTemporaryVariable(result);
+            }
+            else
+                optimizationInfo.ReturnValueWasNotGenerated = true;
         }
 
         /// <summary>
@@ -208,6 +223,10 @@ namespace Jurassic.Compiler
             // where the range has been carefully checked to make sure an out of range condition
             // cannot happen.
 
+            // Evaluate the left hand side only once.
+            target.GenerateReference(generator, optimizationInfo);
+            target.DuplicateReference(generator, optimizationInfo); // For the GenerateSet, later on.
+
             // Get the target value.
             target.GenerateGet(generator, optimizationInfo, true);
 
@@ -215,9 +234,14 @@ namespace Jurassic.Compiler
             if (target.Type != PrimitiveType.Int32)
                 EmitConversion.ToNumber(generator, target.Type);
 
-            // If this is PostIncrement or PostDecrement, duplicate the value so it can be produced as the return value.
-            if (postfix == true)
+            ILLocalVariable result = null;
+            if (optimizationInfo.IgnoreReturnValue != this && postfix == true)
+            {
+                // If this is PostIncrement or PostDecrement, store the value so it can be returned later.
+                result = generator.CreateTemporaryVariable(target.Type == PrimitiveType.Int32 ? PrimitiveType.Int32 : PrimitiveType.Number);
                 generator.Duplicate();
+                generator.StoreVariable(result);
+            }
 
             // Load the increment constant.
             if (target.Type == PrimitiveType.Int32)
@@ -231,12 +255,25 @@ namespace Jurassic.Compiler
             else
                 generator.Subtract();
 
-            // If this is PreIncrement or PreDecrement, duplicate the value so it can be produced as the return value.
-            if (postfix == false)
+            if (optimizationInfo.IgnoreReturnValue != this && postfix == false)
+            {
+                // If this is PreIncrement or PreDecrement, store the value so it can be returned later.
+                result = generator.CreateTemporaryVariable(target.Type == PrimitiveType.Int32 ? PrimitiveType.Int32 : PrimitiveType.Number);
                 generator.Duplicate();
+                generator.StoreVariable(result);
+            }
 
             // Store the value.
-            target.GenerateSet(generator, optimizationInfo, target.Type == PrimitiveType.Int32 ? PrimitiveType.Int32 : PrimitiveType.Number, optimizationInfo.StrictMode);
+            target.GenerateSet(generator, optimizationInfo, target.Type == PrimitiveType.Int32 ? PrimitiveType.Int32 : PrimitiveType.Number);
+
+            if (optimizationInfo.IgnoreReturnValue != this)
+            {
+                // Restore the expression result.
+                generator.LoadVariable(result);
+                generator.ReleaseTemporaryVariable(result);
+            }
+            else
+                optimizationInfo.ReturnValueWasNotGenerated = true;
         }
 
         /// <summary>
@@ -312,6 +349,43 @@ namespace Jurassic.Compiler
         }
 
         /// <summary>
+        /// This is a private class that supports generating code for compound operators (e.g. +=).
+        /// </summary>
+        private class ReferenceGetExpression : Expression
+        {
+            private IReferenceExpression reference;
+            private bool codeGenerated;
+
+            public ReferenceGetExpression(IReferenceExpression reference)
+            {
+                this.reference = reference;
+            }
+
+            /// <summary>
+            /// Generates CIL for the expression.
+            /// </summary>
+            /// <param name="generator"> The generator to output the CIL to. </param>
+            /// <param name="optimizationInfo"> Information about any optimizations that should be performed. </param>
+            public override void GenerateCode(ILGenerator generator, OptimizationInfo optimizationInfo)
+            {
+                // The stack is only set up to allow GenerateGet to be called once.
+                // This is a quick little fail-safe to ensure this is true.
+                if (this.codeGenerated == true)
+                    throw new InvalidOperationException("GenerateCode should only be called once.");
+                this.reference.GenerateGet(generator, optimizationInfo, true);
+                this.codeGenerated = true;
+            }
+
+            /// <summary>
+            /// Gets the type that results from evaluating this expression.
+            /// </summary>
+            public override PrimitiveType ResultType
+            {
+                get { return this.reference.Type; }
+            }
+        }
+
+        /// <summary>
         /// Generates CIL for a compound assignment expression.
         /// </summary>
         /// <param name="generator"> The generator to output the CIL to. </param>
@@ -319,16 +393,55 @@ namespace Jurassic.Compiler
         /// <param name="target"> The target to modify. </param>
         private void GenerateCompoundAssignment(ILGenerator generator, OptimizationInfo optimizationInfo, IReferenceExpression target)
         {
+            // Evaluate the left hand side only once.
+            target.GenerateReference(generator, optimizationInfo);
+            target.DuplicateReference(generator, optimizationInfo); // For the GenerateSet, later on.
+
             // Load the value to assign.
-            var compoundOperator = new BinaryExpression(GetCompoundBaseOperator(this.OperatorType), this.GetOperand(0), this.GetOperand(1));
+            var compoundOperator = new BinaryExpression(GetCompoundBaseOperator(this.OperatorType), new ReferenceGetExpression(target), this.GetOperand(1));
             compoundOperator.GenerateCode(generator, optimizationInfo);
 
-            // Duplicate the value so it remains on the stack afterwards.
-            //if (optimizationInfo.SuppressReturnValue == false)
-            generator.Duplicate();
+            ILLocalVariable result = null;
+            if (optimizationInfo.IgnoreReturnValue != this)
+            {
+                // Store the resulting value so we can return it as the result of the expression.
+                result = generator.CreateTemporaryVariable(compoundOperator.ResultType);
+                generator.Duplicate();
+                generator.StoreVariable(result);
+            }
 
             // Store the value.
-            target.GenerateSet(generator, optimizationInfo, compoundOperator.ResultType, optimizationInfo.StrictMode);
+            target.GenerateSet(generator, optimizationInfo, compoundOperator.ResultType);
+
+            if (optimizationInfo.IgnoreReturnValue != this)
+            {
+                // Restore the expression result.
+                generator.LoadVariable(result);
+                generator.ReleaseTemporaryVariable(result);
+            }
+            else
+                optimizationInfo.ReturnValueWasNotGenerated = true;
+        }
+
+        /// <summary>
+        /// Checks the expression is valid and throws a SyntaxErrorException if not.
+        /// Called after the expression tree is fully built out.
+        /// </summary>
+        /// <param name="context"> Indicates where the code is located e.g. inside a function, or a constructor, etc. </param>
+        /// <param name="lineNumber"> The line number to use when throwing an exception. </param>
+        /// <param name="sourcePath"> The source path to use when throwing an exception. </param>
+        public override void CheckValidity(CodeContext context, int lineNumber, string sourcePath)
+        {
+            if (OperandCount > 0 && !(GetOperand(0) is IReferenceExpression))
+            {
+                if (Operator.HasLHSOperand && Operator.HasRHSOperand)
+                    throw new SyntaxErrorException("Invalid left-hand side in assignment.", lineNumber, sourcePath);
+                if (Operator.HasLHSOperand)
+                    throw new SyntaxErrorException("Invalid target of postfix operation.", lineNumber, sourcePath);
+                if (Operator.HasRHSOperand)
+                    throw new SyntaxErrorException("Invalid target of prefix operation.", lineNumber, sourcePath);
+            }
+            base.CheckValidity(context, lineNumber, sourcePath);
         }
     }
 

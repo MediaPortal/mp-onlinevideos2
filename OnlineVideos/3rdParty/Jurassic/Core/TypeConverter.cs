@@ -1,14 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using Jurassic.Library;
 
 namespace Jurassic
 {
+    /// <summary>
+    /// Provides a hint on how to do the conversion when converting to a primitive.
+    /// </summary>
     public enum PrimitiveTypeHint
     {
+        /// <summary>
+        /// Use the default behaviour.
+        /// </summary>
         None,
+
+        /// <summary>
+        /// Prefer converting to a number.
+        /// </summary>
         Number,
+
+        /// <summary>
+        /// Prefer converting to a string.
+        /// </summary>
         String,
     }
 
@@ -50,7 +62,7 @@ namespace Jurassic
                 return ToObject(engine, value);
             if (type == typeof(object))
                 return value;
-            throw new ArgumentException(string.Format("Cannot convert to '{0}'.  The type is unsupported.", type), "value");
+            throw new ArgumentException(string.Format("Cannot convert to '{0}'.  The type is unsupported.", type), nameof(value));
         }
 
         /// <summary>
@@ -76,9 +88,11 @@ namespace Jurassic
                 return ((string)value).Length > 0;
             if (value is ConcatenatedString)
                 return ((ConcatenatedString)value).Length > 0;
+            if (value is Symbol)
+                return true;
             if (value is ObjectInstance)
                 return true;
-            throw new ArgumentException(string.Format("Cannot convert object of type '{0}' to a boolean.", value.GetType()), "value");
+            throw new ArgumentException(string.Format("Cannot convert object of type '{0}' to a boolean.", value.GetType()), nameof(value));
         }
 
         /// <summary>
@@ -104,9 +118,11 @@ namespace Jurassic
                 return NumberParser.CoerceToNumber((string)value);
             if (value is ConcatenatedString)
                 return NumberParser.CoerceToNumber(value.ToString());
+            if (value is Symbol)
+                throw new JavaScriptException(ErrorType.TypeError, "Cannot convert a Symbol value to a number.");
             if (value is ObjectInstance)
                 return ToNumber(ToPrimitive(value, PrimitiveTypeHint.Number));
-            throw new ArgumentException(string.Format("Cannot convert object of type '{0}' to a number.", value.GetType()), "value");
+            throw new ArgumentException(string.Format("Cannot convert object of type '{0}' to a number.", value.GetType()), nameof(value));
         }
 
         // Single-item cache.
@@ -124,8 +140,19 @@ namespace Jurassic
         /// <returns> A primitive string value. </returns>
         public static string ToString(object value)
         {
+            return ToString(value, "undefined");
+        }
+
+        /// <summary>
+        /// Converts any JavaScript value to a primitive string value.
+        /// </summary>
+        /// <param name="value"> The value to convert. </param>
+        /// <param name="defaultValue"> The value to return if the input is undefined. </param>
+        /// <returns> A primitive string value. </returns>
+        internal static string ToString(object value, string defaultValue)
+        {
             if (value == null || value == Undefined.Value)
-                return "undefined";
+                return defaultValue;
             if (value == Null.Value)
                 return "null";
             if (value is bool)
@@ -155,9 +182,11 @@ namespace Jurassic
                 return (string)value;
             if (value is ConcatenatedString)
                 return value.ToString();
+            if (value is Symbol)
+                throw new JavaScriptException(ErrorType.TypeError, "Cannot convert a Symbol value to a string.");
             if (value is ObjectInstance)
                 return ToString(ToPrimitive(value, PrimitiveTypeHint.String));
-            throw new ArgumentException(string.Format("Cannot convert object of type '{0}' to a string.", value.GetType()), "value");
+            throw new ArgumentException(string.Format("Cannot convert object of type '{0}' to a string.", value.GetType()), nameof(value));
         }
 
         /// <summary>
@@ -195,26 +224,46 @@ namespace Jurassic
         public static ObjectInstance ToObject(ScriptEngine engine, object value, int lineNumber, string sourcePath, string functionName)
         {
             if (engine == null)
-                throw new ArgumentNullException("engine");
+                throw new ArgumentNullException(nameof(engine));
             if (value is ObjectInstance)
                 return (ObjectInstance)value;
             if (value == null || value == Undefined.Value)
-                throw new JavaScriptException(engine, "TypeError", "undefined cannot be converted to an object", lineNumber, sourcePath, functionName);
+                throw new JavaScriptException(ErrorType.TypeError, "undefined cannot be converted to an object", lineNumber, sourcePath, functionName);
             if (value == Null.Value)
-                throw new JavaScriptException(engine, "TypeError", "null cannot be converted to an object", lineNumber, sourcePath, functionName);
+                throw new JavaScriptException(ErrorType.TypeError, "null cannot be converted to an object", lineNumber, sourcePath, functionName);
+
+            ObjectInstance result;
             if (value is bool)
-                return engine.Boolean.Construct((bool)value);
-            if (value is int)
-                return engine.Number.Construct((int)value);
-            if (value is uint)
-                return engine.Number.Construct((uint)value);
-            if (value is double)
-                return engine.Number.Construct((double)value);
-            if (value is string)
-                return engine.String.Construct((string)value);
-            if (value is ConcatenatedString)
-                return engine.String.Construct(value.ToString());
-            throw new ArgumentException(string.Format("Cannot convert object of type '{0}' to an object.", value.GetType()), "value");
+                result = engine.Boolean.Construct((bool)value);
+            else if (value is int)
+                result = engine.Number.Construct((int)value);
+            else if (value is uint)
+                result = engine.Number.Construct((uint)value);
+            else if (value is double)
+                result = engine.Number.Construct((double)value);
+            else if (value is string)
+                result = engine.String.Construct((string)value);
+            else if (value is ConcatenatedString)
+                result = engine.String.Construct(value.ToString());
+            else if (value is Symbol symbolValue)
+                result = new SymbolInstance(engine.Symbol.InstancePrototype, symbolValue);
+            else
+                throw new ArgumentException(string.Format("Cannot convert object of type '{0}' to an object.", value.GetType()), nameof(value));
+
+            return result;
+        }
+
+        /// <summary>
+        /// Converts any JavaScript value to an object.
+        /// </summary>
+        /// <param name="engine"> The script engine used to create new objects. </param>
+        /// <param name="value"> The value to convert. </param>
+        /// <returns> An object. </returns>
+        public static T ToObject<T>(ScriptEngine engine, object value) where T : ObjectInstance
+        {
+            if (value is T)
+                return (T)value;
+            throw new JavaScriptException(ErrorType.TypeError, "Incorrect argument type.");
         }
 
         /// <summary>
@@ -230,6 +279,18 @@ namespace Jurassic
                 return ((ObjectInstance)value).GetPrimitiveValue(preferredType);
             else
                 return value;
+        }
+
+        /// <summary>
+        /// Converts a value to a property key (either a string or a symbol).
+        /// </summary>
+        /// <param name="value"> The value to convert. </param>
+        /// <returns> A property key value. </returns>
+        public static object ToPropertyKey(object value)
+        {
+            if (value is Symbol)
+                return value;
+            return ToString(value);
         }
 
         /// <summary>
@@ -276,6 +337,16 @@ namespace Jurassic
         }
 
         /// <summary>
+        /// Converts any JavaScript value to a signed 16-bit integer.
+        /// </summary>
+        /// <param name="value"> The value to convert. </param>
+        /// <returns> A signed 16-bit integer value. </returns>
+        public static short ToInt16(object value)
+        {
+            return (short)(uint)ToNumber(value);
+        }
+
+        /// <summary>
         /// Converts any JavaScript value to an unsigned 16-bit integer.
         /// </summary>
         /// <param name="value"> The value to convert. </param>
@@ -285,6 +356,45 @@ namespace Jurassic
             return (ushort)(uint)ToNumber(value);
         }
 
+        /// <summary>
+        /// Converts any JavaScript value to a signed 8-bit integer.
+        /// </summary>
+        /// <param name="value"> The value to convert. </param>
+        /// <returns> A signed 8-bit integer value. </returns>
+        public static sbyte ToInt8(object value)
+        {
+            return (sbyte)(uint)ToNumber(value);
+        }
+
+        /// <summary>
+        /// Converts any JavaScript value to an unsigned 8-bit integer.
+        /// </summary>
+        /// <param name="value"> The value to convert. </param>
+        /// <returns> An unsigned 8-bit integer value. </returns>
+        public static byte ToUint8(object value)
+        {
+            return (byte)(uint)ToNumber(value);
+        }
+
+        /// <summary>
+        /// Utility method to convert an object array to a typed array.
+        /// </summary>
+        /// <typeparam name="T"> The type to convert to. </typeparam>
+        /// <param name="engine"> The script engine used to create new objects. </param>
+        /// <param name="args"> The array to convert. </param>
+        /// <param name="offset"> The number of elements to skip at the beginning of the array. </param>
+        /// <returns> A typed array. </returns>
+        internal static T[] ConvertParameterArrayTo<T>(ScriptEngine engine, object[] args, int offset)
+        {
+            if (offset >= args.Length)
+                return new T[0];
+            var result = new T[args.Length - offset];
+            for (int i = 0; i < result.Length; i++)
+            {
+                result[i] = ConvertTo<T>(engine, args[offset + i]);
+            }
+            return result;
+        }
     }
 
 }

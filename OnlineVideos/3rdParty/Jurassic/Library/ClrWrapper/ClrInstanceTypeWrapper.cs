@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
-using Jurassic.Compiler;
 
 namespace Jurassic.Library
 {
@@ -9,7 +8,6 @@ namespace Jurassic.Library
     /// Represents the instance portion of a CLR type that cannot be exposed directly but instead
     /// must be wrapped.
     /// </summary>
-    [Serializable]
     internal class ClrInstanceTypeWrapper : ObjectInstance
     {
 
@@ -25,7 +23,7 @@ namespace Jurassic.Library
         public static ClrInstanceTypeWrapper FromCache(ScriptEngine engine, Type type)
         {
             if (!engine.EnableExposedClrTypes)
-                throw new JavaScriptException(engine, "TypeError", "Unsupported type: CLR types are not supported.  Enable CLR types by setting the ScriptEngine's EnableExposedClrTypes property to true.");
+                throw new JavaScriptException(ErrorType.TypeError, "Unsupported type: CLR types are not supported.  Enable CLR types by setting the ScriptEngine's EnableExposedClrTypes property to true.");
 
             ClrInstanceTypeWrapper cachedInstance;
             if (engine.InstanceTypeWrapperCache.TryGetValue(type, out cachedInstance) == true)
@@ -58,9 +56,9 @@ namespace Jurassic.Library
         private static ObjectInstance GetPrototypeObject(ScriptEngine engine, Type type)
         {
             if (engine == null)
-                throw new ArgumentNullException("engine");
+                throw new ArgumentNullException(nameof(engine));
             if (type == null)
-                throw new ArgumentNullException("type");
+                throw new ArgumentNullException(nameof(type));
             if (type.BaseType == null)
                 return null;
             return ClrInstanceTypeWrapper.FromCache(engine, type.BaseType);
@@ -80,7 +78,6 @@ namespace Jurassic.Library
             get;
             private set;
         }
-
 
 
 

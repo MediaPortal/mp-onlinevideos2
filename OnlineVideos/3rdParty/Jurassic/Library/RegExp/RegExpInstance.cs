@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Jurassic.Library
@@ -7,12 +8,11 @@ namespace Jurassic.Library
     /// <summary>
     /// Represents an instance of the RegExp object.
     /// </summary>
-    [Serializable]
-    public class RegExpInstance : ObjectInstance
+    public partial class RegExpInstance : ObjectInstance
     {
         private Regex value;
         private bool globalSearch;
-
+        private string source;
 
 
         //     INITIALIZATION
@@ -31,24 +31,23 @@ namespace Jurassic.Library
             : base(prototype)
         {
             if (pattern == null)
-                throw new ArgumentNullException("pattern");
+                throw new ArgumentNullException(nameof(pattern));
 
             try
             {
-                this.value = new Regex(pattern, ParseFlags(flags));
+                this.value = CreateRegex(pattern, ParseFlags(flags));
             }
             catch (ArgumentException ex)
             {
                 // Wrap the exception so that it can be caught within javascript code.
-                throw new JavaScriptException(this.Engine, "SyntaxError", "Invalid regular expression - " + ex.Message);
+                throw new JavaScriptException(ErrorType.SyntaxError, "Invalid regular expression - " + ex.Message);
             }
 
             // Initialize the javascript properties.
-            this.FastSetProperty("source", pattern);
-            this.FastSetProperty("global", this.Global);
-            this.FastSetProperty("multiline", this.Multiline);
-            this.FastSetProperty("ignoreCase", this.IgnoreCase);
-            this.FastSetProperty("lastIndex", 0.0, PropertyAttributes.Writable);
+            InitializeProperties(new PropertyNameAndValue[]
+                {
+                    new PropertyNameAndValue("lastIndex", 0.0, PropertyAttributes.Writable),
+                });
         }
 
         /// <summary>
@@ -61,16 +60,29 @@ namespace Jurassic.Library
             : base(prototype)
         {
             if (existingInstance == null)
-                throw new ArgumentNullException("existingInstance");
+                throw new ArgumentNullException(nameof(existingInstance));
             this.value = existingInstance.value;
             this.globalSearch = existingInstance.globalSearch;
 
             // Initialize the javascript properties.
-            this.FastSetProperty("source", existingInstance.Source);
-            this.FastSetProperty("global", existingInstance.Global);
-            this.FastSetProperty("multiline", existingInstance.Multiline);
-            this.FastSetProperty("ignoreCase", existingInstance.IgnoreCase);
-            this.FastSetProperty("lastIndex", 0.0, PropertyAttributes.Writable);
+            InitializeProperties(new PropertyNameAndValue[]
+                {
+                    new PropertyNameAndValue("lastIndex", 0.0, PropertyAttributes.Writable),
+                });
+        }
+
+        /// <summary>
+        /// Creates the RegExp prototype object.
+        /// </summary>
+        /// <param name="engine"> The script environment. </param>
+        /// <param name="constructor"> A reference to the constructor that owns the prototype. </param>
+        internal static ObjectInstance CreatePrototype(ScriptEngine engine, RegExpConstructor constructor)
+        {
+            var result = engine.Object.Construct();
+            var properties = GetDeclarativeProperties(engine);
+            properties.Add(new PropertyNameAndValue("constructor", constructor, PropertyAttributes.NonEnumerable));
+            result.InitializeProperties(properties);
+            return result;
         }
 
 
@@ -79,38 +91,11 @@ namespace Jurassic.Library
         //_________________________________________________________________________________________
 
         /// <summary>
-        /// Gets the internal class name of the object.  Used by the default toString()
-        /// implementation.
-        /// </summary>
-        protected override string InternalClassName
-        {
-            get { return "RegExp"; }
-        }
-
-        /// <summary>
         /// Gets the primitive value of this object.
         /// </summary>
         public Regex Value
         {
             get { return this.value; }
-        }
-
-        /// <summary>
-        /// Gets a string that contains the flags.
-        /// </summary>
-        public string Flags
-        {
-            get
-            {
-                var result = new System.Text.StringBuilder(3);
-                if (this.Global)
-                    result.Append("g");
-                if (this.IgnoreCase)
-                    result.Append("i");
-                if (this.Multiline)
-                    result.Append("m");
-                return result.ToString();
-            }
         }
 
 
@@ -121,9 +106,29 @@ namespace Jurassic.Library
         /// <summary>
         /// Gets the regular expression pattern.
         /// </summary>
+        [JSProperty(Name = "source")]
         public string Source
         {
-            get { return this.value.ToString(); }
+            get { return this.source ?? this.value.ToString(); }
+        }
+
+        /// <summary>
+        /// Gets a string that contains the flags.
+        /// </summary>
+        [JSProperty(Name = "flags")]
+        public string Flags
+        {
+            get
+            {
+                var result = new StringBuilder(3);
+                if (this.Global)
+                    result.Append("g");
+                if (this.IgnoreCase)
+                    result.Append("i");
+                if (this.Multiline)
+                    result.Append("m");
+                return result.ToString();
+            }
         }
 
         /// <summary>
@@ -131,6 +136,7 @@ namespace Jurassic.Library
         /// indicates that a search should find all occurrences of the pattern within the searched
         /// string, not just the first one.
         /// </summary>
+        [JSProperty(Name = "global")]
         public bool Global
         {
             get { return this.globalSearch; }
@@ -141,6 +147,7 @@ namespace Jurassic.Library
         /// indicates that the ^ and $ tokens should match the start and end of lines and not just
         /// the start and end of the string.
         /// </summary>
+        [JSProperty(Name = "multiline")]
         public bool Multiline
         {
             get { return (this.value.Options & RegexOptions.Multiline) != 0;}
@@ -151,6 +158,7 @@ namespace Jurassic.Library
         /// indicates that a search should ignore differences in case between the pattern and the
         /// matched string.
         /// </summary>
+        [JSProperty(Name = "ignoreCase")]
         public bool IgnoreCase
         {
             get { return (this.value.Options & RegexOptions.IgnoreCase) != 0; }
@@ -179,18 +187,11 @@ namespace Jurassic.Library
         /// i (ignore case)
         /// m (multiline search)</param>
         [JSInternalFunction(Deprecated = true, Name = "compile")]
-        public void Compile(string pattern, [DefaultParameterValue(null)] string flags = null)
+        public ObjectInstance Compile(string pattern, string flags = null)
         {
-#if !SILVERLIGHT
-            this.value = new Regex(pattern, ParseFlags(flags) | RegexOptions.Compiled);
-#endif
-
-            // Update the javascript properties.
-            this.FastSetProperty("source", pattern);
-            this.FastSetProperty("global", this.Global);
-            this.FastSetProperty("multiline", this.Multiline);
-            this.FastSetProperty("ignoreCase", this.IgnoreCase);
+            this.value = CreateRegex(pattern, ParseFlags(flags) | RegexOptions.Compiled);
             this.LastIndex = 0;
+            return this;
         }
 
         /// <summary>
@@ -282,6 +283,7 @@ namespace Jurassic.Library
         /// </summary>
         /// <param name="input"> The string on which to perform the search. </param>
         /// <returns> An array containing the matched strings. </returns>
+        [JSInternalFunction(Name = "@@match")]
         public object Match(string input)
         {
             // If the global flag is not set, returns a single match.
@@ -301,6 +303,20 @@ namespace Jurassic.Library
             for (int i = 0; i < matches.Count; i++)
                 matchValues[i] = matches[i].Value;
             return this.Engine.Array.New(matchValues);
+        }
+
+        /// <summary>
+        /// Returns a copy of the given string with text replaced using a regular expression.
+        /// </summary>
+        /// <param name="input"> The string on which to perform the search. </param>
+        /// <param name="replaceValue"> A string containing the text to replace for every successful match. </param>
+        /// <returns> A copy of the given string with text replaced using a regular expression. </returns>
+        [JSInternalFunction(Name = "@@replace")]
+        public string Replace(string input, object replaceValue)
+        {
+            if (replaceValue is FunctionInstance replaceFunction)
+                return Replace(input, replaceFunction);
+            return Replace(input, TypeConverter.ToString(replaceValue));
         }
 
         /// <summary>
@@ -401,6 +417,7 @@ namespace Jurassic.Library
         /// <param name="replaceFunction"> A function that is called to produce the text to replace
         /// for every successful match. </param>
         /// <returns> A copy of the given string with text replaced using a regular expression. </returns>
+        
         public string Replace(string input, FunctionInstance replaceFunction)
         {
             return this.value.Replace(input, match =>
@@ -427,6 +444,7 @@ namespace Jurassic.Library
         /// </summary>
         /// <param name="input"> The string on which to perform the search. </param>
         /// <returns> The character position of the first match, or -1 if no match was found. </returns>
+        [JSInternalFunction(Name = "@@search")]
         public int Search(string input)
         {
             // Perform the regular expression matching.
@@ -449,7 +467,8 @@ namespace Jurassic.Library
         /// <param name="input"> The string to split. </param>
         /// <param name="limit"> The maximum number of array items to return.  Defaults to unlimited. </param>
         /// <returns> An array containing the split strings. </returns>
-        public ArrayInstance Split(string input, [DefaultParameterValue(uint.MaxValue)] uint limit = uint.MaxValue)
+        [JSInternalFunction(Name = "@@split")]
+        public ArrayInstance Split(string input, uint limit = uint.MaxValue)
         {
             // Return an empty array if limit = 0.
             if (limit == 0)
@@ -506,11 +525,14 @@ namespace Jurassic.Library
         /// <summary>
         /// Returns a string representing the current object.
         /// </summary>
+        /// <param name="thisObject"> The object that is being operated on. </param>
         /// <returns> A string representing the current object. </returns>
-        [JSInternalFunction(Name = "toString")]
-        public new string ToString()
+        [JSInternalFunction(Name = "toString", Flags = JSFunctionFlags.HasThisObject)]
+        public static string ToString(ObjectInstance thisObject)
         {
-            return string.Format("/{0}/{1}", this.Source, this.Flags);
+            return string.Format("/{0}/{1}",
+                TypeConverter.ToString(thisObject["source"]),
+                TypeConverter.ToString(thisObject["flags"]));
         }
 
 
@@ -539,28 +561,93 @@ namespace Jurassic.Library
                     if (flag == 'g')
                     {
                         if (this.globalSearch == true)
-                            throw new JavaScriptException(this.Engine, "SyntaxError", "The 'g' flag cannot be specified twice");
+                            throw new JavaScriptException(ErrorType.SyntaxError, "The 'g' flag cannot be specified twice");
                         this.globalSearch = true;
                     }
                     else if (flag == 'i')
                     {
                         if ((options & RegexOptions.IgnoreCase) == RegexOptions.IgnoreCase)
-                            throw new JavaScriptException(this.Engine, "SyntaxError", "The 'i' flag cannot be specified twice");
+                            throw new JavaScriptException(ErrorType.SyntaxError, "The 'i' flag cannot be specified twice");
                         options |= RegexOptions.IgnoreCase;
                     }
                     else if (flag == 'm')
                     {
                         if ((options & RegexOptions.Multiline) == RegexOptions.Multiline)
-                            throw new JavaScriptException(this.Engine, "SyntaxError", "The 'm' flag cannot be specified twice");
+                            throw new JavaScriptException(ErrorType.SyntaxError, "The 'm' flag cannot be specified twice");
                         options |= RegexOptions.Multiline;
                     }
                     else
                     {
-                        throw new JavaScriptException(this.Engine, "SyntaxError", string.Format("Unknown flag '{0}'", flag));
+                        throw new JavaScriptException(ErrorType.SyntaxError, string.Format("Unknown flag '{0}'", flag));
                     }
                 }
             }
             return options;
+        }
+
+        /// <summary>
+        /// Creates a .NET Regex object using the given pattern and options.
+        /// </summary>
+        /// <param name="pattern"> The pattern string. </param>
+        /// <param name="options"> The regular expression options. </param>
+        /// <returns> A constructed .NET Regex object. </returns>
+        private Regex CreateRegex(string pattern, RegexOptions options)
+        {
+            if ((options & RegexOptions.Multiline) == RegexOptions.Multiline)
+            {
+                // In the .NET Regex implementation with multiline mode:
+                // '.' matches any character except \n
+                // '^' matches the start of the string or \n (positive lookbehind)
+                // '$' matches the end of the string or \n (positive lookahead)
+                // In Javascript, we want all three characters to also match \r in the same way they match \n.
+
+                StringBuilder builder = null;
+                int start = 0, end = -1;
+                while (end < pattern.Length)
+                {
+                    end = pattern.IndexOfAny(new char[] { '.', '^', '$', '\\' }, end + 1);
+                    if (end == -1)
+                        break;
+                    if (builder == null)
+                        builder = new StringBuilder();
+                    builder.Append(pattern.Substring(start, end - start));
+                    start = end + 1;
+                    switch (pattern[end])
+                    {
+                        case '.':
+                            builder.Append(@"[^\r\n]");
+                            break;
+                        case '^':
+                            // [^abc] is a thing. The ^ does NOT match the start of the line in this case.
+                            if (end > 0 && pattern[end - 1] == '[')
+                                builder.Append('^');
+                            else
+                                builder.Append(@"(?<=^|\r)");
+                            break;
+                        case '$':
+                            builder.Append(@"(?=$|\r)");
+                            break;
+                        case '\\':
+                            // $ is an anchor. \$ matches the literal dollar sign. \\$ is a backslash then an anchor.
+                            if (end < pattern.Length - 1)
+                            {
+                                builder.Append(pattern[end]);
+                                builder.Append(pattern[end + 1]);
+                                start++;
+                                end++;
+                            }
+                            break;
+                    }
+                }
+                if (builder != null)
+                {
+                    this.source = pattern;
+                    builder.Append(pattern.Substring(start));
+                    pattern = builder.ToString();
+                }
+            }
+
+            return new Regex(pattern, options);
         }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace Jurassic.Compiler
 {
@@ -11,34 +10,17 @@ namespace Jurassic.Compiler
         /// <summary>
         /// Creates a new MethodGenerator instance.
         /// </summary>
-        /// <param name="engine"> The script engine. </param>
-        /// <param name="scope"> The initial scope. </param>
         /// <param name="source"> The source of javascript code. </param>
         /// <param name="options"> Options that influence the compiler. </param>
-        protected MethodGenerator(ScriptEngine engine, Scope scope, ScriptSource source, CompilerOptions options)
+        protected MethodGenerator(ScriptSource source, CompilerOptions options)
         {
-            if (engine == null)
-                throw new ArgumentNullException("engine");
-            if (scope == null)
-                throw new ArgumentNullException("scope");
             if (source == null)
-                throw new ArgumentNullException("source");
+                throw new ArgumentNullException(nameof(source));
             if (options == null)
-                throw new ArgumentNullException("options");
-            this.Engine = engine;
-            this.InitialScope = scope;
+                throw new ArgumentNullException(nameof(options));
             this.Source = source;
             this.Options = options;
             this.StrictMode = this.Options.ForceStrictMode;
-        }
-
-        /// <summary>
-        /// Gets a reference to the script engine.
-        /// </summary>
-        public ScriptEngine Engine
-        {
-            get;
-            private set;
         }
 
         /// <summary>
@@ -53,39 +35,23 @@ namespace Jurassic.Compiler
         /// <summary>
         /// Gets the source of javascript code.
         /// </summary>
-        public ScriptSource Source
-        {
-            get;
-            private set;
-        }
+        public ScriptSource Source { get; private set; }
 
         /// <summary>
         /// Gets a value that indicates whether strict mode is enabled.
         /// </summary>
-        public bool StrictMode
-        {
-            get;
-            protected set;
-        }
-
-        /// <summary>
-        /// Gets the top-level scope associated with the context.
-        /// </summary>
-        public Scope InitialScope
-        {
-            get;
-            protected set;
-        }
+        public bool StrictMode { get; protected set; }
 
         /// <summary>
         /// Gets the root node of the abstract syntax tree.  This will be <c>null</c> until Parse()
         /// is called.
         /// </summary>
-        public Statement AbstractSyntaxTree
-        {
-            get;
-            protected set;
-        }
+        public Statement AbstractSyntaxTree { get; protected set; }
+
+        /// <summary>
+        /// Gets the top-level scope.  This will be <c>null</c> until Parse() is called.
+        /// </summary>
+        public Scope BaseScope { get; protected set; }
 
         /// <summary>
         /// Gets or sets optimization information.
@@ -140,11 +106,24 @@ namespace Jurassic.Compiler
         protected virtual Type[] GetParameterTypes()
         {
             return new Type[] {
-                typeof(ScriptEngine),   // The script engine.
-                typeof(Scope),          // The scope.
-                typeof(object),         // The "this" object.
+                typeof(ExecutionContext),   // The script engine, scope, this value, etc.
             };
         }
+
+        /// <summary>
+        /// Gets an array of names - one for each parameter accepted by the method being generated.
+        /// </summary>
+        /// <returns> An array of parameter names. </returns>
+        protected virtual string[] GetParameterNames()
+        {
+            return new string[] { "executionContext" };
+        }
+
+        /// <summary>
+        /// Retrieves a delegate for the generated method.
+        /// </summary>
+        /// <returns> The delegate type that matches the method parameters. </returns>
+        protected abstract Type GetDelegate();
 
         /// <summary>
         /// Parses the source text into an abstract syntax tree.
@@ -171,138 +150,55 @@ namespace Jurassic.Compiler
             }
 
             // Initialize global code-gen information.
-            var optimizationInfo = new OptimizationInfo(this.Engine);
+            var optimizationInfo = new OptimizationInfo();
             optimizationInfo.AbstractSyntaxTree = this.AbstractSyntaxTree;
             optimizationInfo.StrictMode = this.StrictMode;
             optimizationInfo.MethodOptimizationHints = this.MethodOptimizationHints;
             optimizationInfo.FunctionName = this.GetStackName();
             optimizationInfo.Source = this.Source;
 
-            ILGenerator generator;
-            if (this.Options.EnableDebugging == false)
-            {
-                // DynamicMethod requires full trust because of generator.LoadMethodPointer in the
-                // FunctionExpression class.
+            // DynamicMethod requires full trust because of generator.LoadMethodPointer in the
+            // FunctionExpression class.
 
-                // Create a new dynamic method.
-                System.Reflection.Emit.DynamicMethod dynamicMethod;
-#if !SILVERLIGHT
-                if (ScriptEngine.LowPrivilegeEnvironment == false)
-                {
-                    // High privilege path.
-                    dynamicMethod = new System.Reflection.Emit.DynamicMethod(
-                        GetMethodName(),                                        // Name of the generated method.
-                        typeof(object),                                         // Return type of the generated method.
-                        GetParameterTypes(),                                    // Parameter types of the generated method.
-                        typeof(MethodGenerator),                                // Owner type.
-                        true);                                                  // Skip visibility checks.
-                    // TODO: Figure out why long methods give BadImageFormatException in .NET 3.5 when generated using DynamicILInfo.
-                    if (Environment.Version.Major >= 4)
-                        generator = new DynamicILGenerator(dynamicMethod);
-                    else
-                        generator = new ReflectionEmitILGenerator(dynamicMethod.GetILGenerator());
-                }
-                else
-                {
-#endif
-                // Low privilege path.
-                dynamicMethod = new System.Reflection.Emit.DynamicMethod(
-                    GetMethodName(),                                        // Name of the generated method.
-                    typeof(object),                                         // Return type of the generated method.
-                    GetParameterTypes());                                   // Parameter types of the generated method.
-                generator = new ReflectionEmitILGenerator(dynamicMethod.GetILGenerator());
-#if !SILVERLIGHT
-                }
-#endif
-
-                if (this.Engine.EnableILAnalysis == true)
-                {
-                    // Replace the generator with one that logs.
-                    generator = new LoggingILGenerator(generator);
-                }
-
-                // Initialization code will appear to come from line 1.
-                optimizationInfo.MarkSequencePoint(generator, new SourceCodeSpan(1, 1, 1, 1));
-
-                // Generate the IL.
-                GenerateCode(generator, optimizationInfo);
-                generator.Complete();
-
-                // Create a delegate from the method.
-                this.GeneratedMethod = new GeneratedMethod(dynamicMethod.CreateDelegate(GetDelegate()), optimizationInfo.NestedFunctions);
-
-            }
-            else
-            {
-#if WINDOWS_PHONE
-                throw new NotImplementedException();
+            // Create a new dynamic method.
+            System.Reflection.Emit.DynamicMethod dynamicMethod = new System.Reflection.Emit.DynamicMethod(
+                GetMethodName(),                                        // Name of the generated method.
+                typeof(object),                                         // Return type of the generated method.
+                GetParameterTypes(),                                    // Parameter types of the generated method.
+                typeof(MethodGenerator),                                // Owner type.
+                true);                                                  // Skip visibility checks.
+#if USE_DYNAMIC_IL_INFO
+            ILGenerator generator = new DynamicILGenerator(dynamicMethod);
 #else
-                // Debugging or low trust path.
-                ScriptEngine.ReflectionEmitModuleInfo reflectionEmitInfo = this.Engine.ReflectionEmitInfo;
-                if (reflectionEmitInfo == null)
-                {
-                    reflectionEmitInfo = new ScriptEngine.ReflectionEmitModuleInfo();
+            ILGenerator generator = new ReflectionEmitILGenerator(dynamicMethod, emitDebugInfo: false);
+#endif
 
-                    // Create a dynamic assembly and module.
-                    reflectionEmitInfo.AssemblyBuilder = System.Threading.Thread.GetDomain().DefineDynamicAssembly(
-                        new System.Reflection.AssemblyName("Jurassic Dynamic Assembly"), System.Reflection.Emit.AssemblyBuilderAccess.Run);
-
-                    // Mark the assembly as debuggable.  This must be done before the module is created.
-                    var debuggableAttributeConstructor = typeof(System.Diagnostics.DebuggableAttribute).GetConstructor(
-                        new Type[] { typeof(System.Diagnostics.DebuggableAttribute.DebuggingModes) });
-                    reflectionEmitInfo.AssemblyBuilder.SetCustomAttribute(
-                        new System.Reflection.Emit.CustomAttributeBuilder(debuggableAttributeConstructor,
-                            new object[] { 
-                                System.Diagnostics.DebuggableAttribute.DebuggingModes.DisableOptimizations | 
-                                System.Diagnostics.DebuggableAttribute.DebuggingModes.Default }));
-
-                    // Create a dynamic module.
-                    reflectionEmitInfo.ModuleBuilder = reflectionEmitInfo.AssemblyBuilder.DefineDynamicModule("Module", this.Options.EnableDebugging);
-
-                    this.Engine.ReflectionEmitInfo = reflectionEmitInfo;
-                }
-
-                // Create a new type to hold our method.
-                var typeBuilder = reflectionEmitInfo.ModuleBuilder.DefineType("JavaScriptClass" + reflectionEmitInfo.TypeCount.ToString(), System.Reflection.TypeAttributes.Public | System.Reflection.TypeAttributes.Class);
-                reflectionEmitInfo.TypeCount++;
-
-                // Create a method.
-                var methodBuilder = typeBuilder.DefineMethod(this.GetMethodName(),
-                    System.Reflection.MethodAttributes.HideBySig | System.Reflection.MethodAttributes.Static | System.Reflection.MethodAttributes.Public,
-                    typeof(object), GetParameterTypes());
-
-                // Generate the IL for the method.
-                generator = new ReflectionEmitILGenerator(methodBuilder.GetILGenerator());
-
-                if (this.Engine.EnableILAnalysis == true)
-                {
-                    // Replace the generator with one that logs.
-                    generator = new LoggingILGenerator(generator);
-                }
-
-                if (this.Source.Path != null && this.Options.EnableDebugging == true)
-                {
-                    // Initialize the debugging information.
-                    optimizationInfo.DebugDocument = reflectionEmitInfo.ModuleBuilder.DefineDocument(this.Source.Path, COMHelpers.LanguageType, COMHelpers.LanguageVendor, COMHelpers.DocumentType);
-                    methodBuilder.DefineParameter(1, System.Reflection.ParameterAttributes.None, "scriptEngine");
-                    methodBuilder.DefineParameter(2, System.Reflection.ParameterAttributes.None, "scope");
-                    methodBuilder.DefineParameter(3, System.Reflection.ParameterAttributes.None, "thisValue");
-                }
-                optimizationInfo.MarkSequencePoint(generator, new SourceCodeSpan(1, 1, 1, 1));
-                GenerateCode(generator, optimizationInfo);
-                generator.Complete();
-
-                // Bake it.
-                var type = typeBuilder.CreateType();
-                var methodInfo = type.GetMethod(this.GetMethodName());
-                this.GeneratedMethod = new GeneratedMethod(Delegate.CreateDelegate(GetDelegate(), methodInfo), optimizationInfo.NestedFunctions);
-#endif //WINDOWS_PHONE
+            ILGenerator loggingILGenerator = null;
+            if (this.Options.EnableILAnalysis)
+            {
+                // Replace the generator with one that logs.
+                generator = loggingILGenerator = new LoggingILGenerator(generator);
             }
 
-            if (this.Engine.EnableILAnalysis == true)
+#if DEBUG
+            // Replace the generator with one that verifies correctness.
+            generator = new VerifyingILGenerator(generator);
+#endif
+
+            // Initialization code will appear to come from line 1.
+            optimizationInfo.MarkSequencePoint(generator, new SourceCodeSpan(1, 1, 1, 1));
+
+            // Generate the IL.
+            GenerateCode(generator, optimizationInfo);
+            generator.Complete();
+
+            // Create a delegate from the method.
+            this.GeneratedMethod = new GeneratedMethod(dynamicMethod.CreateDelegate(GetDelegate()), optimizationInfo.NestedFunctions);
+            
+            if (loggingILGenerator != null)
             {
                 // Store the disassembled IL so it can be retrieved for analysis purposes.
-                this.GeneratedMethod.DisassembledIL = generator.ToString();
+                this.GeneratedMethod.DisassembledIL = loggingILGenerator.ToString();
             }
         }
 
@@ -312,59 +208,6 @@ namespace Jurassic.Compiler
         /// <param name="generator"> The generator to output the CIL to. </param>
         /// <param name="optimizationInfo"> Information about any optimizations that should be performed. </param>
         protected abstract void GenerateCode(ILGenerator generator, OptimizationInfo optimizationInfo);
-
-        /// <summary>
-        /// Verifies the scope has the same structure at runtime as at compile time.
-        /// </summary>
-        /// <param name="generator"> The generator to output the CIL to. </param>
-        [System.Diagnostics.Conditional("DEBUG")]
-        protected void VerifyScope(ILGenerator generator)
-        {
-            //// Get the top-level scope.
-            //EmitHelpers.LoadScope(generator);
-            //var scope = this.InitialScope;
-
-            //while (scope != null)
-            //{
-            //    // if (scope == null)
-            //    //   throw new JavaScriptException()
-            //    generator.Duplicate();
-            //    var endOfIf1 = generator.CreateLabel();
-            //    generator.BranchIfNotNull(endOfIf1);
-            //    EmitHelpers.EmitThrow(generator, "Error", "Internal error: runtime scope chain is too short");
-            //    generator.DefineLabelPosition(endOfIf1);
-
-            //    // if ((scope is DeclarativeScope/ObjectScope) == false)
-            //    //   throw new JavaScriptException()
-            //    generator.IsInstance(scope.GetType());
-            //    generator.Duplicate();
-            //    var endOfIf2 = generator.CreateLabel();
-            //    generator.BranchIfNotNull(endOfIf2);
-            //    EmitHelpers.EmitThrow(generator, "Error", string.Format("Internal error: incorrect runtime scope type (expected {0})", scope.GetType().Name));
-            //    generator.DefineLabelPosition(endOfIf2);
-
-            //    // scope = scope.ParentScope
-            //    generator.Call(ReflectionHelpers.Scope_ParentScope);
-            //    scope = scope.ParentScope;
-            //}
-
-            //// if (scope != null)
-            ////   throw new JavaScriptException()
-            //var endOfIf3 = generator.CreateLabel();
-            //generator.BranchIfNull(endOfIf3);
-            //EmitHelpers.EmitThrow(generator, "Error", "Internal error: runtime scope chain is too long");
-            //generator.DefineLabelPosition(endOfIf3);
-        }
-
-        /// <summary>
-        /// Retrieves a delegate for the generated method.
-        /// </summary>
-        /// <param name="types"> The parameter types. </param>
-        /// <returns> The delegate type that matches the method parameters. </returns>
-        protected virtual Type GetDelegate()
-        {
-            return typeof(Func<ScriptEngine, Scope, object, object>);
-        }
     }
 
 }

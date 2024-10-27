@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Jurassic.Library
@@ -11,7 +12,7 @@ namespace Jurassic.Library
     {
         private ScriptEngine engine;
         private Stack<ObjectInstance> objectStack;
-        private Stack<ArrayInstance> arrayStack;
+        private Stack<ObjectInstance> arrayStack;
         private string separator;
 
         /// <summary>
@@ -21,7 +22,7 @@ namespace Jurassic.Library
         public JSONSerializer(ScriptEngine engine)
         {
             if (engine == null)
-                throw new ArgumentNullException("engine");
+                throw new ArgumentNullException(nameof(engine));
             this.engine = engine;
         }
 
@@ -46,7 +47,7 @@ namespace Jurassic.Library
         /// <summary>
         /// Gets or sets a list of property names to be serialized.
         /// </summary>
-        public ICollection<string> SerializableProperties
+        public IEnumerable<string> SerializableProperties
         {
             get;
             set;
@@ -57,12 +58,13 @@ namespace Jurassic.Library
         /// Serializes a value into a JSON string.
         /// </summary>
         /// <param name="value"> The value to serialize. </param>
-        /// <returns> The JSON repesentation of the value. </returns>
+        /// <returns> The JSON repesentation of the value, or <c>null</c> if passed an
+        /// unserializable value (like a function). </returns>
         public string Serialize(object value)
         {
             // Initialize private variables.
             this.objectStack = new Stack<ObjectInstance>();
-            this.arrayStack = new Stack<ArrayInstance>();
+            this.arrayStack = new Stack<ObjectInstance>();
             this.separator = string.IsNullOrEmpty(this.Indentation) ? string.Empty : "\n";
 
             // Create a temp object to hold the value.
@@ -77,7 +79,7 @@ namespace Jurassic.Library
             // Serialize the value.
             var result = new StringBuilder(100);
             SerializePropertyValue(value, result);
-            return result.ToString();
+            return result.Length == 0 ? null : result.ToString();
         }
 
         /// <summary>
@@ -111,7 +113,7 @@ namespace Jurassic.Library
         /// <param name="holder"> The object containing the value. </param>
         /// <param name="arrayIndex"> The array index of the property holding the value to transform. </param>
         /// <returns> The transformed value. </returns>
-        private object TransformPropertyValue(ArrayInstance holder, uint arrayIndex)
+        private object TransformPropertyValue(ObjectInstance holder, uint arrayIndex)
         {
             string propertyName = null;
             object value = holder[arrayIndex];
@@ -191,11 +193,16 @@ namespace Jurassic.Library
                 result.Append(((int)value).ToString());
                 return;
             }
+            if (value is uint)
+            {
+                result.Append(((uint)value).ToString());
+                return;
+            }
 
             // Serialize an array.
-            if (value is ArrayInstance)
+            if (value is ObjectInstance valueObjectInstance && ArrayConstructor.IsArray(value))
             {
-                SerializeArray((ArrayInstance)value, result);
+                SerializeArray(valueObjectInstance, result);
                 return;
             }
 
@@ -207,7 +214,6 @@ namespace Jurassic.Library
             }
 
             // The value is of a type we cannot serialize.
-            throw new NotSupportedException(string.Format("Unsupported value type: {0}", value.GetType()));
         }
 
         /// <summary>
@@ -216,7 +222,7 @@ namespace Jurassic.Library
         /// </summary>
         /// <param name="input"> The string to quote. </param>
         /// <param name="result"> The StringBuilder to write the quoted string to. </param>
-        private static void QuoteString(string input, System.Text.StringBuilder result)
+        private static void QuoteString(string input, StringBuilder result)
         {
             result.Append('\"');
 
@@ -295,18 +301,14 @@ namespace Jurassic.Library
 
             // Check for cyclical references.
             if (this.objectStack.Contains(value) == true)
-                throw new JavaScriptException(this.engine, "TypeError", "The given object must not contain cyclical references");
+                throw new JavaScriptException(ErrorType.TypeError, "The given object must not contain cyclical references");
             this.objectStack.Push(value);
 
             // Create a list of property names to serialize.
+            // Only properties that are enumerable and have property names are serialized.
             var propertiesToSerialize = this.SerializableProperties;
             if (propertiesToSerialize == null)
-            {
-                propertiesToSerialize = new List<string>();
-                foreach (var property in value.Properties)
-                    if (property.IsEnumerable == true)
-                        propertiesToSerialize.Add(property.Name);
-            }
+                propertiesToSerialize = ObjectConstructor.Keys(value).ElementValues.Cast<string>();
 
             result.Append('{');
             int serializedPropertyCount = 0;
@@ -316,7 +318,7 @@ namespace Jurassic.Library
                 object propertyValue = TransformPropertyValue(value, propertyName);
 
                 // Undefined values are not serialized.
-                if (propertyValue == null || propertyValue == Undefined.Value || propertyValue is FunctionInstance)
+                if (propertyValue == null || propertyValue == Undefined.Value || propertyValue is FunctionInstance || propertyValue is Symbol)
                     continue;
 
                 // Append the separator.
@@ -351,7 +353,7 @@ namespace Jurassic.Library
         /// <param name="value"> The array to serialize. </param>
         /// <param name="result"> The StringBuilder to write the JSON representation of the
         /// array to. </param>
-        private void SerializeArray(ArrayInstance value, StringBuilder result)
+        private void SerializeArray(ObjectInstance value, StringBuilder result)
         {
             // Add the spacer string to the current separator string.
             string previousSeparator = this.separator;
@@ -359,11 +361,12 @@ namespace Jurassic.Library
 
             // Check for cyclical references.
             if (this.arrayStack.Contains(value) == true)
-                throw new JavaScriptException(this.engine, "TypeError", "The given object must not contain cyclical references");
+                throw new JavaScriptException(ErrorType.TypeError, "The given object must not contain cyclical references");
             this.arrayStack.Push(value);
 
             result.Append('[');
-            for (uint i = 0; i < value.Length; i++)
+            uint length = ArrayInstance.GetLength(value);
+            for (uint i = 0; i < length; i++)
             {
                 // Append the separator.
                 if (i > 0)
@@ -373,7 +376,7 @@ namespace Jurassic.Library
                 // Transform the value using the replacer function or toJSON().
                 object elementValue = TransformPropertyValue(value, i);
 
-                if (elementValue == null || elementValue == Undefined.Value || elementValue is FunctionInstance)
+                if (elementValue == null || elementValue == Undefined.Value || elementValue is FunctionInstance || elementValue is Symbol)
                 {
                     // Undefined is serialized as "null".
                     result.Append("null");
@@ -384,7 +387,7 @@ namespace Jurassic.Library
                     SerializePropertyValue(elementValue, result);
                 }
             }
-            if (value.Length > 0)
+            if (length > 0)
                 result.Append(previousSeparator);
             result.Append(']');
 

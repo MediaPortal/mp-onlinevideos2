@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace Jurassic.Library
 {
     /// <summary>
     /// Represents the built-in javascript Number object.
     /// </summary>
-    [Serializable]
-    public class NumberConstructor : ClrFunction
+    public partial class NumberConstructor : ClrStubFunction
     {
 
         //     INITIALIZATION
@@ -18,8 +16,12 @@ namespace Jurassic.Library
         /// </summary>
         /// <param name="prototype"> The next object in the prototype chain. </param>
         internal NumberConstructor(ObjectInstance prototype)
-            : base(prototype, "Number", new NumberInstance(prototype.Engine.Object.InstancePrototype, 0))
+            : base(prototype, __STUB__Construct, __STUB__Call)
         {
+            // Initialize the constructor properties.
+            var properties = GetDeclarativeProperties(Engine);
+            InitializeConstructorProperties(properties, "Number", 1, NumberInstance.CreatePrototype(Engine, this));
+            InitializeProperties(properties);
         }
 
 
@@ -101,5 +103,134 @@ namespace Jurassic.Library
         [JSField]
         public const double POSITIVE_INFINITY = double.PositiveInfinity;
 
+        /// <summary>
+        /// The difference between 1 and the smallest value greater than 1 that is representable as
+        /// a numeric value.
+        /// </summary>
+        [JSField]
+        public const double EPSILON = 2.2204460492503130808472633361816e-16;
+
+        /// <summary>
+        /// The maximum integer within the range of integers that can be represented exactly.
+        /// Outside the safe range multiple integers are mapped to a single value.
+        /// </summary>
+        [JSField]
+        public const double MAX_SAFE_INTEGER = 9007199254740991;
+
+        /// <summary>
+        /// The minimum integer within the range of integers that can be represented exactly.
+        /// Outside the safe range multiple integers are mapped to a single value.
+        /// </summary>
+        [JSField]
+        public const double MIN_SAFE_INTEGER = -9007199254740991;
+        
+
+
+        /// <summary>
+        /// Determines whether the given number is finite.
+        /// </summary>
+        /// <param name="value"> The number to test. </param>
+        /// <returns> <c>false</c> if the number is NaN or positive or negative infinity,
+        /// <c>true</c> otherwise.  <c>false</c> if the value is not a number. </returns>
+        [JSInternalFunction(Name = "isFinite")]
+        public static bool IsFinite(object value)
+        {
+            if (value is int || value is uint)
+                return true;
+            if (value is double)
+                return double.IsNaN((double)value) == false && double.IsInfinity((double)value) == false;
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether the given number is NaN.
+        /// </summary>
+        /// <param name="value"> The number to test. </param>
+        /// <returns> <c>true</c> if the number is NaN, <c>false</c> otherwise. </returns>
+        [JSInternalFunction(Name = "isNaN")]
+        public static bool IsNaN(object value)
+        {
+            if (value is double)
+                return double.IsNaN((double)value);
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether the given number is an integer.
+        /// </summary>
+        /// <param name="value"> The number to test. </param>
+        /// <returns> <c>true</c> if the number is an integer, <c>false</c> otherwise. </returns>
+        [JSInternalFunction(Name = "isInteger")]
+        public static bool IsInteger(object value)
+        {
+            if (value is int || value is uint)
+                return true;
+            if (value is double)
+            {
+                double number = (double)value;
+                if (double.IsInfinity(number))
+                    return false;
+                return Math.Floor(number) == number;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether the given number is within the "safe" integer range.
+        /// </summary>
+        /// <param name="value"> The number to test. </param>
+        /// <returns> <c>true</c> if the number is a safe integer, <c>false</c> otherwise. </returns>
+        [JSInternalFunction(Name = "isSafeInteger")]
+        public static bool IsSafeInteger(object value)
+        {
+            if (value is int || value is uint)
+                return true;
+            if (value is double)
+            {
+                double number = (double)value;
+                if (double.IsInfinity(number))
+                    return false;
+                return (Math.Floor(number) == number) && number >= MIN_SAFE_INTEGER && number <= MAX_SAFE_INTEGER;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Parses the given string and returns the equivalent integer value. 
+        /// </summary>
+        /// <param name="engine"> The associated script engine. </param>
+        /// <param name="input"> The string to parse. </param>
+        /// <param name="radix"> The numeric base to use for parsing.  Pass zero to use base 10
+        /// except when the input string starts with '0' in which case base 16 or base 8 are used
+        /// instead (base 8 is only supported in compatibility mode). </param>
+        /// <returns> The equivalent integer value of the given string. </returns>
+        /// <remarks> Leading whitespace is ignored.  Parsing continues until the first invalid
+        /// character, at which point parsing stops.  No error is returned in this case. </remarks>
+        [JSInternalFunction(Name = "parseInt", Flags = JSFunctionFlags.HasEngineParameter)]
+        public static double ParseInt(ScriptEngine engine, string input, double radix = 0.0)
+        {
+            // Check for a valid radix.
+            // Note: this is the only function that uses TypeConverter.ToInt32() for parameter
+            // conversion (as opposed to the normal method which is TypeConverter.ToInteger() so
+            // the radix parameter must be converted to an integer in code.
+            int radix2 = TypeConverter.ToInt32(radix);
+            if (radix2 < 0 || radix2 == 1 || radix2 > 36)
+                return double.NaN;
+
+            return NumberParser.ParseInt(input, radix2, engine.CompatibilityMode == CompatibilityMode.ECMAScript3);
+        }
+
+        /// <summary>
+        /// Parses the given string and returns the equivalent numeric value. 
+        /// </summary>
+        /// <param name="input"> The string to parse. </param>
+        /// <returns> The equivalent numeric value of the given string. </returns>
+        /// <remarks> Leading whitespace is ignored.  Parsing continues until the first invalid
+        /// character, at which point parsing stops.  No error is returned in this case. </remarks>
+        [JSInternalFunction(Name = "parseFloat")]
+        public static double ParseFloat(string input)
+        {
+            return NumberParser.ParseFloat(input);
+        }
     }
 }
