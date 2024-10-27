@@ -163,8 +163,16 @@ namespace OnlineVideos.MediaPortal1
             {
                 _bufferingPlayerFactory = value;
                 GUIPropertyManager.SetProperty("#OnlineVideos.buffered", "0");
-                GUIPropertyManager.SetProperty("#OnlineVideos.IsBuffering", (value != null).ToString());
+                GUIPropertyManager.SetProperty("#OnlineVideos.IsBuffering", (value != null && (!(value.PreparedPlayer is OnlineVideosPlayer player) || !player.UseLAV)).ToString());
                 GUIPropertyManager.SetProperty("#OnlineVideos.bufferedenough", "0");
+                GUIPropertyManager.SetProperty("#OnlineVideos.bufferedenoughend", "0");
+
+                //Initiate buffer tags
+                GUIPropertyManager.SetProperty("#OnlineVideos.Buffering", "");
+                GUIPropertyManager.SetProperty("#OnlineVideos.BufferLevel", "0");
+                GUIPropertyManager.SetProperty("#OnlineVideos.BufferTime", "0");
+                GUIPropertyManager.SetProperty("#OnlineVideos.BufferSize", "0 B");
+                GUIPropertyManager.SetProperty("#TV.Record.percent3", "0");
             }
         }
         #endregion

@@ -296,6 +296,7 @@
     <Compile Include="Player\FilterError.cs" />
     <Compile Include="Player\GUIOnlineVideoFullscreen.cs" />
     <Compile Include="Player\GUIOnlineVideoOSD.cs" />
+    <Compile Include="Player\LavSplitterSourceInterfaces.cs" />
     <Compile Include="Player\OnlineVideosPlayer.cs" />
     <Compile Include="Player\PlayerFactory.cs" />
     <Compile Include="Player\PlayListItem.cs" />
