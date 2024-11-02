@@ -323,17 +323,12 @@ namespace OnlineVideos.Sites
 
         public bool NeedsWebView(Category parentCat)
         {
-            foreach (FavoriteCategory favCat in parentCat.SubCategories)
-            {
-                if (favCat.Site is INeedsWebView)
-                    return true;
-            }
-            return false;
+            return parentCat.SubCategories.Exists(cat => cat is FavoriteCategory && ((FavoriteCategory)cat).Site is INeedsWebView);
         }
 
-        public void SetWebviewHelper(Category parentCat,Helpers.WebViewHelper webViewHelper)
+        public void SetWebviewHelper(Category parentCat, Helpers.WebViewHelper webViewHelper)
         {
-            foreach (FavoriteCategory favCat in parentCat.SubCategories)
+            foreach (FavoriteCategory favCat in parentCat.SubCategories.Where(cat => cat is FavoriteCategory))
             {
                 if (favCat.Site is INeedsWebView)
                     ((INeedsWebView)favCat.Site).SetWebviewHelper(webViewHelper);
