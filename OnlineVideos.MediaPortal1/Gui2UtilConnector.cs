@@ -68,11 +68,11 @@ namespace OnlineVideos.MediaPortal1
         /// <returns>true, if the task could be successfully started in the background</returns>
         internal bool ExecuteInBackgroundAndCallback(Func<object> task, Action<bool, object> resultHandler, string taskDescription, bool timeout)
         {
-			if (Thread.CurrentThread.ManagedThreadId != 1)
-			{
-				Log.Instance.Error("OnlineVideos not called on the MPMain thread - not executing any background action!");
-				return false;
-			}
+            if (Thread.CurrentThread.ManagedThreadId != 1)
+            {
+                Log.Instance.Error("OnlineVideos not called on the MPMain thread - not executing any background action!");
+                return false;
+            }
 
             // make sure only one background task can be executed at a time
             if (!IsBusy && Monitor.TryEnter(this))
@@ -87,7 +87,7 @@ namespace OnlineVideos.MediaPortal1
                     _CurrentError = null;
                     _CurrentTaskSuccess = null;// while this is null the task has not finished (or later on timeouted), true indicates successfull completion and false error
                     GUIWaitCursor.Init(); GUIWaitCursor.Show(); // init and show the wait cursor in MediaPortal
-                    backgroundThread = new Thread(delegate()
+                    backgroundThread = new Thread(delegate ()
                     {
                         try
                         {
@@ -110,7 +110,8 @@ namespace OnlineVideos.MediaPortal1
                         GUIWaitCursor.Hide();
                         // execute the ResultHandler on the Main Thread
                         GUIWindowManager.SendThreadCallbackAndWait((p1, p2, o) => { ExecuteTaskResultHandler(); return 0; }, 0, 0, null);
-                    }) { Name = "OnlineVideos", IsBackground = true };
+                    })
+                    { Name = "OnlineVideos", IsBackground = true };
                     // disable timeout when debugging
                     if (timeout && !System.Diagnostics.Debugger.IsAttached) timeoutTimer.Start();
                     backgroundThread.Start();
@@ -149,7 +150,7 @@ namespace OnlineVideos.MediaPortal1
                         dlg_error.SetHeading(PluginConfiguration.Instance.BasicHomeScreenName);
                         if (_CurrentError.ShowCurrentTaskDescription)
                         {
-							dlg_error.SetLine(1, string.Format("{0} {1}", Translation.Instance.Error, _CurrentTaskDescription));
+                            dlg_error.SetLine(1, string.Format("{0} {1}", Translation.Instance.Error, _CurrentTaskDescription));
                         }
                         dlg_error.SetLine(2, _CurrentError.Message);
                         dlg_error.DoModal(GUIWindowManager.ActiveWindow);
@@ -161,12 +162,12 @@ namespace OnlineVideos.MediaPortal1
                     if (dlg_error != null)
                     {
                         dlg_error.Reset();
-						dlg_error.SetImage(SiteImageExistenceCache.GetImageForSite("OnlineVideos", type: "Icon"));
+                        dlg_error.SetImage(SiteImageExistenceCache.GetImageForSite("OnlineVideos", type: "Icon"));
                         dlg_error.SetHeading(PluginConfiguration.Instance.BasicHomeScreenName);
                         if (_CurrentTaskSuccess.HasValue)
-							dlg_error.SetText(string.Format("{0} {1}", Translation.Instance.Error, _CurrentTaskDescription));
+                            dlg_error.SetText(string.Format("{0} {1}", Translation.Instance.Error, _CurrentTaskDescription));
                         else
-							dlg_error.SetText(string.Format("{0} {1}", Translation.Instance.Timeout, _CurrentTaskDescription));
+                            dlg_error.SetText(string.Format("{0} {1}", Translation.Instance.Timeout, _CurrentTaskDescription));
                         if (!abortedByUser) dlg_error.DoModal(GUIWindowManager.ActiveWindow);
                     }
                 }
