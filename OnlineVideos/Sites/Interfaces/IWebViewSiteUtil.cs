@@ -3,12 +3,7 @@
 namespace OnlineVideos.Sites
 {
 
-    public interface INeedsWebView
-    {
-        void SetWebviewHelper(WebViewHelper webViewHelper);
-    }
-
-    public interface IWebViewSiteUtilBase: INeedsWebView
+    public interface IWebViewSiteUtilBase
     {
         void StartPlayback();
     }

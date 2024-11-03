@@ -48,6 +48,7 @@ namespace OnlineVideos.Sites
 
         #endregion
 
+        public Helpers.WebViewHelper webViewHelper = null;
         /// <summary>
         /// The <see cref="SiteSettings"/> as configured in the xml will be set after an instance of this class was created 
         /// by the default implementation of the <see cref="Initialize"/> method.

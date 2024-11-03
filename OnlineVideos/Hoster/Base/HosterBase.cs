@@ -29,6 +29,8 @@ namespace OnlineVideos.Hoster
 
         #endregion
 
+        public Helpers.WebViewHelper webViewHelper = null;
+
         /// <summary>
         /// You should always call this implementation, even when overriding it. It is called after the instance has been created
         /// in order to configure settings from the xml for this hoster.
@@ -71,13 +73,4 @@ namespace OnlineVideos.Hoster
         }
     }
 
-    public abstract class HosterBaseWithWebView : HosterBase, Sites.INeedsWebView
-    {
-         protected Helpers.WebViewHelper wv = null;
-
-        void Sites.INeedsWebView.SetWebviewHelper(Helpers.WebViewHelper webViewHelper)
-        {
-            wv = webViewHelper;
-        }
-   }
 }

@@ -64,7 +64,7 @@ namespace OnlineVideos.Sites
 
         private string MyGetWebData(string url, string postData = null, string referer = null)
         {
-            string data = wvh.GetHtml(url, postData, referer, blockOtherRequests: false);
+            string data = webViewHelper.GetHtml(url, postData, referer, blockOtherRequests: false);
             if (enableVerboseLog) Log.Debug(data);
             //Side effects
             //AuthUrl
@@ -1082,22 +1082,17 @@ namespace OnlineVideos.Sites
         #endregion
 
         #region IWebViewSiteUtil
-        WebViewHelper wvh = null;
-        void INeedsWebView.SetWebviewHelper(WebViewHelper webViewHelper)
-        {
-            wvh = webViewHelper;
-        }
 
         public void StartPlayback()
         {
             if (Settings.Categories.Count == 1)
             {
-                wvh.SetEnabled(true);
+                webViewHelper.SetEnabled(true);
             }
             else
             {
-                wvh.Execute(@"document.querySelector('.inactive').click();");
-                wvh.Execute(@"document.querySelector('div.ltr-1bt0omd:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > button:nth-child(1)').click();");
+                webViewHelper.Execute(@"document.querySelector('.inactive').click();");
+                webViewHelper.Execute(@"document.querySelector('div.ltr-1bt0omd:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > button:nth-child(1)').click();");
             }
         }
 
@@ -1111,7 +1106,7 @@ namespace OnlineVideos.Sites
 
         public void OnPageLoaded(ref bool doStopPlayback)
         {
-            if (Settings.Categories.Count == 1 && wvh.GetUrl().ToLowerInvariant().Contains("/browse"))
+            if (Settings.Categories.Count == 1 && webViewHelper.GetUrl().ToLowerInvariant().Contains("/browse"))
             {
                 doStopPlayback = true;
             }
@@ -1119,12 +1114,12 @@ namespace OnlineVideos.Sites
 
         public void DoPause()
         {
-            wvh.Execute(VideoElementSelector + ".pause();");
+            webViewHelper.Execute(VideoElementSelector + ".pause();");
         }
 
         public void DoPlay()
         {
-            wvh.Execute(VideoElementSelector + ".play();");
+            webViewHelper.Execute(VideoElementSelector + ".play();");
         }
         #endregion
 

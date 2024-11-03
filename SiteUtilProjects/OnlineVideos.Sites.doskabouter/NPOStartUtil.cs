@@ -108,11 +108,11 @@ namespace OnlineVideos.Sites
                 string episode_id = m.Groups["id"].Value;
                 var headers = new NameValueCollection();
                 headers.Add("X-Requested-With", "XMLHttpRequest");
-                wvh.GetHtml("https://www.npostart.nl/api/token", headers: headers);//needed to get cookies
-                var cookies = wvh.GetCookies("https://www.npostart.nl");
+                webViewHelper.GetHtml("https://www.npostart.nl/api/token", headers: headers);//needed to get cookies
+                var cookies = webViewHelper.GetCookies("https://www.npostart.nl");
                 string xsrf = cookies.TryGetValue("XSRF-TOKEN", out Cookie tmp) ? tmp.Value : null;
                 headers.Add("x-xsrf-token", HttpUtility.UrlDecode(xsrf));
-                string data = wvh.GetHtml("https://www.npostart.nl/player/" + episode_id, postData: "", headers: headers);
+                string data = webViewHelper.GetHtml("https://www.npostart.nl/player/" + episode_id, postData: "", headers: headers);
                 m = Regex.Match(data, @"""embedUrl"":""(?<url>[^""]*)""");
                 if (m.Success)
                 {
@@ -127,16 +127,10 @@ namespace OnlineVideos.Sites
         #region IWebViewHTMLMediaElement
         System.Windows.Forms.Timer timer = null;
         string vidSelector = null;
-        WebViewHelper wvh = null;
-
-        void INeedsWebView.SetWebviewHelper(WebViewHelper webViewHelper)
-        {
-            wvh = webViewHelper;
-        }
 
         void IWebViewSiteUtilBase.StartPlayback()
         {
-            wvh.Execute(@"document.getElementsByClassName(""vjs-big-play-button"")[0].click()");
+            webViewHelper.Execute(@"document.getElementsByClassName(""vjs-big-play-button"")[0].click()");
             timer = new System.Windows.Forms.Timer();
             timer.Tick += (s, e) =>
             {

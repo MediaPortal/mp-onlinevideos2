@@ -82,13 +82,6 @@ namespace OnlineVideos.MediaPortal1
             GUIWindowManager.OnThreadMessageHandler += new GUIWindowManager.ThreadMessageHandler(GUIWindowManager_OnThreadMessageHandler);
             if (GroupsEnabled) CurrentState = State.groups;
 
-            //Assign Webview to each Hoster implementing INeedsWebView
-            foreach (Hoster.HosterBase hosterUtil in Hoster.HosterFactory.GetAllHosters())
-            {
-                if (hosterUtil is Sites.INeedsWebView)
-                    ((Sites.INeedsWebView)hosterUtil).SetWebviewHelper(Helpers.WebViewHelper.Instance);
-            }
-
             firstLoadDone = true;
             DoSubsequentLoad();
         }
@@ -272,6 +265,21 @@ namespace OnlineVideos.MediaPortal1
                 case State.categories: DisplayCategories(selectedCategory); break;
                 case State.videos: SetVideosToFacade(currentVideoList, currentVideosDisplayMode); break;
                 default: SetVideosToInfoList(currentTrailerList); break;
+            }
+        }
+
+        private void SetWebviewHelpers()
+        {
+            Helpers.WebViewHelper wvh = Helpers.WebViewHelper.Instance;
+            //You get a webViewHelper, Everybody gets a webViewHelper
+            foreach (var hosterUtil in Hoster.HosterFactory.GetAllHosters())
+            {
+                hosterUtil.webViewHelper = wvh;
+            }
+
+            foreach (var util in OnlineVideoSettings.Instance.SiteUtilsList)
+            {
+                util.Value.webViewHelper = wvh;
             }
         }
 

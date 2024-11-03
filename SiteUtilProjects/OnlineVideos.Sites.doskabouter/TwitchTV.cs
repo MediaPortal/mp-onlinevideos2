@@ -132,16 +132,11 @@ namespace OnlineVideos.Sites
             return url + "&after=" + cursor;
         }
 
-        WebViewHelper wvh = null;
-        void INeedsWebView.SetWebviewHelper(WebViewHelper webViewHelper)
-        {
-            wvh = webViewHelper;
-        }
         void IWebViewSiteUtilBase.StartPlayback()
         {
             System.Threading.Thread.Sleep(1000);
-            wvh.Execute(@"document.querySelectorAll('[data-a-target=""player-mute-unmute-button""]')[0].click()");
-            wvh.Execute(@"document.querySelectorAll('[data-a-target=""content-classification-gate-overlay-start-watching-button""]')[0].click()");
+            webViewHelper.Execute(@"document.querySelectorAll('[data-a-target=""player-mute-unmute-button""]')[0].click()");
+            webViewHelper.Execute(@"document.querySelectorAll('[data-a-target=""content-classification-gate-overlay-start-watching-button""]')[0].click()");
         }
     }
 

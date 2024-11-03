@@ -14,7 +14,7 @@ using Newtonsoft.Json.Linq;
 
 namespace OnlineVideos.Hoster
 {
-    public class Youtube : HosterBaseWithWebView, ISubtitle
+    public class Youtube : HosterBase, ISubtitle
     {
         private enum PlayerStatusEnum
         {
@@ -249,7 +249,7 @@ namespace OnlineVideos.Hoster
                             try
                             {
                                 //Prepare signature decryptor
-                                _YoutubeDecryptor = new YoutubeSignatureDecryptor(strContentsWeb, this.wv);
+                                _YoutubeDecryptor = new YoutubeSignatureDecryptor(strContentsWeb, webViewHelper);
                             }
                             catch (Exception ex)
                             {

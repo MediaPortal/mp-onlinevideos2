@@ -271,7 +271,7 @@ namespace OnlineVideos.Hoster
         }
     }
 
-    public class Dood : HosterBaseWithWebView
+    public class Dood : HosterBase
     {
         public override string GetHosterUrl()
         {
@@ -283,7 +283,7 @@ namespace OnlineVideos.Hoster
             UriBuilder ub = new UriBuilder(url.Replace("/d/", "/e/"));
             ub.Host = "ds2play.com";
             url = ub.Uri.ToString();
-            var data = wv.GetHtml(url);
+            var data = webViewHelper.GetHtml(url);
             var m = Regex.Match(data, @"\$\.get\('(?<url>/pass[^']*)'");
             if (m.Success)
             {
@@ -296,7 +296,7 @@ namespace OnlineVideos.Hoster
                         tmpUrl = uri.ToString();
                     }
                 }
-                data = wv.GetHtml(tmpUrl, referer: url);
+                data = webViewHelper.GetHtml(tmpUrl, referer: url);
                 m = Regex.Match(data, @"<body>(?<url>[^<]*)</body></html>(?<rest>.*)");
                 if (m.Success)
                 {
@@ -1402,7 +1402,7 @@ namespace OnlineVideos.Hoster
     }
 
 
-    public class Upstream : HosterBaseWithWebView
+    public class Upstream : HosterBase
     {
         public override string GetHosterUrl()
         {
@@ -1411,7 +1411,7 @@ namespace OnlineVideos.Hoster
 
         public override string GetVideoUrl(string url)
         {
-            string data = wv.GetHtml(url, blockOtherRequests: false);
+            string data = webViewHelper.GetHtml(url, blockOtherRequests: false);
             string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
             if (!String.IsNullOrEmpty(packed))
             {

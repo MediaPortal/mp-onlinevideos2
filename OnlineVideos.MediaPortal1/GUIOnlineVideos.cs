@@ -1265,6 +1265,7 @@ namespace OnlineVideos.MediaPortal1
 
             CurrentState = State.groups;
             UpdateViewState();
+            SetWebviewHelpers();
         }
 
         private void AddFavoritesAndDownloadsSitesToFacade()
@@ -1392,10 +1393,6 @@ namespace OnlineVideos.MediaPortal1
             {
                 if (!SelectedSite.Settings.DynamicCategoriesDiscovered)
                 {
-                    if (SelectedSite is INeedsWebView)
-                    {
-                        ((INeedsWebView)SelectedSite).SetWebviewHelper(WebViewHelper.Instance);
-                    }
                     Gui2UtilConnector.Instance.ExecuteInBackgroundAndCallback(delegate ()
                     {
                         Log.Instance.Info("Looking for dynamic categories for site '{0}'", SelectedSite.Settings.Name);
@@ -1439,12 +1436,6 @@ namespace OnlineVideos.MediaPortal1
                 }
                 else
                 {
-                    if (SelectedSite is FavoriteUtil)
-                    {
-                        if (((FavoriteUtil)SelectedSite).NeedsWebView(parentCategory))
-                            ((FavoriteUtil)SelectedSite).SetWebviewHelper(parentCategory, WebViewHelper.Instance);
-                    }
-
                     SetCategoriesToFacade(parentCategory, parentCategory.SubCategories, diveDownOrUpIfSingle);
                 }
             }

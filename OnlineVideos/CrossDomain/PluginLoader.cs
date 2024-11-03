@@ -180,7 +180,9 @@ namespace OnlineVideos.CrossDomain
             s.Serialize(ms);
             ms.Position = 0;
             SiteSettings originalSettings = SerializableSettings.Deserialize(new StreamReader(ms))[0];
-            return CreateUtilFromShortName(site.Settings.UtilName, originalSettings);
+            var res= CreateUtilFromShortName(site.Settings.UtilName, originalSettings);
+            res.webViewHelper = site.webViewHelper;
+            return res;
         }
 
         public IList<SiteSettings> CreateSiteSettingsFromXml(string siteXml)
