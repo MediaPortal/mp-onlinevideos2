@@ -13,7 +13,7 @@ using System.Xml.XPath;
 
 namespace OnlineVideos.Sites
 {
-	public class YouTubeUtil : LatestVideosSiteUtilBase, IFilter
+    public class YouTubeUtil : LatestVideosSiteUtilBase, IFilter
     {
         private class MyYouTubeEntry : IVideoDetails
         {
@@ -44,77 +44,77 @@ namespace OnlineVideos.Sites
 
         public enum VideoQuality { Low, Medium, High, HD, FullHD };
 
-		public enum VideoFormat { flv, mp4, webm };
+        public enum VideoFormat { flv, mp4, webm };
 
         /// <summary>
         /// http://code.google.com/intl/de-DE/apis/youtube/2.0/reference.html#Standard_feeds
         /// </summary>
-        public enum StandartFeedCountry 
+        public enum StandartFeedCountry
         {
-            [Description("Australia")]AU,
-            [Description("Brazil")]BR,
-            [Description("Canada")]CA,
-            [Description("Czech Republic")]CZ,
-            [Description("France")]FR,
-            [Description("Germany")]DE,
-            [Description("Great Britain")]GB,
-            [Description("Holland")]NL,
-            [Description("Hong Kong")]HK,
-            [Description("India")]IN,
-            [Description("Ireland")]IE,
-            [Description("Israel")]IL,
-            [Description("Italy")]IT,
-            [Description("Japan")]JP,
-            [Description("Mexico")]MX,
-            [Description("New Zealand")]NZ,
-            [Description("Poland")]PL,
-            [Description("Russia")]RU,
-            [Description("South Korea")]KR,
-            [Description("Spain")]ES,
-            [Description("Sweden")]SE,
-            [Description("Taiwan")]TW,
-            [Description("United States")]US 
+            [Description("Australia")] AU,
+            [Description("Brazil")] BR,
+            [Description("Canada")] CA,
+            [Description("Czech Republic")] CZ,
+            [Description("France")] FR,
+            [Description("Germany")] DE,
+            [Description("Great Britain")] GB,
+            [Description("Holland")] NL,
+            [Description("Hong Kong")] HK,
+            [Description("India")] IN,
+            [Description("Ireland")] IE,
+            [Description("Israel")] IL,
+            [Description("Italy")] IT,
+            [Description("Japan")] JP,
+            [Description("Mexico")] MX,
+            [Description("New Zealand")] NZ,
+            [Description("Poland")] PL,
+            [Description("Russia")] RU,
+            [Description("South Korea")] KR,
+            [Description("Spain")] ES,
+            [Description("Sweden")] SE,
+            [Description("Taiwan")] TW,
+            [Description("United States")] US
         }
-        
+
         /// <summary>
         /// http://code.google.com/intl/de-DE/apis/youtube/2.0/reference.html#Localized_Category_Lists
         /// </summary>
         public enum CategoryLocale
         {
-            [Description("Chinese")]zh,
-            [Description("Czech")]cs,
-            [Description("Dutch")]nl,            
-            [Description("English")]en,
-            [Description("French")]fr,
-            [Description("German")]de,
-            [Description("Italian")]it, 
-            [Description("Japanese")]ja,
-            [Description("Korean")]ko,
-            [Description("Polish")]pl,
-            [Description("Portuguese")]pt,
-            [Description("Russian")]ru,
-            [Description("Spanish")]es,
-            [Description("Swedish")]sv
+            [Description("Chinese")] zh,
+            [Description("Czech")] cs,
+            [Description("Dutch")] nl,
+            [Description("English")] en,
+            [Description("French")] fr,
+            [Description("German")] de,
+            [Description("Italian")] it,
+            [Description("Japanese")] ja,
+            [Description("Korean")] ko,
+            [Description("Polish")] pl,
+            [Description("Portuguese")] pt,
+            [Description("Russian")] ru,
+            [Description("Spanish")] es,
+            [Description("Swedish")] sv
         }
 
-		[Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Preferred Format"), Description("Prefer this format when there are more than one for the desired quality.")]
-		VideoFormat preferredFormat = VideoFormat.mp4;
-		[Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Undesired Format"), Description("Try to avoid this format when there are more than one for the desired quality.")]
-		VideoFormat undesiredFormat = VideoFormat.webm;
-		[Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Video Quality", TranslationFieldName="VideoQuality"), Description("Defines the maximum quality for the video to be played.")]
+        [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Preferred Format"), Description("Prefer this format when there are more than one for the desired quality.")]
+        VideoFormat preferredFormat = VideoFormat.mp4;
+        [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Undesired Format"), Description("Try to avoid this format when there are more than one for the desired quality.")]
+        VideoFormat undesiredFormat = VideoFormat.webm;
+        [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Video Quality", TranslationFieldName = "VideoQuality"), Description("Defines the maximum quality for the video to be played.")]
         VideoQuality videoQuality = VideoQuality.High;
-		[Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Account Name"), Description("Your YouTube account name (not Email!). Used for favorites and subscriptions.")]
+        [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Account Name"), Description("Your YouTube account name (not Email!). Used for favorites and subscriptions.")]
         string accountname = "";
         [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Login"), Description("Your YouTube login (mostly an Email!). Used for favorites and subscriptions.")]
         string login = "";
-		[Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Password"), Description("Your YouTube password. Used for favorites and subscriptions."), PasswordPropertyText(true)]
+        [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Password"), Description("Your YouTube password. Used for favorites and subscriptions."), PasswordPropertyText(true)]
         string password = "";
-		[Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Videos per Page"), Description("Defines the default number of videos to display per page.")]
+        [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Videos per Page"), Description("Defines the default number of videos to display per page.")]
         int pageSize = 26;
-		[Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Localize"), Description("Try to retrieve data specific for your region.")]
+        [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Localize"), Description("Try to retrieve data specific for your region.")]
         bool localize = false;
 
-		/*[Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Proxy"), Description("Proxy address to use. Define like this: ip:port;user:pass (;user:pass is optional)")]
+        /*[Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Proxy"), Description("Proxy address to use. Define like this: ip:port;user:pass (;user:pass is optional)")]
 		string proxy = null;
 		[Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Proxy Enabled"), Description("Enable proxy (if Proxy is set).")]
 		bool proxyEnabled = false;*/
@@ -127,17 +127,17 @@ namespace OnlineVideos.Sites
         private List<int> steps = new List<int>() { 10, 20, 30, 40, 50 };
         private Dictionary<String, String> orderByList;
         private Dictionary<String, String> timeFrameList = new Dictionary<string, string>();
-        private YouTubeQuery lastPerformedQuery;        
+        private YouTubeQuery lastPerformedQuery;
 
         const string CLIENT_ID = "ytapi-GregZ-OnlineVideos-s2skvsf5-0";
-        const string DEVELOPER_KEY = "AI39si5x-6x0Nybb_MvpC3vpiF8xBjpGgfq-HTbyxWP26hdlnZ3bTYyERHys8wyYsbx3zc5f9bGYj0_qfybCp-wyBF-9R5-5kA";        
+        const string DEVELOPER_KEY = "AI39si5x-6x0Nybb_MvpC3vpiF8xBjpGgfq-HTbyxWP26hdlnZ3bTYyERHys8wyYsbx3zc5f9bGYj0_qfybCp-wyBF-9R5-5kA";
         const string USER_PLAYLISTS_FEED = "http://gdata.youtube.com/feeds/api/users/[\\w]+/playlists";
         const string PLAYLIST_FEED = "http://gdata.youtube.com/feeds/api/playlists/{0}";
-		const string USER_NEWSUBSCRIPTIONS_FEED = "http://gdata.youtube.com/feeds/api/users/default/newsubscriptionvideos";
-		const string USER_RECOMMENDATIONS_FEED = "https://gdata.youtube.com/feeds/api/users/default/recommendations";
-		const string USER_WATCH_LATER_FEED = "https://gdata.youtube.com/feeds/api/users/default/watch_later?v=2";
-		const string USER_WATCH_HISTORY_FEED = "https://gdata.youtube.com/feeds/api/users/default/watch_history?v=2";
-        
+        const string USER_NEWSUBSCRIPTIONS_FEED = "http://gdata.youtube.com/feeds/api/users/default/newsubscriptionvideos";
+        const string USER_RECOMMENDATIONS_FEED = "https://gdata.youtube.com/feeds/api/users/default/recommendations";
+        const string USER_WATCH_LATER_FEED = "https://gdata.youtube.com/feeds/api/users/default/watch_later?v=2";
+        const string USER_WATCH_HISTORY_FEED = "https://gdata.youtube.com/feeds/api/users/default/watch_history?v=2";
+
         public override void Initialize(SiteSettings siteSettings)
         {
             base.Initialize(siteSettings);
@@ -148,13 +148,13 @@ namespace OnlineVideos.Sites
                                                             {"Rating", "rating"}};
             foreach (string name in Enum.GetNames(typeof(YouTubeQuery.UploadTime))) timeFrameList.Add(Helpers.StringUtils.ToFriendlyCase(name), name);
             if (string.IsNullOrEmpty(login) || string.IsNullOrEmpty(password))
-				request = new YouTubeRequest(new YouTubeRequestSettings("OnlineVideos", DEVELOPER_KEY));
-			else
-				request = new YouTubeRequest(new YouTubeRequestSettings("OnlineVideos", DEVELOPER_KEY, login, password));
-			service = request.Service;
-			service.RequestFactory.UseGZip = true;
+                request = new YouTubeRequest(new YouTubeRequestSettings("OnlineVideos", DEVELOPER_KEY));
+            else
+                request = new YouTubeRequest(new YouTubeRequestSettings("OnlineVideos", DEVELOPER_KEY, login, password));
+            service = request.Service;
+            service.RequestFactory.UseGZip = true;
 
-			/*if (!string.IsNullOrEmpty(proxy) && proxyEnabled)
+            /*if (!string.IsNullOrEmpty(proxy) && proxyEnabled)
 			{
 				string[] splits = proxy.Split(';');
 				if (splits.Length > 1)
@@ -172,7 +172,7 @@ namespace OnlineVideos.Sites
         public override List<VideoInfo> GetVideos(Category category)
         {
             currentVideosTitle = null;  // use default title for videos retrieved via this method (which is the Category Name)
-			if ((((RssLink)category).Other as string) == "Login") Login();
+            if ((((RssLink)category).Other as string) == "Login") Login();
             string fsUrl = ((RssLink)category).Url;
             YouTubeQuery query = new YouTubeQuery() { Uri = new Uri(fsUrl) };
             query.NumberToRetrieve = pageSize;
@@ -181,50 +181,50 @@ namespace OnlineVideos.Sites
 
         public override List<String> GetMultipleVideoUrls(VideoInfo video, bool inPlaylist = false)
         {
-			if (request.Proxy == null)
-				video.PlaybackOptions = Hoster.HosterFactory.GetHoster("Youtube").GetPlaybackOptions(video.VideoUrl);
-			else
-				video.PlaybackOptions = Hoster.HosterFactory.GetHoster("Youtube").GetPlaybackOptions(video.VideoUrl/*, request.Proxy*/);
+            if (request.Proxy == null)
+                video.PlaybackOptions = Hoster.HosterFactory.GetHoster("Youtube").GetPlaybackOptions(video.VideoUrl);
+            else
+                video.PlaybackOptions = Hoster.HosterFactory.GetHoster("Youtube").GetPlaybackOptions(video.VideoUrl/*, request.Proxy*/);
 
             if (video.PlaybackOptions != null && video.PlaybackOptions.Count > 0)
             {
-				if (video.PlaybackOptions.Count == 1)
-				{
-					// nothing to chose from, only one options available
-					return new List<string>() { video.PlaybackOptions.First().Value };
-				}
-				else
-				{
-					KeyValuePair<string, string> foundQuality = default(KeyValuePair<string, string>);
-					switch (videoQuality)
-					{
-						case VideoQuality.Low:		//use first available option
-							foundQuality = video.PlaybackOptions.First(); break;
-						case VideoQuality.Medium:	//first above 320 that is not 3D
-							foundQuality = video.PlaybackOptions.FirstOrDefault(q => !q.Key.Contains("320") && !q.Key.Contains("3D")); break;
-						case VideoQuality.High:		//highest below the HD formats that is not 3D
-							foundQuality = video.PlaybackOptions.LastOrDefault(q => !q.Key.Contains("1920") && !q.Key.Contains("1280") && !q.Key.Contains("3D")); break;
-						case VideoQuality.HD:		//first below full HD that is not 3D
-							foundQuality = video.PlaybackOptions.LastOrDefault(q => !q.Key.Contains("1920") && !q.Key.Contains("3D")); break;
-						case VideoQuality.FullHD:	//use highest available quality that is not 3D
-							foundQuality = video.PlaybackOptions.Last(q => !q.Key.Contains("3D")); break;
-					}
-					if (!string.IsNullOrEmpty(foundQuality.Key))
-					{
-						string resolution = foundQuality.Key.Substring(0, foundQuality.Key.IndexOf('|'));
-						// try to find one that has the same resolution and the preferred format
-						var bestMatch = video.PlaybackOptions.FirstOrDefault(q => q.Key.Contains(resolution) && !q.Key.Contains("3D") && q.Key.Contains(preferredFormat.ToString()));
-						// try to find one that has the same resolution and not the undesired format
-						if (string.IsNullOrEmpty(bestMatch.Key)) bestMatch = video.PlaybackOptions.FirstOrDefault(q => q.Key.Contains(resolution) && !q.Key.Contains("3D") && !q.Key.Contains(undesiredFormat.ToString()));
-						if (!string.IsNullOrEmpty(bestMatch.Key)) foundQuality = bestMatch;
-					}
-					// fallback when no match was found -> use first choice
-					if (string.IsNullOrEmpty(foundQuality.Key)) foundQuality = video.PlaybackOptions.First();
-					if (inPlaylist) video.PlaybackOptions = null;
-					return new List<string>() { foundQuality.Value };
-				}				
+                if (video.PlaybackOptions.Count == 1)
+                {
+                    // nothing to chose from, only one options available
+                    return new List<string>() { video.PlaybackOptions.First().Value };
+                }
+                else
+                {
+                    KeyValuePair<string, string> foundQuality = default(KeyValuePair<string, string>);
+                    switch (videoQuality)
+                    {
+                        case VideoQuality.Low:      //use first available option
+                            foundQuality = video.PlaybackOptions.First(); break;
+                        case VideoQuality.Medium:   //first above 320 that is not 3D
+                            foundQuality = video.PlaybackOptions.FirstOrDefault(q => !q.Key.Contains("320") && !q.Key.Contains("3D")); break;
+                        case VideoQuality.High:     //highest below the HD formats that is not 3D
+                            foundQuality = video.PlaybackOptions.LastOrDefault(q => !q.Key.Contains("1920") && !q.Key.Contains("1280") && !q.Key.Contains("3D")); break;
+                        case VideoQuality.HD:       //first below full HD that is not 3D
+                            foundQuality = video.PlaybackOptions.LastOrDefault(q => !q.Key.Contains("1920") && !q.Key.Contains("3D")); break;
+                        case VideoQuality.FullHD:   //use highest available quality that is not 3D
+                            foundQuality = video.PlaybackOptions.Last(q => !q.Key.Contains("3D")); break;
+                    }
+                    if (!string.IsNullOrEmpty(foundQuality.Key))
+                    {
+                        string resolution = foundQuality.Key.Substring(0, foundQuality.Key.IndexOf('|'));
+                        // try to find one that has the same resolution and the preferred format
+                        var bestMatch = video.PlaybackOptions.FirstOrDefault(q => q.Key.Contains(resolution) && !q.Key.Contains("3D") && q.Key.Contains(preferredFormat.ToString()));
+                        // try to find one that has the same resolution and not the undesired format
+                        if (string.IsNullOrEmpty(bestMatch.Key)) bestMatch = video.PlaybackOptions.FirstOrDefault(q => q.Key.Contains(resolution) && !q.Key.Contains("3D") && !q.Key.Contains(undesiredFormat.ToString()));
+                        if (!string.IsNullOrEmpty(bestMatch.Key)) foundQuality = bestMatch;
+                    }
+                    // fallback when no match was found -> use first choice
+                    if (string.IsNullOrEmpty(foundQuality.Key)) foundQuality = video.PlaybackOptions.First();
+                    if (inPlaylist) video.PlaybackOptions = null;
+                    return new List<string>() { foundQuality.Value };
+                }
             }
-			return null; // no playback options
+            return null; // no playback options
         }
 
         public override int DiscoverDynamicCategories()
@@ -232,58 +232,58 @@ namespace OnlineVideos.Sites
             // walk the categories and see if there are user's playlists - they need to be set to have subcategories
             foreach (Category link in Settings.Categories)
             {
-				if (link is RssLink)
-				{
-					if (Regex.Match(((RssLink)link).Url, USER_PLAYLISTS_FEED).Success)
-					{
-						link.HasSubCategories = true;
-						link.SubCategoriesDiscovered = false;
-					}
-				}
-				else
-				{
-					// static Categories with static Subcategories
-					if (link.HasSubCategories && link.SubCategories != null)
-					{
-						foreach(var subLink in link.SubCategories)
-							if (subLink is RssLink && Regex.Match(((RssLink)subLink).Url, USER_PLAYLISTS_FEED).Success)
-							{
-								subLink.HasSubCategories = true;
-								subLink.SubCategoriesDiscovered = false;
-							}
-						link.SubCategoriesDiscovered = true;
-					}
-				}
+                if (link is RssLink)
+                {
+                    if (Regex.Match(((RssLink)link).Url, USER_PLAYLISTS_FEED).Success)
+                    {
+                        link.HasSubCategories = true;
+                        link.SubCategoriesDiscovered = false;
+                    }
+                }
+                else
+                {
+                    // static Categories with static Subcategories
+                    if (link.HasSubCategories && link.SubCategories != null)
+                    {
+                        foreach (var subLink in link.SubCategories)
+                            if (subLink is RssLink && Regex.Match(((RssLink)subLink).Url, USER_PLAYLISTS_FEED).Success)
+                            {
+                                subLink.HasSubCategories = true;
+                                subLink.SubCategoriesDiscovered = false;
+                            }
+                        link.SubCategoriesDiscovered = true;
+                    }
+                }
             }
 
-			// add categories defined by YouTube
-			if (useDynamicCategories)
-			{
-				Dictionary<String, String> categories = getYoutubeCategories();
-				foreach (KeyValuePair<String, String> cat in categories)
-				{
-					RssLink item = new RssLink();
-					item.Name = cat.Key;
-					YouTubeQuery query = new YouTubeQuery(YouTubeQuery.DefaultVideoUri);
-					query.Categories.Add(new QueryCategory(cat.Value, QueryCategoryOperator.AND));
-					item.Url = query.Uri.ToString();
-					Settings.Categories.Add(item);
-				}
-			}
+            // add categories defined by YouTube
+            if (useDynamicCategories)
+            {
+                Dictionary<String, String> categories = getYoutubeCategories();
+                foreach (KeyValuePair<String, String> cat in categories)
+                {
+                    RssLink item = new RssLink();
+                    item.Name = cat.Key;
+                    YouTubeQuery query = new YouTubeQuery(YouTubeQuery.DefaultVideoUri);
+                    query.Categories.Add(new QueryCategory(cat.Value, QueryCategoryOperator.AND));
+                    item.Url = query.Uri.ToString();
+                    Settings.Categories.Add(item);
+                }
+            }
 
             // if a username was set add categories for a user on YouTube
-			if (!string.IsNullOrEmpty(accountname) && !string.IsNullOrEmpty(password) && !string.IsNullOrEmpty(accountname))
+            if (!string.IsNullOrEmpty(accountname) && !string.IsNullOrEmpty(password) && !string.IsNullOrEmpty(accountname))
             {
-				Settings.Categories.Add(new RssLink() { Name = string.Format("{0}'s {1}", accountname, Translation.Instance.Favourites), Url = YouTubeQuery.CreateFavoritesUri(accountname), Other="Login" });
-				Settings.Categories.Add(new RssLink() { Name = string.Format("{0}'s {1}", accountname, Translation.Instance.Recommendations), Url = USER_RECOMMENDATIONS_FEED, Other = "Login" });
-				Settings.Categories.Add(new RssLink() { Name = string.Format("{0}'s {1}", accountname, "Watch Later Playlist"), Url = USER_WATCH_LATER_FEED, Other = "Login" });
-				Settings.Categories.Add(new RssLink() { Name = string.Format("{0}'s {1}", accountname, "Watch History Feed"), Url = USER_WATCH_HISTORY_FEED, Other = "Login" });
-				Settings.Categories.Add(new Category() { Name = string.Format("{0}'s {1}", accountname, Translation.Instance.Subscriptions), HasSubCategories = true });
-				Settings.Categories.Add(new Category() { Name = string.Format("{0}'s {1}", accountname, Translation.Instance.Playlists), HasSubCategories = true });
+                Settings.Categories.Add(new RssLink() { Name = string.Format("{0}'s {1}", accountname, Translation.Instance.Favourites), Url = YouTubeQuery.CreateFavoritesUri(accountname), Other = "Login" });
+                Settings.Categories.Add(new RssLink() { Name = string.Format("{0}'s {1}", accountname, Translation.Instance.Recommendations), Url = USER_RECOMMENDATIONS_FEED, Other = "Login" });
+                Settings.Categories.Add(new RssLink() { Name = string.Format("{0}'s {1}", accountname, "Watch Later Playlist"), Url = USER_WATCH_LATER_FEED, Other = "Login" });
+                Settings.Categories.Add(new RssLink() { Name = string.Format("{0}'s {1}", accountname, "Watch History Feed"), Url = USER_WATCH_HISTORY_FEED, Other = "Login" });
+                Settings.Categories.Add(new Category() { Name = string.Format("{0}'s {1}", accountname, Translation.Instance.Subscriptions), HasSubCategories = true });
+                Settings.Categories.Add(new Category() { Name = string.Format("{0}'s {1}", accountname, Translation.Instance.Playlists), HasSubCategories = true });
             }
 
             Settings.DynamicCategoriesDiscovered = true;
-			return Settings.Categories.Count;
+            return Settings.Categories.Count;
         }
 
         public override int DiscoverSubCategories(Category parentCategory)
@@ -311,7 +311,7 @@ namespace OnlineVideos.Sites
                     catch (Google.GData.Client.GDataRequestException queryEx)
                     {
                         HandleGDataErrorMessage(queryEx);
-                    }                    
+                    }
                     GetPlaylistEntriesAsCategories(parentCategory, feed);
                 }
                 else
@@ -398,15 +398,15 @@ namespace OnlineVideos.Sites
             // return the number of categories we discovered
             return feed.Entries.Count;
         }
-       
+
         List<VideoInfo> parseGData(YouTubeQuery query)
         {
             List<VideoInfo> loRssItems = new List<VideoInfo>();
 
             if (localize)
             {
-                string myAddress = query.BaseAddress.Substring(query.BaseAddress.IndexOf("//")+2);
-                string ytAddress = YouTubeQuery.StandardFeeds.Substring(YouTubeQuery.StandardFeeds.IndexOf("//")+2);
+                string myAddress = query.BaseAddress.Substring(query.BaseAddress.IndexOf("//") + 2);
+                string ytAddress = YouTubeQuery.StandardFeeds.Substring(YouTubeQuery.StandardFeeds.IndexOf("//") + 2);
                 if (myAddress.StartsWith(ytAddress))
                 {
                     // standartfeeds don't honor the LR parameter and have their own way of country specific query
@@ -437,7 +437,7 @@ namespace OnlineVideos.Sites
             {
                 HandleGDataErrorMessage(queryEx);
             }
-            
+
             hasNextPage = !string.IsNullOrEmpty(feed.NextChunk);
             foreach (YouTubeEntry entry in feed.Entries)
             {
@@ -505,7 +505,7 @@ namespace OnlineVideos.Sites
             try
             {
                 var xDoc = XDocument.Parse(queryEx.ResponseString);
-                
+
                 var innerReasonElement = xDoc.XPathSelectElement("//*[local-name() = 'internalReason']");
                 if (innerReasonElement != null && !string.IsNullOrWhiteSpace(innerReasonElement.Value))
                     throw new OnlineVideosException(innerReasonElement.Value);
@@ -520,13 +520,13 @@ namespace OnlineVideos.Sites
             {
                 Log.Info("Error getting GData error message: {0}{1}{2}", ex.Message, Environment.NewLine, queryEx.ResponseString);
             }
-            
+
             throw queryEx;
         }
 
         #region Paging
 
-        bool hasNextPage;        
+        bool hasNextPage;
 
         public override bool HasNextPage
         {
@@ -714,7 +714,7 @@ namespace OnlineVideos.Sites
             {
                 Login();
                 YouTubeQuery query = new YouTubeQuery() { Uri = new Uri(YouTubeQuery.CreatePlaylistsUri(accountname)), StartIndex = 1, NumberToRetrieve = 50 }; // max. 50 per query
-				YouTubeFeed feed = service.Query(query);
+                YouTubeFeed feed = service.Query(query);
                 foreach (PlaylistsEntry e in feed.Entries)
                 {
                     if (e.Content.Src.Content.Substring(e.Content.Src.Content.IndexOf("://")) == playlistUrl.Substring(playlistUrl.IndexOf("://")))
@@ -775,7 +775,7 @@ namespace OnlineVideos.Sites
             {
                 Login();
                 YouTubeEntry entry = ((MyYouTubeEntry)video.Other).YouTubeEntry;
-                service.Insert(new Uri(YouTubeQuery.CreateFavoritesUri(accountname)), entry);                
+                service.Insert(new Uri(YouTubeQuery.CreateFavoritesUri(accountname)), entry);
             }
         }
 
@@ -809,16 +809,16 @@ namespace OnlineVideos.Sites
             {
                 // do login
                 service.setUserCredentials(login, password);
-				try
-				{
-					string token = service.QueryClientLoginToken();
-					service.SetAuthenticationToken(token);
-					return true;
-				}
-				catch (Exception ex)
-				{
-					throw new OnlineVideosException(ex.Message);
-				}
+                try
+                {
+                    string token = service.QueryClientLoginToken();
+                    service.SetAuthenticationToken(token);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    throw new OnlineVideosException(ex.Message);
+                }
             }
             return false;
         }
@@ -866,37 +866,37 @@ namespace OnlineVideos.Sites
 
         #endregion
 
-		#region LatestVideos
+        #region LatestVideos
 
-		public override uint LatestVideosCount
-		{
-			get { return useDynamicCategories ? latestVideosCount : 0; }
-		}
+        public override uint LatestVideosCount
+        {
+            get { return useDynamicCategories ? latestVideosCount : 0; }
+        }
 
-		public override List<VideoInfo> GetLatestVideos()
-		{
+        public override List<VideoInfo> GetLatestVideos()
+        {
             bool authenticated = false;
             try
             {
-                 authenticated = Login();
+                authenticated = Login();
             }
             catch (Exception ex)
             {
                 Log.Warn("Error getting Latest Videos from YouTube with credentials: {0}", ex.Message);
             }
             if (authenticated)
-			{
-				YouTubeQuery query = new YouTubeQuery() { Uri = new Uri(USER_NEWSUBSCRIPTIONS_FEED) };
-				query.NumberToRetrieve = (int)latestVideosCount;
-				return parseGData(query);
-			}
-			else
-			{
-				YouTubeQuery query = new YouTubeQuery() { Uri = new Uri("http://gdata.youtube.com/feeds/api/videos?orderby=published") };
-				query.NumberToRetrieve = (int)latestVideosCount;
-				return parseGData(query);
-			}
-		}
-		#endregion
-	}
+            {
+                YouTubeQuery query = new YouTubeQuery() { Uri = new Uri(USER_NEWSUBSCRIPTIONS_FEED) };
+                query.NumberToRetrieve = (int)latestVideosCount;
+                return parseGData(query);
+            }
+            else
+            {
+                YouTubeQuery query = new YouTubeQuery() { Uri = new Uri("http://gdata.youtube.com/feeds/api/videos?orderby=published") };
+                query.NumberToRetrieve = (int)latestVideosCount;
+                return parseGData(query);
+            }
+        }
+        #endregion
+    }
 }

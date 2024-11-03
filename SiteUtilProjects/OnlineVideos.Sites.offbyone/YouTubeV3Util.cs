@@ -226,7 +226,7 @@ namespace OnlineVideos.Sites
             video.PlaybackOptions = hoster.GetPlaybackOptions(video.VideoUrl);
             if (video.PlaybackOptions != null && video.PlaybackOptions.Count > 0)
             {
-                video.SubtitleText = ((Hoster.ISubtitle) hoster).SubtitleText;
+                video.SubtitleText = ((Hoster.ISubtitle)hoster).SubtitleText;
 
                 if (video.PlaybackOptions.Count == 1)
                 {

@@ -59,8 +59,8 @@ namespace OnlineVideos.Hoster
         public string SignatureTimestamp { get => this._Decryptor?.SignatureTimestamp; }
         public DateTime LoadTimestamp { get { return this._Decryptor?.LoadTime ?? DateTime.MinValue; } }
 
-        public DateTime LastUseTimestamp 
-        { 
+        public DateTime LastUseTimestamp
+        {
             get
             {
                 return this._Decryptor?.LastUse ?? DateTime.MinValue;

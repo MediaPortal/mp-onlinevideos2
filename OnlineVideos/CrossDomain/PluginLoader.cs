@@ -20,7 +20,7 @@ namespace OnlineVideos.CrossDomain
         public PluginLoader()
         {
             AppDomain.CurrentDomain.AssemblyResolve += AssemblyResolve;
-            ServicePointManager.SecurityProtocol = (SecurityProtocolType) 3072|SecurityProtocolType.Ssl3|SecurityProtocolType.Tls;
+            ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072 | SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls;
         }
 
         Assembly AssemblyResolve(object sender, ResolveEventArgs args)
@@ -180,7 +180,7 @@ namespace OnlineVideos.CrossDomain
             s.Serialize(ms);
             ms.Position = 0;
             SiteSettings originalSettings = SerializableSettings.Deserialize(new StreamReader(ms))[0];
-            var res= CreateUtilFromShortName(site.Settings.UtilName, originalSettings);
+            var res = CreateUtilFromShortName(site.Settings.UtilName, originalSettings);
             res.webViewHelper = site.webViewHelper;
             return res;
         }
