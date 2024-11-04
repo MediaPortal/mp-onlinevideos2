@@ -655,8 +655,7 @@ namespace OnlineVideos.Hoster
                 return true;
 
             Log.Debug("[YoutubeHoster] checkYtDlpVersion() Checking latest version...");
-
-            string strExePath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), _YtDlpExeName);
+            string strExePath = System.IO.Path.Combine(OnlineVideoSettings.Instance.DllsDir, _YtDlpExeName);
 
             try
             {
