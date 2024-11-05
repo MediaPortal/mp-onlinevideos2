@@ -195,6 +195,7 @@ namespace OnlineVideos.Hoster
         private static YoutubeSignatureDecryptor _YoutubeDecryptor = null;
         private static DateTime _YtDlpLastCheck = DateTime.MinValue;
         private static readonly string _YtDlpExeName = Environment.Is64BitOperatingSystem ? "yt-dlp.exe" : "yt-dlp_x86.exe";
+        private static readonly string _YtDlpExePath = System.IO.Path.Combine(OnlineVideoSettings.Instance.DllsDir, _YtDlpExeName);
 
         public override Dictionary<string, string> GetPlaybackOptions(string url)
         {
@@ -655,7 +656,6 @@ namespace OnlineVideos.Hoster
                 return true;
 
             Log.Debug("[YoutubeHoster] checkYtDlpVersion() Checking latest version...");
-            string strExePath = System.IO.Path.Combine(OnlineVideoSettings.Instance.DllsDir, _YtDlpExeName);
 
             try
             {
@@ -665,9 +665,9 @@ namespace OnlineVideos.Hoster
 
                 Log.Debug("[YoutubeHoster] checkYtDlpVersion() Latest available version: {0}", strLatest);
 
-                if (System.IO.File.Exists(strExePath))
+                if (System.IO.File.Exists(_YtDlpExePath))
                 {
-                    FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(strExePath);
+                    FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(_YtDlpExePath);
 
                     if (strLatest == fvi.FileVersion)
                     {
@@ -683,15 +683,18 @@ namespace OnlineVideos.Hoster
                 string strDownloadPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), _YtDlpExeName);
                 WebClient wc = new();
                 wc.DownloadFile(strUrlDownload, strDownloadPath);
-                System.IO.File.Replace(strDownloadPath, strExePath, null);
-            ok:
+                if (!System.IO.File.Exists(_YtDlpExePath))
+                    System.IO.File.Move(strDownloadPath, _YtDlpExePath);
+                else
+                    System.IO.File.Replace(strDownloadPath, _YtDlpExePath, null);
+                ok:
                 _YtDlpLastCheck = DateTime.Now;
                 return true;
             }
             catch (Exception ex)
             {
                 Log.Debug("[YoutubeHoster] checkYtDlpVersion() Error: {0}", ex.Message);
-                return System.IO.File.Exists(strExePath);
+                return System.IO.File.Exists(_YtDlpExePath);
             }
         }
 
@@ -717,7 +720,7 @@ namespace OnlineVideos.Hoster
                     CreateNoWindow = true,
                     StandardOutputEncoding = Encoding.UTF8,
                     StandardErrorEncoding = Encoding.UTF8,
-                    FileName = _YtDlpExeName,
+                    FileName = _YtDlpExePath,
                     Arguments = "--proxy \"\" -j https://www.youtube.com/watch?v=" + strVideoId //Ignore proxy; ytdlp can fail due to certificate error
                 };
 
