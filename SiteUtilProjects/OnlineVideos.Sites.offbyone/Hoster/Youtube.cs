@@ -659,7 +659,16 @@ namespace OnlineVideos.Hoster
 
             try
             {
-                string strContent = WebCache.Instance.GetWebData("https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest", cache: false);
+                string strContent;
+                if (Environment.OSVersion.Version.Major == 6 && Environment.OSVersion.Version.MajorRevision < 2)
+                {
+                    //2024.10.22 is latest working version for Win7
+                    Log.Warn("[YoutubeHoster] checkYtDlpVersion() Latest working version for Windows 7 is 2024.10.22");
+                    strContent = WebCache.Instance.GetWebData("https://api.github.com/repos/yt-dlp/yt-dlp/releases/181139283", cache: false);
+                }
+                else
+                    strContent = WebCache.Instance.GetWebData("https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest", cache: false);
+
                 JToken j = JToken.Parse(strContent);
                 string strLatest = (string)j["tag_name"];
 
