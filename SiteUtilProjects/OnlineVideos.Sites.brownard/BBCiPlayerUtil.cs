@@ -578,7 +578,7 @@ namespace OnlineVideos.Sites
                 VideoUrl = GetAbsoluteUri(urlNode.GetAttributeValue("href", ""), BASE_URL).ToString(),
                 Thumb = getImageUrl(videoNode.SelectSingleNode(@".//img"))
             };
-
+            SetTrackingInfo(videoInfo);
             var metaNodes = videoNode.SelectNodes(@".//div[contains(@class, 'content-item-root__meta')]");
             videoInfo.Title = metaNodes.Count > 0 ? metaNodes[0].GetCleanInnerText() : defaultTitle;
             if (metaNodes.Count > 1)
@@ -597,7 +597,7 @@ namespace OnlineVideos.Sites
                 if (!string.IsNullOrWhiteSpace(subtitle))
                     title = subtitle;
             }
-            return new VideoInfo()
+            var result= new VideoInfo()
             {
                 VideoUrl = url,
                 Title = title,
@@ -606,6 +606,8 @@ namespace OnlineVideos.Sites
                 Length = videoNode.SelectSingleNode(@".//p[contains(@class, 'metadata__item--last')]").GetCleanInnerText().Replace("Duration", "").Trim(),
                 Thumb = getImageUrl(videoNode.SelectSingleNode(@".//picture/source"))
             };
+            SetTrackingInfo(result);
+            return result;
         }
 
         List<VideoInfo> getLiveVideoList(Group category)
@@ -626,6 +628,7 @@ namespace OnlineVideos.Sites
                         video.Description = guide.Format(tvGuideFormatString);
                 }
                 video.VideoUrl = url;
+                SetTrackingInfo(video);
                 videos.Add(video);
             }
             return videos;
@@ -649,7 +652,7 @@ namespace OnlineVideos.Sites
 
         #region TrackingInfo
 
-        public override ITrackingInfo GetTrackingInfo(VideoInfo video)
+        private void SetTrackingInfo(VideoInfo video)
         {
             TrackingDetails details = video.Other as TrackingDetails;
             if (details != null)
@@ -675,9 +678,8 @@ namespace OnlineVideos.Sites
                     }
                 }
                 Log.Debug("BBCiPlayer: Parsed tracking info: Title '{0}' Season {1} Episode {2}", ti.Title, ti.Season, ti.Episode);
-                return ti;
+                video.TrackingInfo = ti;
             }
-            return base.GetTrackingInfo(video);
         }
 
         #endregion

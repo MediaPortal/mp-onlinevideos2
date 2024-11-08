@@ -229,7 +229,7 @@ namespace OnlineVideos.Sites
 
                     if (!string.IsNullOrEmpty(sName) && iEpisode > 0 && iSeason > 0)
                     {
-                        video.Other = new TrackingInfo()
+                        video.TrackingInfo = new TrackingInfo()
                         {
                             Episode = iEpisode,
                             Season = iSeason,
@@ -241,12 +241,6 @@ namespace OnlineVideos.Sites
                     result.Add(video);
                 }
             return result;
-        }
-
-        public override ITrackingInfo GetTrackingInfo(VideoInfo video)
-        {
-            if (video.Other is ITrackingInfo) return video.Other as ITrackingInfo;
-            else return base.GetTrackingInfo(video);
         }
 
         private void SetCookies()
@@ -325,7 +319,7 @@ namespace OnlineVideos.Sites
 
                 if (!string.IsNullOrEmpty(video.Title) && year > 1900)
                 {
-                    video.Other = new TrackingInfo()
+                    video.TrackingInfo = new TrackingInfo()
                     {
                         Title = video.Title,
                         Year = year,

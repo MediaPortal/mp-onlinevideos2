@@ -47,7 +47,8 @@ namespace OnlineVideos.Sites
             {
                 ti.Title = "South Park";
                 ti.VideoKind = VideoKind.TvSeries;
-                video.Other = new VideoInfoOtherHelper() { TI = ti };
+                video.TrackingInfo = ti;
+                video.Other = new VideoInfoOtherHelper();
             }
             else
                 video.Other = new VideoInfoOtherHelper();
@@ -201,11 +202,6 @@ namespace OnlineVideos.Sites
             return bestUrl;
         }
 
-        public override ITrackingInfo GetTrackingInfo(VideoInfo video)
-        {
-            return (video.Other as VideoInfoOtherHelper).TI == null ? base.GetTrackingInfo(video) : (video.Other as VideoInfoOtherHelper).TI;
-        }
-
         private int getBitrate(string playbackOption)
         {
             int p = 0;
@@ -220,16 +216,14 @@ namespace OnlineVideos.Sites
         private class VideoInfoOtherHelper
         {
             public SouthParkCountry SPCountry = SouthParkCountry.Unknown;
-            public TrackingInfo TI = null;
 
             public VideoInfoOtherHelper()
             {
             }
 
-            public VideoInfoOtherHelper(SouthParkCountry spCountry, TrackingInfo trackingInfo)
+            public VideoInfoOtherHelper(SouthParkCountry spCountry)
             {
                 this.SPCountry = spCountry;
-                this.TI = trackingInfo;
             }
         }
 

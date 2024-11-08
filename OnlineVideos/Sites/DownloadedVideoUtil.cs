@@ -4,7 +4,6 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Xml.Linq;
 using OnlineVideos.Downloading;
-using ExtraVideoInfo = System.Tuple<System.IO.FileInfo, OnlineVideos.TrackingInfo>;
 
 namespace OnlineVideos.Sites
 {
@@ -85,11 +84,6 @@ namespace OnlineVideos.Sites
         public override List<VideoInfo> GetVideos(Category category)
         {
             return getVideoList((category as RssLink).Url, "*", category.Name == Translation.Instance.All);
-        }
-
-        public override ITrackingInfo GetTrackingInfo(VideoInfo video)
-        {
-            return video.Other is ExtraVideoInfo ? (video.Other as ExtraVideoInfo).Item2 : base.GetTrackingInfo(video);
         }
 
         List<VideoInfo> getVideoList(string path, string search, bool recursive)
@@ -173,7 +167,8 @@ namespace OnlineVideos.Sites
                         loVideoInfo.Length = string.Format("{0} MB", (file.Length / 1024 / 1024).ToString("N0"));
                         loVideoInfo.Airdate = string.IsNullOrEmpty(airdate_xml) ? file.LastWriteTime.ToString("g", OnlineVideoSettings.Instance.Locale) : airdate_xml;
                         loVideoInfo.Description = description_xml;
-                        loVideoInfo.Other = new ExtraVideoInfo(file, ti);
+                        loVideoInfo.TrackingInfo = ti;
+                        loVideoInfo.Other = file;
                         loVideoInfoList.Add(loVideoInfo);
                     }
                 }
@@ -189,13 +184,13 @@ namespace OnlineVideos.Sites
                     case "date":
                         loVideoInfoList.Sort((Comparison<VideoInfo>)delegate (VideoInfo v1, VideoInfo v2)
                         {
-                            return (v2.Other as ExtraVideoInfo).Item1.LastWriteTime.CompareTo((v1.Other as ExtraVideoInfo).Item1.LastWriteTime);
+                            return (v2.Other as FileInfo).LastWriteTime.CompareTo((v1.Other as FileInfo).LastWriteTime);
                         });
                         break;
                     case "size":
                         loVideoInfoList.Sort((Comparison<VideoInfo>)delegate (VideoInfo v1, VideoInfo v2)
                         {
-                            return (v2.Other as ExtraVideoInfo).Item1.Length.CompareTo((v1.Other as ExtraVideoInfo).Item1.Length);
+                            return (v2.Other as FileInfo).Length.CompareTo((v1.Other as FileInfo).Length);
                         });
                         break;
                 }

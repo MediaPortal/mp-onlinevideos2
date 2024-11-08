@@ -57,11 +57,11 @@ namespace OnlineVideos.Subtitles
             }
         }
 
-        private void SafeSetSubtitleText(VideoInfo video, ITrackingInfo trackingInfo)
+        private void SafeSetSubtitleText(VideoInfo video)
         {
             try
             {
-                setSubtitleText(video, trackingInfo);
+                setSubtitleText(video);
             }
             catch (Exception e)
             {
@@ -69,24 +69,23 @@ namespace OnlineVideos.Subtitles
             }
         }
 
-        public void SetSubtitleText(VideoInfo video, GetTrackingInfo getTrackingInfo, bool threaded = false)
+        public void SetSubtitleText(VideoInfo video, bool threaded = false)
         {
             subtitleThread = null;
             if (tryLoadSubtitles)
             {
-                ITrackingInfo it = getTrackingInfo(video);
-                if (sdObject != null && it != null && String.IsNullOrEmpty(video.SubtitleText))
+                if (sdObject != null && video.TrackingInfo != null && String.IsNullOrEmpty(video.SubtitleText))
                     if (threaded)
                     {
                         subtitleThread = new Thread(
-                            delegate()
+                            delegate ()
                             {
-                                SafeSetSubtitleText(video, it);
+                                SafeSetSubtitleText(video);
                             });
                         subtitleThread.Start();
                     }
                     else
-                        SafeSetSubtitleText(video, it);
+                        SafeSetSubtitleText(video);
             }
         }
 
@@ -98,18 +97,17 @@ namespace OnlineVideos.Subtitles
 
 
         [Obsolete("Use the SetSubtitleText with threaded=true")]
-        public void SetSubtitleText(VideoInfo video, GetTrackingInfo getTrackingInfo, out Thread thread)
+        public void SetSubtitleText(VideoInfo video, out Thread thread)
         {
             thread = null;
             if (tryLoadSubtitles)
             {
-                ITrackingInfo it = getTrackingInfo(video);
-                if (sdObject != null && it != null && String.IsNullOrEmpty(video.SubtitleText))
+                if (sdObject != null && video.TrackingInfo != null && String.IsNullOrEmpty(video.SubtitleText))
                 {
                     thread = new Thread(
-                        delegate()
+                        delegate ()
                         {
-                            SafeSetSubtitleText(video, it);
+                            SafeSetSubtitleText(video);
                         });
                     thread.Start();
                 }
@@ -142,10 +140,11 @@ namespace OnlineVideos.Subtitles
             }
         }
 
-        private void setSubtitleText(VideoInfo video, ITrackingInfo it)
+        private void setSubtitleText(VideoInfo video)
         {
             ISubtitleDownloader sd = (ISubtitleDownloader)sdObject;
             List<Subtitle> results;
+            var it = video.TrackingInfo;
             if (it.VideoKind == VideoKind.Movie)
             {
                 SearchQuery qu = new SearchQuery(it.Title);

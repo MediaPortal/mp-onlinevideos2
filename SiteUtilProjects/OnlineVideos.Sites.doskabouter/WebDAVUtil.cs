@@ -81,20 +81,12 @@ namespace OnlineVideos.Sites
                     tInfo.Regex = Regex.Match(vid.Title, @"^(?<Title>.*?)\s*-\s*(?<Year>\d{4})", RegexOptions.IgnoreCase);
                     tInfo.VideoKind = VideoKind.Movie;
                 }
-                vid.Other = tInfo;
+                vid.TrackingInfo = tInfo;
 
                 res.Add(vid);
             }
             res.Sort(VideoComparer);
             return res;
-        }
-
-        public override ITrackingInfo GetTrackingInfo(VideoInfo video)
-        {
-            if (video.Other is ITrackingInfo)
-                return video.Other as ITrackingInfo;
-
-            return base.GetTrackingInfo(video);
         }
 
         private List<Category> getDirectory(string path)

@@ -16,6 +16,8 @@ namespace OnlineVideos
         public string StartTime { get; set; }
         public Dictionary<string, string> PlaybackOptions;
 
+        public ITrackingInfo TrackingInfo { get; set; }
+
         /// <summary>If the SiteUtil for this VideoInfo implements <see cref="Sites.IChoice"/> setting this to true will show the details view (default), false will play the video</summary>
         public bool HasDetails { get; set; }
 

@@ -32,6 +32,7 @@
             SubtitleText = video.SubtitleText;
             PlaybackOptions = video.PlaybackOptions;
             HasDetails = video.HasDetails;
+            TrackingInfo = video.TrackingInfo;
 
             Title2 = string.Empty;
         }

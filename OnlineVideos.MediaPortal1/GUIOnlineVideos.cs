@@ -1983,7 +1983,7 @@ namespace OnlineVideos.MediaPortal1
                 OnlineVideosGuiListItem listItem = new OnlineVideosGuiListItem(videoInfo);
                 listItem.ItemId = GUI_facadeView.Count;
                 listItem.OnItemSelected += OnItemSelected;
-                listItem.IsPlayed = Trakt.TraktPluginHelper.IsWatched(SelectedSite.GetTrackingInfo(videoInfo));
+                listItem.IsPlayed = Trakt.TraktPluginHelper.IsWatched(videoInfo.TrackingInfo);
                 GUI_facadeView.Add(listItem);
                 currentFacadeItems.Add(listItem);
 
@@ -2262,7 +2262,7 @@ namespace OnlineVideos.MediaPortal1
                 new System.Threading.Thread((item) =>
                 {
                     var myItem = item as PlayListItem;
-                    ITrackingInfo info = myItem.Util.GetTrackingInfo(myItem.Video);
+                    ITrackingInfo info = myItem.Video.TrackingInfo;
                     if (info.VideoKind == VideoKind.TvSeries || info.VideoKind == VideoKind.Movie) TrackVideoPlayback(info, percent);
                 })
                 { IsBackground = true, Name = "OnlineVideosTracking" }.Start(currentPlayingItem);
@@ -2949,7 +2949,7 @@ namespace OnlineVideos.MediaPortal1
                     SaveSubtitles(saveItems.CurrentItem.VideoInfo, Path.ChangeExtension(saveItems.CurrentItem.LocalFile, ".srt"));
                     // save matroska tag
                     string niceTitle = saveItems.CurrentItem.Util.GetFileNameForDownload(saveItems.CurrentItem.VideoInfo, saveItems.CurrentItem.Category, null);
-                    ITrackingInfo ti = saveItems.CurrentItem.Util.GetTrackingInfo(saveItems.CurrentItem.VideoInfo);
+                    ITrackingInfo ti = saveItems.CurrentItem.VideoInfo.TrackingInfo;
                     File.WriteAllText(Path.ChangeExtension(saveItems.CurrentItem.LocalFile, ".xml"), saveItems.CurrentItem.VideoInfo.CreateMatroskaXmlTag(niceTitle, ti), System.Text.Encoding.UTF8);
                 }
                 catch (Exception ex)

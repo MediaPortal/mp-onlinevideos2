@@ -44,7 +44,7 @@ namespace OnlineVideos.Sites
 
         public override string GetVideoUrl(VideoInfo video)
         {
-            sh.SetSubtitleText(video, GetTrackingInfo, true);
+            sh.SetSubtitleText(video, true);
             string tmp = base.GetVideoUrl(video);
             return SortPlaybackOptions(video, baseUrl, tmp, limitUrlsPerHoster, showUnknownHosters);
         }
