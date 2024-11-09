@@ -2263,7 +2263,7 @@ namespace OnlineVideos.MediaPortal1
                 {
                     var myItem = item as PlayListItem;
                     ITrackingInfo info = myItem.Video.TrackingInfo;
-                    if (info.VideoKind == VideoKind.TvSeries || info.VideoKind == VideoKind.Movie) TrackVideoPlayback(info, percent);
+                    if (info != null && (info.VideoKind == VideoKind.TvSeries || info.VideoKind == VideoKind.Movie)) TrackVideoPlayback(info, percent);
                 })
                 { IsBackground = true, Name = "OnlineVideosTracking" }.Start(currentPlayingItem);
             }
