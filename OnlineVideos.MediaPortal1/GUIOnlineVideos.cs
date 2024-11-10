@@ -2848,7 +2848,9 @@ namespace OnlineVideos.MediaPortal1
         {
             if (video.HasSubtitles())
             {
-                if (clearFolder)
+                if (!Directory.Exists(targetFolder))
+                    Directory.CreateDirectory(targetFolder);
+                else if (clearFolder)
                 {
                     foreach (string file in Directory.GetFiles(targetFolder))
                     {
