@@ -1009,18 +1009,27 @@ namespace OnlineVideos.Sites
 
             foreach (var item in response.Items)
             {
-                if (item.ContentDetails.Duration != null)
+                string duration;
+                if (!string.IsNullOrWhiteSpace(item.ContentDetails.Duration))
                 {
-                    string duration = System.Xml.XmlConvert.ToTimeSpan(item.ContentDetails.Duration).ToString();
+                    if (string.Compare(item.ContentDetails.Duration, "P0D", true) == 0)
+                    {
+                        if (string.Compare(item.Snippet.LiveBroadcastContent, "upcoming", true) == 0)
+                            duration = "Upcoming";
+                        else
+                            duration = "Live";
+                    }
+                    else
+                        duration = System.Xml.XmlConvert.ToTimeSpan(item.ContentDetails.Duration).ToString();
 
                     //Trim if no hours found (00:)
                     if (duration.StartsWith("00:"))
-                    {
                         duration = duration.Substring(3);
-                    }
-
-                    videoDurations.Add(item.Id, duration);
                 }
+                else
+                    duration = string.Empty;
+
+                videoDurations.Add(item.Id, duration);
                 //Log.Debug(string.Format("ID: {0}   Duration: {1}", item.Id, duration));
             }
 
