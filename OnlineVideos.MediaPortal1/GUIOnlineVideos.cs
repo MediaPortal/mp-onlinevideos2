@@ -2508,35 +2508,11 @@ namespace OnlineVideos.MediaPortal1
             {
                 (factory.PreparedPlayer as OVSPLayer).GoFullscreen = goFullScreen;
 
-                Uri subtitleUri = null;
-                bool validUri = !String.IsNullOrEmpty(playItem.Video.SubtitleUrl) && Uri.TryCreate(playItem.Video.SubtitleUrl, UriKind.Absolute, out subtitleUri);
-
-                if (!string.IsNullOrEmpty(playItem.Video.SubtitleText) || (validUri && !subtitleUri.IsFile))
+                if (SaveSubtitles(playItem.Video, Path.Combine(Path.GetTempPath(), "OnlineVideoSubtitlesFolder"), "OnlineVideoSubtitles", true))
                 {
-                    // download subtitle file before starting playback
-                    Gui2UtilConnector.Instance.ExecuteInBackgroundAndCallback(delegate ()
-                    {
-                        string subs = string.IsNullOrEmpty(playItem.Video.SubtitleText) ? WebCache.Instance.GetWebData(playItem.Video.SubtitleUrl) : playItem.Video.SubtitleText;
-                        if (!string.IsNullOrEmpty(subs))
-                        {
-                            string subFile = Path.Combine(Path.GetTempPath(), "OnlineVideoSubtitles.txt");
-                            File.WriteAllText(subFile, subs, System.Text.Encoding.UTF8);
-                            (factory.PreparedPlayer as OVSPLayer).SubtitleFile = subFile;
-                        }
-                        return true;
-                    },
-                    delegate (bool success, object result)
-                    {
-                        Play_Step6(playItem, lsUrl, factory);
-                    },
-                    Translation.Instance.DownloadingSubtitle, true);
+                    (factory.PreparedPlayer as OVSPLayer).SubtitleFile = Path.Combine(Path.GetTempPath(), "OnlineVideoSubtitlesFolder", "OnlineVideoSubtitles.mp4");
                 }
-                else
-                {
-                    if (validUri && subtitleUri.IsFile)
-                        (factory.PreparedPlayer as OVSPLayer).SubtitleFile = subtitleUri.AbsolutePath;
-                    Play_Step6(playItem, lsUrl, factory);
-                }
+                Play_Step6(playItem, lsUrl, factory);
             }
         }
 
@@ -2868,24 +2844,22 @@ namespace OnlineVideos.MediaPortal1
             }
         }
 
-        private void SaveSubtitles(VideoInfo video, string destinationFileName)
+        private bool SaveSubtitles(VideoInfo video, string targetFolder, string fileName, bool clearFolder)
         {
-            Uri subtitleUri = null;
-            bool validUri = !String.IsNullOrEmpty(video.SubtitleUrl) && Uri.TryCreate(video.SubtitleUrl, UriKind.Absolute, out subtitleUri);
+            if (video.HasSubtitles())
+            {
+                if (clearFolder)
+                {
+                    foreach (string file in Directory.GetFiles(targetFolder))
+                    {
+                        File.Delete(file);
+                    }
+                }
 
-            if (!string.IsNullOrEmpty(video.SubtitleText) || (validUri && !subtitleUri.IsFile))
-            {
-                Log.Instance.Info("Downloading subtitles to " + destinationFileName);
-                string subs = string.IsNullOrEmpty(video.SubtitleText) ? WebCache.Instance.GetWebData(video.SubtitleUrl) : video.SubtitleText;
-                if (!string.IsNullOrEmpty(subs))
-                    File.WriteAllText(destinationFileName, subs, System.Text.Encoding.UTF8);
+                video.SubtitleTexts.SaveSubtitles(targetFolder, fileName);
+                return true;
             }
-            else
-                if (validUri && subtitleUri.IsFile)
-            {
-                Log.Instance.Info("Downloading subtitles to " + destinationFileName);
-                File.Copy(subtitleUri.AbsolutePath, destinationFileName);
-            }
+            return false;
         }
 
         private void OnDownloadFileCompleted(DownloadList saveItems, Exception error)
@@ -2945,8 +2919,8 @@ namespace OnlineVideos.MediaPortal1
                             + Path.GetExtension(saveItems.CurrentItem.ThumbFile);
                         File.Copy(saveItems.CurrentItem.ThumbFile, localImageName, true);
                     }
-                    // save subtitles if SubtitlesUrl was set
-                    SaveSubtitles(saveItems.CurrentItem.VideoInfo, Path.ChangeExtension(saveItems.CurrentItem.LocalFile, ".srt"));
+                    // save subtitles
+                    SaveSubtitles(saveItems.CurrentItem.VideoInfo, Path.GetDirectoryName(saveItems.CurrentItem.LocalFile), Path.GetFileNameWithoutExtension(saveItems.CurrentItem.LocalFile), false);
                     // save matroska tag
                     string niceTitle = saveItems.CurrentItem.Util.GetFileNameForDownload(saveItems.CurrentItem.VideoInfo, saveItems.CurrentItem.Category, null);
                     ITrackingInfo ti = saveItems.CurrentItem.VideoInfo.TrackingInfo;

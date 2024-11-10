@@ -28,8 +28,7 @@
             Length = video.Length;
             Airdate = video.Airdate;
             StartTime = video.StartTime;
-            SubtitleUrl = video.SubtitleUrl;
-            SubtitleText = video.SubtitleText;
+            SubtitleTexts = video.SubtitleTexts;
             PlaybackOptions = video.PlaybackOptions;
             HasDetails = video.HasDetails;
             TrackingInfo = video.TrackingInfo;

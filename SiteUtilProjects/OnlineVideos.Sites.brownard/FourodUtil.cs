@@ -265,7 +265,7 @@ namespace OnlineVideos.Sites
             {
                 XmlNode subtitle = xml.SelectSingleNode("//subtitlesFileUri");
                 if (subtitle != null && !string.IsNullOrEmpty(subtitle.InnerText))
-                    video.SubtitleText = Utils.SubtitleReader.SAMI2SRT(GetWebData("http://ais.channel4.com" + subtitle.InnerText));
+                    video.SubtitleTexts = new SubtitleList(Utils.SubtitleReader.SAMI2SRT(GetWebData("http://ais.channel4.com" + subtitle.InnerText)));
             }
 
             string token = xml.SelectSingleNode("//token").InnerText;

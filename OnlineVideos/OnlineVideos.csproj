@@ -1131,6 +1131,7 @@
     <Compile Include="Sites\Updater.cs" />
     <Compile Include="Helpers\SubtitleUtils.cs" />
     <Compile Include="SubtitleHandler.cs" />
+    <Compile Include="SubtitleList.cs" />
     <Compile Include="Translation.cs" />
     <Compile Include="VideoInfo.cs" />
     <Compile Include="WebCache.cs" />

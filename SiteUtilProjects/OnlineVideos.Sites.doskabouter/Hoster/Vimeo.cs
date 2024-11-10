@@ -12,7 +12,7 @@ namespace OnlineVideos.Hoster
         [Category("OnlineVideosUserConfiguration"), Description("Select subtitle language preferences (; separated and ISO 3166-2?), for example: en;de")]
         protected string subtitleLanguages = "";
 
-        private string subtitleText = null;
+        SubtitleList subtitleTexts = null;
 
         public override string GetHosterUrl()
         {
@@ -28,7 +28,7 @@ namespace OnlineVideos.Hoster
 
         public override Dictionary<string, string> GetPlaybackOptions(string url)
         {
-            subtitleText = null;
+            subtitleTexts = null;
             var result = new SortedList<int, Tuple<string, string>>();
             Match u = Regex.Match(url, @"https?://(?:www\.)?vimeo.com/moogaloop.swf\?clip_id=(?<url>[^&]*)&");
             if (!u.Success)
@@ -63,11 +63,15 @@ namespace OnlineVideos.Hoster
 
                     if (!String.IsNullOrEmpty(subtitleLanguages))
                     {
-                        string subUrl = getSubUrl(request["text_tracks"] as JArray, subtitleLanguages);
-                        if (!String.IsNullOrEmpty(subUrl))
+                        var subUrls = getSubUrl(request["text_tracks"] as JArray, subtitleLanguages);
+                        if (subUrls.Count > 0)
                         {
-                            string data = WebCache.Instance.GetWebData(subUrl);
-                            subtitleText = Helpers.SubtitleUtils.Webvtt2SRT(data);
+                            subtitleTexts = new SubtitleList();
+                            foreach (var item in subUrls)
+                            {
+                                string data = WebCache.Instance.GetWebData(item.Value);
+                                subtitleTexts.Add(item.Key, Helpers.SubtitleUtils.Webvtt2SRT(data));
+                            }
                         }
                     }
                 }
@@ -75,26 +79,28 @@ namespace OnlineVideos.Hoster
             return result.ToDictionary(v => v.Value.Item1, v => v.Value.Item2);
         }
 
-        private string getSubUrl(JArray textTracks, string languages)
+        private Dictionary<string, string> getSubUrl(JArray textTracks, string languages)
         {
+            Dictionary<string, string> result = new Dictionary<string, string>();
             if (textTracks != null)
             {
                 string[] langs = languages.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (string lang in langs)
                     foreach (JToken textTrack in textTracks)
                         if (lang == textTrack.Value<string>("lang"))
-                            return @"http:" + textTrack.Value<string>("direct_url");
+                            result.Add(lang, textTrack.Value<string>("direct_url"));
             }
-            return null;
+            return result;
         }
 
-        string ISubtitle.SubtitleText
+        public SubtitleList SubtitleTexts
         {
             get
             {
-                return subtitleText;
+                return subtitleTexts;
             }
         }
+
     }
 
 }

@@ -342,7 +342,7 @@ namespace OnlineVideos.Hoster
     {
         string subUrl;
 
-        public string SubtitleText
+        public SubtitleList SubtitleTexts
         {
             get
             {
@@ -352,7 +352,7 @@ namespace OnlineVideos.Hoster
                     if (data.StartsWith(@"WEBVTT"))
                         data = Helpers.SubtitleUtils.Webvtt2SRT(data);
 
-                    return data;
+                    return new SubtitleList(data);
                 }
                 else
                     return null;
@@ -1692,7 +1692,7 @@ namespace OnlineVideos.Hoster
             return null;
         }
 
-        string ISubtitle.SubtitleText
+        public SubtitleList SubtitleTexts
         {
             get
             {
@@ -1702,7 +1702,7 @@ namespace OnlineVideos.Hoster
                     if (data.StartsWith(@"WEBVTT"))
                         data = Helpers.SubtitleUtils.Webvtt2SRT(data);
 
-                    return data;
+                    return new SubtitleList(data);
                 }
                 else
                     return null;

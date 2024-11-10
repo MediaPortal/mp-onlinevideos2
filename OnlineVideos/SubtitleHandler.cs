@@ -74,7 +74,7 @@ namespace OnlineVideos.Subtitles
             subtitleThread = null;
             if (tryLoadSubtitles)
             {
-                if (sdObject != null && video.TrackingInfo != null && String.IsNullOrEmpty(video.SubtitleText))
+                if (sdObject != null && video.TrackingInfo != null && !video.HasSubtitles())
                     if (threaded)
                     {
                         subtitleThread = new Thread(
@@ -94,33 +94,6 @@ namespace OnlineVideos.Subtitles
             if (subtitleThread != null)
                 subtitleThread.Join();
         }
-
-
-        [Obsolete("Use the SetSubtitleText with threaded=true")]
-        public void SetSubtitleText(VideoInfo video, out Thread thread)
-        {
-            thread = null;
-            if (tryLoadSubtitles)
-            {
-                if (sdObject != null && video.TrackingInfo != null && String.IsNullOrEmpty(video.SubtitleText))
-                {
-                    thread = new Thread(
-                        delegate ()
-                        {
-                            SafeSetSubtitleText(video);
-                        });
-                    thread.Start();
-                }
-            }
-        }
-
-        [Obsolete("Use the SetSubtitleText with threaded=true, and WaitForSubtitleCompleted without parameters")]
-        public void WaitForSubtitleCompleted(Thread thread)
-        {
-            if (thread != null)
-                thread.Join();
-        }
-
 
         // keep all references to subtitledownloader in separate methods, so that methods that are called from siteutil don't throw an ecxeption
         private bool tryLoad(string className)
@@ -161,34 +134,21 @@ namespace OnlineVideos.Subtitles
             Log.Debug("Subtitles found:" + results.Count.ToString());
             if (results.Count > 0)
             {
-                int minValue = int.MaxValue;
-                Subtitle minSub = results[0];
-
+                video.SubtitleTexts = new SubtitleList();
                 foreach (Subtitle sub in results)
                 {
                     Log.Debug("Subtitle " + sub.ProgramName + " " + sub.LanguageCode);
-                    if (languagePrios.ContainsKey(sub.LanguageCode))
+                    List<FileInfo> subtitleFiles = sd.SaveSubtitle(sub);
+                    if (subtitleFiles.Count > 0)
                     {
-                        int prio = languagePrios[sub.LanguageCode];
-                        if (prio < minValue)
-                        {
-                            minValue = prio;
-                            minSub = sub;
-                        }
+                        string s = File.ReadAllText(subtitleFiles[0].FullName, System.Text.Encoding.UTF8);
+                        if (s.IndexOf('�') != -1)
+                            s = File.ReadAllText(subtitleFiles[0].FullName, System.Text.Encoding.Default);
+                        video.SubtitleTexts.Add(Path.ChangeExtension(subtitleFiles[0].Name, "." + sub.LanguageCode), s);
+                        foreach (FileInfo fi in subtitleFiles)
+                            fi.Delete();
                     }
                 }
-
-                List<FileInfo> subtitleFiles = sd.SaveSubtitle(minSub);
-                if (subtitleFiles.Count > 0)
-                {
-                    string s = File.ReadAllText(subtitleFiles[0].FullName, System.Text.Encoding.UTF8);
-                    if (s.IndexOf('�') != -1)
-                        video.SubtitleText = File.ReadAllText(subtitleFiles[0].FullName, System.Text.Encoding.Default);
-                    else
-                        video.SubtitleText = s;
-                }
-                foreach (FileInfo fi in subtitleFiles)
-                    fi.Delete();
             }
         }
     }

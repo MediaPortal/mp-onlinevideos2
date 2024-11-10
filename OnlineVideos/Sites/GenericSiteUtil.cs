@@ -496,7 +496,7 @@ namespace OnlineVideos.Sites
                         {
                             Dictionary<string, string> options = hosterUtil.GetPlaybackOptions(resultUrl);
                             if (hosterUtil is ISubtitle)
-                                video.SubtitleText = ((ISubtitle)hosterUtil).SubtitleText;
+                                video.SubtitleTexts = ((ISubtitle)hosterUtil).SubtitleTexts;
 
                             if (options != null && options.Count > 0)
                             {
@@ -524,7 +524,7 @@ namespace OnlineVideos.Sites
                             {
                                 Dictionary<string, string> options = hosterUtil.GetPlaybackOptions(value);
                                 if (hosterUtil is ISubtitle)
-                                    video.SubtitleText = ((ISubtitle)hosterUtil).SubtitleText;
+                                  video.SubtitleTexts = ((ISubtitle)hosterUtil).SubtitleTexts;
                                 if (options != null && options.Count > 0)
                                     foreach (var option in options)
                                         video.PlaybackOptions.Add(string.Format("{0} - {1}", video.PlaybackOptions.Count + 1, option.Key), option.Value);

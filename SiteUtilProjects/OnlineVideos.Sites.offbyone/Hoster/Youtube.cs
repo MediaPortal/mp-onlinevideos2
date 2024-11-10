@@ -55,7 +55,7 @@ namespace OnlineVideos.Hoster
         //YouTube Android Creator   AIzaSyD_qjV8zaaUMehtLkrKFgVeSX_Iqbtyws8
         //YouTube IOS               AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc
         //YouTube IOS Music         AIzaSyBAETezhkwP0ZWA02RsqT1zu78Fpt0bC_s
-        private string subtitleText = null;
+        private SubtitleList subtitleTexts = null;
         private const string YoutubePlayerKey = "<playerkey>";
         private const string YoutubePlayerUrl = "https://www.youtube.com/youtubei/v1/player?key=" + YoutubePlayerKey;
 
@@ -444,15 +444,15 @@ namespace OnlineVideos.Hoster
                 }
 
                 //Subtitles
-                subtitleText = null;
+                subtitleTexts = null;
                 if (!string.IsNullOrEmpty(subtitleLanguages))
                 {
                     try
                     {
-                        string subUrl = null;
+                        Dictionary<string, string> subUrls = null;
                         if (jDataYtDlp != null)
                         {
-                            subUrl = getSubUrlFromYtDlp(jDataYtDlp["subtitles"], subtitleLanguages);
+                            subUrls = getSubUrlFromYtDlp(jDataYtDlp["subtitles"], subtitleLanguages);
                         }
                         else
                         {
@@ -473,16 +473,23 @@ namespace OnlineVideos.Hoster
 
                             if (captions != null)
                             {
-                                subUrl = getSubUrl(captions, subtitleLanguages);
-                                if (!String.IsNullOrEmpty(subUrl))
-                                    subUrl += "&fmt=vtt";
+                                subUrls = getSubUrl(captions, subtitleLanguages);
                             }
                         }
 
-                        if (!String.IsNullOrEmpty(subUrl))
+                        if (subUrls != null && subUrls.Count > 0)
                         {
-                            subtitleText = WebCache.Instance.GetWebData(subUrl);
-                            subtitleText = Regex.Replace(subtitleText, @"([\d\:\.]+\s*-->\s*[\d\:\.]+).*", "$1"); //remove possible alignment
+                            subtitleTexts = new SubtitleList();
+                            foreach (var kv in subUrls)
+                            {
+                                Uri uri;
+                                if (Uri.TryCreate(new Uri("https://www.youtube.com"), kv.Value, out uri))
+                                {
+                                    var subs = WebCache.Instance.GetWebData(uri.ToString());
+                                    subs = Regex.Replace(subs, @"([\d\:\.]+\s*-->\s*[\d\:\.]+).*", "$1"); //remove possible alignment
+                                    subtitleTexts.Add(kv.Key, subs);
+                                }
+                            }
                         }
                     }
                     catch { };
@@ -502,30 +509,31 @@ namespace OnlineVideos.Hoster
             else return String.Empty;
         }
 
-        public string SubtitleText
+        public SubtitleList SubtitleTexts
         {
             get
             {
-                return subtitleText;
+                return subtitleTexts;
             }
         }
 
-
-        private string getSubUrl(JArray captions, string languages)
+        private Dictionary<string, string> getSubUrl(JArray captions, string languages)
         {
+            Dictionary<string, string> result = new Dictionary<string, string>();
             if (captions != null)
             {
                 string[] langs = languages.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (string lang in langs)
                     foreach (JToken caption in captions)
                         if (lang == caption.Value<string>("languageCode"))
-                            return caption.Value<string>("baseUrl");
+                            result.Add(lang, caption.Value<string>("baseUrl") + "&fmt=vtt");
             }
-            return null;
+            return result;
         }
 
-        private string getSubUrlFromYtDlp(JToken captions, string languages)
+        private Dictionary<string, string> getSubUrlFromYtDlp(JToken captions, string languages)
         {
+            Dictionary<string, string> result = new Dictionary<string, string>();
             if (captions != null)
             {
                 string[] langs = languages.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
@@ -537,12 +545,12 @@ namespace OnlineVideos.Hoster
                         foreach (JToken jSub in jSubtitle.Value)
                         {
                             if (jSub.Value<string>("ext") == "vtt" && jSub.Value<string>("name").EndsWith(strName))
-                                return jSub.Value<string>("url");
+                                result.Add(lang, jSub.Value<string>("url"));
                         }
                     }
                 }
             }
-            return null;
+            return result;
         }
 
         private PlayerStatusEnum parsePlayerStatus(JToken videoDetails, JToken streamingData, List<YoutubeQuality> qualities, YoutubeSignatureDecryptor dec)

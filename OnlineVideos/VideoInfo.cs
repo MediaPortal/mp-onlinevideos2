@@ -9,8 +9,7 @@ namespace OnlineVideos
     {
         public string Title { get; set; }
         public string VideoUrl { get; set; }
-        public string SubtitleUrl { get; set; }
-        public string SubtitleText { get; set; }
+        public SubtitleList SubtitleTexts { get; set; } //language => subtitletext
         public string Length { get; set; }
         public string Airdate { get; set; }
         public string StartTime { get; set; }
@@ -30,6 +29,12 @@ namespace OnlineVideos
             Length = string.Empty;
             StartTime = string.Empty;
             HasDetails = true;
+            SubtitleTexts = null;
+        }
+
+        public bool HasSubtitles()
+        {
+            return SubtitleTexts != null && SubtitleTexts.HasItems;
         }
 
         public void CleanDescriptionAndTitle()

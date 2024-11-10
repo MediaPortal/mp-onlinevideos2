@@ -1,7 +1,9 @@
-﻿namespace OnlineVideos.Hoster
+﻿using System.Collections.Generic;
+
+namespace OnlineVideos.Hoster
 {
     public interface ISubtitle
     {
-        string SubtitleText { get; }
+        SubtitleList SubtitleTexts { get; }
     }
 }

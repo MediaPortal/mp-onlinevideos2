@@ -497,7 +497,7 @@ namespace OnlineVideos.Sites
             {
                 node = videoEntry.SelectSingleNode("./ClosedCaptioningURIs");
                 if (node != null && Helpers.UriUtils.IsValidUri(node.InnerText))
-                    video.SubtitleText = SubtitleReader.TimedText2SRT(GetWebData(node.InnerText));
+                    video.SubtitleTexts = new SubtitleList(SubtitleReader.TimedText2SRT(GetWebData(node.InnerText)));
             }
 
             if (options.Count == 0)
@@ -625,7 +625,7 @@ namespace OnlineVideos.Sites
             {
                 JArray subtitles = videoObject["Subtitles"] as JArray;
                 if (subtitles != null && subtitles.Count > 0)
-                    video.SubtitleText = getVttSubtitleText((string)subtitles[0]["Href"]);
+                    video.SubtitleTexts = new SubtitleList(getVttSubtitleText((string)subtitles[0]["Href"]));
             }
 
             var baseUrl = (string)videoObject["Base"];
