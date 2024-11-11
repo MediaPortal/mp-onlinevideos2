@@ -190,7 +190,7 @@
         </Version>
         <ExtensionDescription>Allows watching videos from various websites, using their RSS feeds, parsing html pages, coding against provided APIs or directly adding urls of live streams. Supported sites include: YouTube and many more.</ExtensionDescription>
         <VersionDescription>- Added support for separate audio and video streams
-- Added support for mutliple subtitles
+- Added support for multiple subtitles
 - Fixed bug in favorites: if folder and single videos were present, fetching subcategories silently crashed
 </VersionDescription>
         <DevelopmentStatus>Stable</DevelopmentStatus>
