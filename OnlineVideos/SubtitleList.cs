@@ -29,7 +29,7 @@ namespace OnlineVideos
             while (list.ContainsKey(nkey))
             {
                 n++;
-                nkey = language + n.ToString();
+                nkey = language + "." + n.ToString();
             }
             list.Add(nkey, subtitleText);
         }

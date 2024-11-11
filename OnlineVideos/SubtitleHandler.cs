@@ -134,19 +134,26 @@ namespace OnlineVideos.Subtitles
             Log.Debug("Subtitles found:" + results.Count.ToString());
             if (results.Count > 0)
             {
+                int nTodo = 5;
                 video.SubtitleTexts = new SubtitleList();
                 foreach (Subtitle sub in results)
                 {
-                    Log.Debug("Subtitle " + sub.ProgramName + " " + sub.LanguageCode);
-                    List<FileInfo> subtitleFiles = sd.SaveSubtitle(sub);
-                    if (subtitleFiles.Count > 0)
+                    if (nTodo <= 0)
+                        Log.Debug("Skipping subtitle " + sub.ProgramName + " " + sub.LanguageCode);
+                    else
                     {
-                        string s = File.ReadAllText(subtitleFiles[0].FullName, System.Text.Encoding.UTF8);
-                        if (s.IndexOf('�') != -1)
-                            s = File.ReadAllText(subtitleFiles[0].FullName, System.Text.Encoding.Default);
-                        video.SubtitleTexts.Add(Path.ChangeExtension(subtitleFiles[0].Name, "." + sub.LanguageCode), s);
-                        foreach (FileInfo fi in subtitleFiles)
-                            fi.Delete();
+                        Log.Debug("Subtitle " + sub.ProgramName + " " + sub.LanguageCode);
+                        List<FileInfo> subtitleFiles = sd.SaveSubtitle(sub);
+                        if (subtitleFiles.Count > 0)
+                        {
+                            string s = File.ReadAllText(subtitleFiles[0].FullName, System.Text.Encoding.UTF8);
+                            if (s.IndexOf('�') != -1)
+                                s = File.ReadAllText(subtitleFiles[0].FullName, System.Text.Encoding.Default);
+                            video.SubtitleTexts.Add(sub.LanguageCode + "." + Path.ChangeExtension(subtitleFiles[0].Name, null), s);
+                            foreach (FileInfo fi in subtitleFiles)
+                                fi.Delete();
+                        }
+                        nTodo--;
                     }
                 }
             }
