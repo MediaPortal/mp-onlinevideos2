@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 using DirectShowLib;
 using DShowNET.Helper;
@@ -322,39 +324,39 @@ namespace OnlineVideos.MediaPortal1.Player
                 else
                 {
                     //LAV is not used
-                if (percentageBuffered >= 100.0f) // already buffered 100%, simply set the Property
-                {
-                    GUIPropertyManager.SetProperty("#TV.Record.percent3", percentageBuffered.ToString());
-                    GUIPropertyManager.SetProperty("#OnlineVideos.bufferedenough", "0");
-                }
-                else
-                {
-                    if (graphBuilder != null && GetSourceFilterName(m_strCurrentFile) == OnlineVideos.MPUrlSourceFilter.Downloader.FilterName) // only when progress reporting is possible
+                    if (percentageBuffered >= 100.0f) // already buffered 100%, simply set the Property
                     {
-                        IBaseFilter sourceFilter = null;
-                        try
+                        GUIPropertyManager.SetProperty("#TV.Record.percent3", percentageBuffered.ToString());
+                        GUIPropertyManager.SetProperty("#OnlineVideos.bufferedenough", "0");
+                    }
+                    else
+                    {
+                        if (graphBuilder != null && GetSourceFilterName(m_strCurrentFile) == OnlineVideos.MPUrlSourceFilter.Downloader.FilterName) // only when progress reporting is possible
                         {
-                            int result = graphBuilder.FindFilterByName(OnlineVideos.MPUrlSourceFilter.Downloader.FilterName, out sourceFilter);
-                            if (result == 0)
+                            IBaseFilter sourceFilter = null;
+                            try
                             {
-                                long total = 0, current = 0;
-                                ((IAMOpenProgress)sourceFilter).QueryProgress(out total, out current);
-                                percentageBuffered = (float)current / (float)total * 100.0f;
-                                GUIPropertyManager.SetProperty("#TV.Record.percent3", percentageBuffered.ToString());
-                                GUIPropertyManager.SetProperty("#OnlineVideos.bufferedenough", CalculateBufferedEnough(total, current).ToString());
+                                int result = graphBuilder.FindFilterByName(OnlineVideos.MPUrlSourceFilter.Downloader.FilterName, out sourceFilter);
+                                if (result == 0)
+                                {
+                                    long total = 0, current = 0;
+                                    ((IAMOpenProgress)sourceFilter).QueryProgress(out total, out current);
+                                    percentageBuffered = (float)current / (float)total * 100.0f;
+                                    GUIPropertyManager.SetProperty("#TV.Record.percent3", percentageBuffered.ToString());
+                                    GUIPropertyManager.SetProperty("#OnlineVideos.bufferedenough", CalculateBufferedEnough(total, current).ToString());
 
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Instance.Warn("Error Quering Progress: {0}", ex.Message);
+                            }
+                            finally
+                            {
+                                if (sourceFilter != null) DirectShowUtil.ReleaseComObject(sourceFilter, 2000);
                             }
                         }
-                        catch (Exception ex)
-                        {
-                            Log.Instance.Warn("Error Quering Progress: {0}", ex.Message);
-                        }
-                        finally
-                        {
-                            if (sourceFilter != null) DirectShowUtil.ReleaseComObject(sourceFilter, 2000);
-                        }
                     }
-                }
                 }
             }
 
@@ -540,7 +542,7 @@ namespace OnlineVideos.MediaPortal1.Player
                     if (result != 0)
                     {
                         string errorText = DsError.GetErrorText(result);
-                        if (errorText != null) 
+                        if (errorText != null)
                             errorText = errorText.Trim();
                         Log.Instance.Warn("BufferFile : FindFilterByName returned '{0}'{1}", "0x" + result.ToString("X8"), !string.IsNullOrEmpty(errorText) ? " : (" + errorText + ")" : "");
                         return false;
@@ -694,7 +696,7 @@ namespace OnlineVideos.MediaPortal1.Player
                         // buffer before starting playback
                         bool filterConnected = false;
                         percentageBuffered = 0.0f;
-                        long total = 0, current = 0, last = 0;      
+                        long total = 0, current = 0, last = 0;
                         do
                         {
                             result = ((IAMOpenProgress)sourceFilter).QueryProgress(out total, out current);
@@ -722,7 +724,7 @@ namespace OnlineVideos.MediaPortal1.Player
                                             AddPreferredFilters(graphBuilder, sourceFilterAudio);
                                             DirectShowUtil.RenderUnconnectedOutputPins(graphBuilder, sourceFilterAudio);
                                         }
-                                        
+
                                         Log.Instance.Debug("BufferFile : Playback Ready.");
                                         PlaybackReady = true;
                                     }
@@ -841,7 +843,7 @@ namespace OnlineVideos.MediaPortal1.Player
                     throw new OnlineVideosException(errorText);
                 }
             }
-            
+
             catch (Exception ex)
             {
                 Log.Instance.Warn(ex.ToString());
@@ -930,7 +932,7 @@ namespace OnlineVideos.MediaPortal1.Player
                         {
                             LogOutputPinsConnectionRecursive(sourceFilter);
                         }
-                        if (sourceFilter != null) 
+                        if (sourceFilter != null)
                             DirectShowUtil.ReleaseComObject(sourceFilter);
                     }
                 }
@@ -1110,7 +1112,7 @@ namespace OnlineVideos.MediaPortal1.Player
             GUIPropertyManager.SetProperty("#TV.Record.percent3", 0.0f.ToString());
         }
 
-        public override int CurrentAudioStream 
+        public override int CurrentAudioStream
         {
             get => base.CurrentAudioStream;
 
@@ -1335,7 +1337,7 @@ namespace OnlineVideos.MediaPortal1.Player
 
             if (log) Log.Instance.Debug(previous);
         }
-    
+
 
         const bool LAV_ALWAYS_PREBUFFER = false; //set to true if we wants to always prebuffer at start or after seek
         const int LAV_MIN_BUFFER_LEVEL = 5; //[%]; when frame duration is unknown
@@ -1597,7 +1599,7 @@ namespace OnlineVideos.MediaPortal1.Player
                         Log.Instance.Error("[processLavBufferLevel] Unknown filter.");
                         return;
                     }
-                    
+
 
                     if (dLAVtime >= 0)
                     {
@@ -1645,8 +1647,8 @@ namespace OnlineVideos.MediaPortal1.Player
                     if (this._SeekTimeStamp == DateTime.MinValue)
                         this._SeekTimeStamp = DateTime.Now;
 
-                    if (!this._PlaybackDetected && this.m_state == PlayState.Playing && 
-                        (bufferStatus >= BufferStatusEnum.AboveMinLevel || (DateTime.Now - this._SeekTimeStamp).TotalMilliseconds >= 5000) && 
+                    if (!this._PlaybackDetected && this.m_state == PlayState.Playing &&
+                        (bufferStatus >= BufferStatusEnum.AboveMinLevel || (DateTime.Now - this._SeekTimeStamp).TotalMilliseconds >= 5000) &&
                         this.CurrentPosition - this._LastCurrentPosition >= 2.0)
                     {
                         this._PlaybackDetected = true;
@@ -1654,8 +1656,8 @@ namespace OnlineVideos.MediaPortal1.Player
                     }
 
                     //GUI Buffering indicator
-                    if (this.m_state == PlayState.Playing && !this._Buffering && !bPlaybackEnds && 
-                        ((LAV_ALWAYS_PREBUFFER && (bufferStatus < BufferStatusEnum.AboveMinLevel || this._PreBufferNeeded)) 
+                    if (this.m_state == PlayState.Playing && !this._Buffering && !bPlaybackEnds &&
+                        ((LAV_ALWAYS_PREBUFFER && (bufferStatus < BufferStatusEnum.AboveMinLevel || this._PreBufferNeeded))
                         || (!LAV_ALWAYS_PREBUFFER && bufferStatus < BufferStatusEnum.AboveMinLevel && this._PlaybackDetected))
                         )
                     {
@@ -1697,5 +1699,263 @@ namespace OnlineVideos.MediaPortal1.Player
                 }
             }
         }
+
+        private bool MpHasFixedSubs()
+        {
+            string[] version = System.Windows.Forms.Application.ProductVersion.Split('.');
+            int major, minor;
+            if (version.Length >= 2 && int.TryParse(version[0], out major) && int.TryParse(version[1], out minor))
+                return (major > 1) || (major == 1 && minor > 34);
+            return false;
+        }
+
+        /// <summary>
+        /// Property to get/set the name for a subtitle stream
+        /// </summary>
+        public override string SubtitleLanguage(int iStream)
+        {
+            if (MpHasFixedSubs()) return base.SubtitleLanguage(iStream);
+
+            string streamName = SubEngine.GetInstance().GetLanguage(iStream);
+            string langName = SubEngine.GetInstance().GetLanguage(iStream);
+            string streamNameUND = SubEngine.GetInstance().GetSubtitleName(iStream);
+            string strSubtitleFileName = "aa";// SubEngine.GetInstance().FileName; //filename used to load subtitle engine
+
+            if (streamName == null)
+            {
+                return Strings.Unknown;
+            }
+
+            if (!string.IsNullOrWhiteSpace(strSubtitleFileName))
+            {
+                //MPC-HC 2.0.0
+                //"[Local] 4-3 bar test.English-Forced.srt\tEnglish"
+                Regex regexMPCHC = new Regex(@"^\[([^\]]+)\]\s(?<file>[^\t]+)(\t(?<lng>.+))?");
+                Match match = regexMPCHC.Match(streamName);
+                if (match.Success)
+                {
+                    var grLng = match.Groups["lng"];
+                    if (grLng.Success)
+                        return grLng.Value; //language parsed by MPC-HC
+
+                    string strVideNoExt = Path.GetFileNameWithoutExtension(strSubtitleFileName);
+                    string strSubNoExt = Path.GetFileNameWithoutExtension(match.Groups["file"].Value);
+                    if (strVideNoExt.Equals(strSubNoExt, StringComparison.CurrentCultureIgnoreCase))
+                        return "Undetermined"; //no subtitle suffix
+                    else if (strSubNoExt.StartsWith(strVideNoExt, StringComparison.CurrentCultureIgnoreCase))
+                    {
+                        if (strSubNoExt.Length > strVideNoExt.Length)
+                            streamName = strSubNoExt.Substring(strVideNoExt.Length + 1); //Subtitle filename has a suffix
+                        else
+                            streamName = string.Empty;
+
+                        if (string.IsNullOrWhiteSpace(streamName))
+                            streamName = strVideNoExt;
+                    }
+                    else
+                    {
+                        //difference between m_strCurrentFile and ISubEngine.LoadSubtitles call
+                        streamName = strSubNoExt;
+                    }
+
+                    langName = streamName;
+                    streamNameUND = streamName;
+                }
+            }
+
+            // remove prefix, which is added by Haali Media Splitter
+            streamName = Regex.Replace(streamName, @"^S: ", "");
+            // Check if returned string contains both language and trackname info
+            // For example Haali Media Splitter returns mkv streams as: "trackname [language]",
+            // where "trackname" is stream's "trackname" property muxed in the mkv.
+            Regex regex = new Regex(@"\[([^\]]+)\]");
+            Regex regexFFD = new Regex(@"\[.+\]");
+            Regex regexLAVF =
+              new Regex(
+                @"(?:S:\s)(?<lang_or_title>.+?)(?:\s*\[(?<lang>[^\]]*?)\])?(?:\s*\((?<info>[^\)]*?)\))?(?:\s*\[(?<Default>[^\]]*?)\])?$");
+            // For example MPC Splitter and MPC Engine returns mkv streams as: "language (trackname)",
+            // where "trackname" is stream's "trackname" property muxed in the mkv.
+            Regex regexMPCEngine = new Regex(@"(\w.+)\((\D+[^\]]+)\)"); //(@"(\w.+)\(([^\]]+)\)");
+            Match result = regex.Match(streamName);
+            Match resultFFD = regexFFD.Match(streamName);
+            Match resultMPCEngine = regexMPCEngine.Match(streamName);
+            Match resultLAVF = regexLAVF.Match(streamNameUND);
+            if (result.Success)
+            {
+                string language = MediaPortal.Util.Utils.TranslateLanguageString(result.Groups[1].Value);
+                if (language.Length > 0)
+                {
+                    streamName = language;
+                }
+            }
+            else if (resultFFD.Success)
+            {
+                string subtitleLanguage = MediaPortal.Util.Utils.TranslateLanguageString(resultFFD.Groups[0].Value);
+                if (subtitleLanguage.Length > 0)
+                {
+                    streamName = subtitleLanguage;
+                }
+            }
+            else if (resultMPCEngine.Success)
+            // check for mpc-hc engine response format, e.g.: 
+            // Language (Trackname)
+            {
+                streamName = resultMPCEngine.Groups[1].Value.TrimEnd();
+            }
+            else if (resultLAVF.Success)
+            // check for LAVF response format, e.g.: 
+            // S: Title [Lang] (Info) here is to detect if langID = 0 so the language is set as Undetermined
+            {
+                string lang_or_title = resultLAVF.Groups[1].Value;
+                string lang = resultLAVF.Groups[2].Value;
+                string info = resultLAVF.Groups[3].Value;
+                streamNameUND = Regex.Replace(streamNameUND, @"^S: ", "");
+                if (lang_or_title == streamNameUND && lang_or_title == streamName && lang_or_title != langName &&
+                    string.IsNullOrEmpty(lang) && string.IsNullOrEmpty(info))
+                //|| lang_or_title.Contains("Stream #") && string.IsNullOrEmpty(info)) //string.IsNullOrEmpty(lang_or_title) && string.IsNullOrEmpty(lang))
+                {
+                    streamName = "Undetermined";
+                }
+            }
+            // mpeg splitter subtitle format
+            Match m = Regex.Match(streamName, @"Subtitle\s+-\s+(?<1>.+?),", RegexOptions.IgnoreCase);
+            if (m.Success)
+            {
+                string language = MediaPortal.Util.Utils.TranslateLanguageString(m.Groups[1].Value);
+                if (language.Length > 0)
+                {
+                    streamName = language;
+                }
+            }
+            return streamName;
+        }
+
+        public override string SubtitleName(int iStream)
+        {
+            if (MpHasFixedSubs()) return base.SubtitleLanguage(iStream);
+
+            string streamName = SubEngine.GetInstance().GetSubtitleName(iStream);
+            string streamNameFalse = SubEngine.GetInstance().GetSubtitleName(iStream);
+            string langName = SubEngine.GetInstance().GetLanguage(iStream);
+            string strSubtitleFileName = "aa";// SubEngine.GetInstance().FileName; //filename used to load subtitle engine
+
+            if (streamName == null)
+            {
+                return Strings.Unknown;
+            }
+
+            if (!string.IsNullOrWhiteSpace(strSubtitleFileName))
+            {
+                //MPC-HC 2.0.0
+                //"[Local] 4-3 bar test.English-Forced.srt\tEnglish"
+                Regex regexMPCHC = new Regex(@"^\[([^\]]+)\]\s(?<file>[^\t]+)(\t(?<lng>.+))?");
+                Match match = regexMPCHC.Match(streamName);
+                if (match.Success)
+                {
+                    string strVideNoExt = Path.GetFileNameWithoutExtension(strSubtitleFileName);
+                    string strSubNoExt = Path.GetFileNameWithoutExtension(match.Groups["file"].Value);
+                    if (strSubNoExt.StartsWith(strVideNoExt, StringComparison.CurrentCultureIgnoreCase))
+                    {
+                        if (strSubNoExt.Length > strVideNoExt.Length)
+                        {
+                            //Subtitle filename has a suffix
+                            var grLng = match.Groups["lng"];
+                            if (grLng.Success)
+                            {
+                                //Try to extract additional suffix following the language
+                                match = Regex.Match(strSubNoExt.Substring(strVideNoExt.Length), @"[-\._](?<lng>[A-Za-z]+)[-\._\[]+(?<suffix>.+?)\]?\z");
+                                if (match.Success)
+                                    return match.Groups["suffix"].Value;
+                                else
+                                    return string.Empty; //no additional suffix - just language
+                            }
+
+                            //Unknown subtitle filename suffix
+                            return strSubNoExt.Substring(strVideNoExt.Length + 1);
+                        }
+                        else
+                            return string.Empty;
+                    }
+                    else
+                    {
+                        //difference between m_strCurrentFile and ISubEngine.LoadSubtitles call
+                        streamName = strSubNoExt;
+                        streamNameFalse = streamName;
+                        langName = streamName;
+                    }
+                }
+            }
+
+            // remove prefix, which is added by Haali Media Splitter
+            streamName = Regex.Replace(streamName, @"^S: ", "");
+
+            // Check if returned string contains both language and trackname info
+            // For example Haali Media Splitter returns mkv streams as: "trackname [language]",
+            // where "trackname" is stream's "trackname" property muxed in the mkv.
+            Regex regex = new Regex(@"\[([^\]]+)\]");
+            Regex regexFFDShow = new Regex(@"\s\[.+\]");
+            Regex regexMPCEngine = new Regex(@"\((\D+[^\]]+)\)");
+            Regex regexLAVF =
+              new Regex(@"(?:S:\s)(?<lang_or_title>.+?)(?:\s*\[(?<lang>[^\]]*?)\])?(?:\s*\((?<info>[^\)]*?)\))?$");
+            Match result = regex.Match(streamName);
+            Match resultFFDShow = regexFFDShow.Match(streamName);
+            Match resultMPCEngine = regexMPCEngine.Match(streamName);
+            Match resultLAVF = regexLAVF.Match(streamNameFalse);
+            if (resultFFDShow.Success)
+            {
+                //Get the trackname part by removing the language part from the string.
+                streamName = regex.Replace(streamName, "").Trim();
+
+                //Put things back together
+                streamName = (streamName == string.Empty ? "" : "" + streamName + "");
+            }
+            else if (result.Success)
+            {
+                //if language only is detected -> set to ""
+                streamName = "";
+            }
+            else if (resultMPCEngine.Success)
+            // check for mpc-hc engine response format, e.g.: 
+            // Language (Trackname)
+            {
+                //Get the trackname.
+                streamName = resultMPCEngine.Groups[1].Value;
+            }
+            else if (resultLAVF.Success)
+            // check for LAVF response format, e.g.: 
+            // S: Title [Lang] (Info) when only Language in stream -> answer is S: Lang -> start to detect if [lang] is present if not replace Lang by "" 
+            {
+                string lang_or_title = resultLAVF.Groups[1].Value;
+                string lang = resultLAVF.Groups[2].Value;
+                string info = resultLAVF.Groups[3].Value;
+                if (lang_or_title == langName || lang_or_title.Contains("Stream #") && string.IsNullOrEmpty(info))
+                {
+                    streamName = "";
+                }
+            }
+            // mpeg splitter subtitle format
+            Match m = Regex.Match(streamName, @"Subtitle\s+-\s+(?<1>.+?),", RegexOptions.IgnoreCase);
+            if (m.Success)
+            {
+                string language = MediaPortal.Util.Utils.TranslateLanguageString(m.Groups[1].Value);
+                if (language.Length > 0)
+                {
+                    streamName = "";
+                }
+            }
+
+            #region Remove the false detection of Language Name when is detected as Stream Name
+
+            //Look if Language Name is equal Stream Name, if it's equal, remove it.
+            if (streamName == langName)
+            {
+                streamName = "";
+            }
+
+            #endregion
+
+            return streamName;
+        }
+
     }
 }
