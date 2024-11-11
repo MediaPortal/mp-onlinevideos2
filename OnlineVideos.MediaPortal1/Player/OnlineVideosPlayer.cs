@@ -1705,7 +1705,7 @@ namespace OnlineVideos.MediaPortal1.Player
             string[] version = System.Windows.Forms.Application.ProductVersion.Split('.');
             int major, minor;
             if (version.Length >= 2 && int.TryParse(version[0], out major) && int.TryParse(version[1], out minor))
-                return (major > 1) || (major == 1 && minor > 34);
+                return (major > 1) || (major == 1 && minor > 35);
             return false;
         }
 
@@ -1719,7 +1719,7 @@ namespace OnlineVideos.MediaPortal1.Player
             string streamName = SubEngine.GetInstance().GetLanguage(iStream);
             string langName = SubEngine.GetInstance().GetLanguage(iStream);
             string streamNameUND = SubEngine.GetInstance().GetSubtitleName(iStream);
-            string strSubtitleFileName = "aa";// SubEngine.GetInstance().FileName; //filename used to load subtitle engine
+            string strSubtitleFileName = string.IsNullOrEmpty(SubtitleFile) ? m_strCurrentFile : SubtitleFile;
 
             if (streamName == null)
             {
@@ -1832,12 +1832,12 @@ namespace OnlineVideos.MediaPortal1.Player
 
         public override string SubtitleName(int iStream)
         {
-            if (MpHasFixedSubs()) return base.SubtitleLanguage(iStream);
+            if (MpHasFixedSubs()) return base.SubtitleName(iStream);
 
             string streamName = SubEngine.GetInstance().GetSubtitleName(iStream);
             string streamNameFalse = SubEngine.GetInstance().GetSubtitleName(iStream);
             string langName = SubEngine.GetInstance().GetLanguage(iStream);
-            string strSubtitleFileName = "aa";// SubEngine.GetInstance().FileName; //filename used to load subtitle engine
+            string strSubtitleFileName = string.IsNullOrEmpty(SubtitleFile) ? m_strCurrentFile : SubtitleFile;
 
             if (streamName == null)
             {
