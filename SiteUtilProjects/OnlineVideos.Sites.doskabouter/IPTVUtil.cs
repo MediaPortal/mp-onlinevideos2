@@ -85,6 +85,7 @@ namespace OnlineVideos.Sites
                 video.PlaybackOptions.Add(res.Key, httpUrl.ToString());
                 video.Thumb = res.Value.logo;
             }
+            video.VideoUrl = video.GetPreferredUrl(true);
             return video;
         }
 
