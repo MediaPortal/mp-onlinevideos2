@@ -233,36 +233,48 @@ namespace OnlineVideos.Hoster
                     _YoutubeDecryptor = null; //don't use the same decryptor for more than 1 day
 
                 string strContentsWeb = null;
-                if (_YoutubeDecryptor == null)
-                {
-                    try
-                    {
-                        strContentsWeb = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId),
-                            proxy: proxy,
-                            userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
-                            cache: false
-                            );
-                        Match m = Regex.Match(strContentsWeb, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
-                        if (m.Success)
-                        {
-                            jDataWeb = JObject.Parse(m.Groups["js"].Value);
 
-                            try
+            get_decr:
+                bool bExistingDecryptor = false;
+
+                if (this.webViewHelper != null)
+                {
+                    if (_YoutubeDecryptor == null)
+                    {
+                        try
+                        {
+                            strContentsWeb = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId),
+                                proxy: proxy,
+                                userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
+                                cache: false
+                                );
+                            Match m = Regex.Match(strContentsWeb, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
+                            if (m.Success)
                             {
-                                //Prepare signature decryptor
-                                _YoutubeDecryptor = new YoutubeSignatureDecryptor(strContentsWeb, webViewHelper);
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error("[YoutubeHoster] Error creating signature decryptor: {0}", ex.Message);
-                                _YoutubeDecryptor = null;
+                                jDataWeb = JObject.Parse(m.Groups["js"].Value);
+
+                                try
+                                {
+                                    //Prepare signature decryptor
+                                    _YoutubeDecryptor = new YoutubeSignatureDecryptor(strContentsWeb, webViewHelper);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Error("[YoutubeHoster] Error creating signature decryptor: {0}", ex.Message);
+                                    _YoutubeDecryptor = null;
+                                }
                             }
                         }
+                        catch { jDataWeb = null; };
                     }
-                    catch { jDataWeb = null; };
+                    else
+                    {
+                        Log.Debug("[YoutubeHoster] Using existing YouTube decryptor: {0}", _YoutubeDecryptor.SignatureTimestamp);
+                        bExistingDecryptor = true;
+                    }
                 }
                 else
-                    Log.Debug("[YoutubeHoster] Using existing YouTube decryptor: {0}", _YoutubeDecryptor.SignatureTimestamp);
+                    Log.Error("[YoutubeHoster] WebView not initialized.");
 
                 if (_YoutubeDecryptor != null)
                 {
@@ -283,15 +295,34 @@ namespace OnlineVideos.Hoster
                         videoId, headers["X-Youtube-Client-Version"], _YoutubeDecryptor.SignatureTimestamp);
                     jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
 
-                    PlayerStatusEnum status = parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, _YoutubeDecryptor);
-                    if (status != PlayerStatusEnum.OK)
+                    if (jDataWeb != null)
                     {
-                        qualities.Clear();
-                        Log.Error("[YoutubeHoster] Failed to get AdaptiveFormat working links.");
-                        _YoutubeDecryptor = null;
+                        PlayerStatusEnum status;
+                        try
+                        {
+                            status = parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, _YoutubeDecryptor);
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Error("[YoutubeHoster] Error parsing video links: {0} {1} {2}", e.Message, e.Source, e.StackTrace);
+                            qualities.Clear();
+                            status = PlayerStatusEnum.Error;
+                        }
+
+                        if (status != PlayerStatusEnum.OK)
+                        {
+                            qualities.Clear();
+                            Log.Error("[YoutubeHoster] Failed to get AdaptiveFormat working links.");
+                            _YoutubeDecryptor = null;
+
+                            if (bExistingDecryptor)
+                                goto get_decr; //try get new fresh decryptor
+                        }
+                        else
+                            _YoutubeDecryptor.LastUseTimestamp = DateTime.Now;
                     }
                     else
-                        _YoutubeDecryptor.LastUseTimestamp = DateTime.Now;
+                        Log.Error("[YoutubeHoster] Failed to get json web data from youtube server.");
                 }
 
                 if (qualities.Count == 0)
@@ -326,13 +357,19 @@ namespace OnlineVideos.Hoster
                             postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""MEDIA_CONNECT_FRONTEND"", ""clientVersion"": ""{1}"", ""androidSdkVersion"": 30, ""userAgent"": ""{2}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""params"": ""CgIQBg=="", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS""}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
                                 videoId, headers["X-Youtube-Client-Version"], headers["User-Agent"]);
                             jDataWeb = WebCache.Instance.GetWebData<JObject>(YoutubePlayerUrl, postData: postdata, headers: headers);
-                            parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, null);
 
-                            if (qualities.Count == 0)
+                            if (jDataWeb != null)
                             {
-                                Log.Error("[YoutubeHoster] Failed to get working links from non JS player.");
-                                return null;
+                                parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, null);
+
+                                if (qualities.Count == 0)
+                                {
+                                    Log.Error("[YoutubeHoster] Failed to get working links from non JS player.");
+                                    return null;
+                                }
                             }
+                            else
+                                Log.Error("[YoutubeHoster] Failed to get json web data from youtube server.");
                         }
                         catch (Exception e)
                         {
@@ -341,6 +378,8 @@ namespace OnlineVideos.Hoster
                         }
                     }
                 }
+
+                Log.Debug("[YoutubeHoster] VideoQualities count: {0}", qualities.Count);
 
                 //Sort by quality
                 qualities.Sort(new Comparison<YoutubeQuality>((a, b) =>
@@ -497,7 +536,7 @@ namespace OnlineVideos.Hoster
             }
             catch (Exception e)
             {
-                Log.Error("[YoutubeHoster] Error getting url {0}", e.Message);
+                Log.Error("[YoutubeHoster] Error getting url: {0} {1} {2}", e.Message, e.Source, e.StackTrace);
             }
             return PlaybackOptions;
         }
