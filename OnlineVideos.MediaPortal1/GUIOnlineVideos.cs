@@ -1384,6 +1384,7 @@ namespace OnlineVideos.MediaPortal1
             GUIPropertyManager.SetProperty("#OnlineVideos.filter", currentFilter.ToString());
             CurrentState = State.sites;
             UpdateViewState();
+            SetWebviewHelpers();
         }
 
         private void DisplayCategories(Category parentCategory, bool? diveDownOrUpIfSingle = null)
