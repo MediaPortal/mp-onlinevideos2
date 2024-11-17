@@ -1110,6 +1110,7 @@ namespace OnlineVideos.MediaPortal1.Player
         {
             base.Dispose();
             GUIPropertyManager.SetProperty("#TV.Record.percent3", 0.0f.ToString());
+            GUIPropertyManager.SetProperty("#OnlineVideos.IsBuffering", "False");
         }
 
         public override int CurrentAudioStream
@@ -1457,7 +1458,7 @@ namespace OnlineVideos.MediaPortal1.Player
             if (!g_Player.Paused)
                 g_Player.Pause();
 
-            GUIPropertyManager.SetProperty("#OnlineVideos.Buffering", "1");
+            GUIPropertyManager.SetProperty("#OnlineVideos.IsBuffering", "True");
             this._Buffering = true;
         }
 
@@ -1674,7 +1675,7 @@ namespace OnlineVideos.MediaPortal1.Player
                         Log.Instance.Debug("[processLavBufferLevel] Buffering activated:  {0} / {1:0.0}s / {2}",
                             iLAVlevel, dLAVtime, printFileSize(iLAVsize));
 
-                        GUIPropertyManager.SetProperty("#OnlineVideos.Buffering", "1");
+                        GUIPropertyManager.SetProperty("#OnlineVideos.IsBuffering", "True");
                         this._Buffering = true;
 
                         if (!g_Player.Paused)
@@ -1686,7 +1687,7 @@ namespace OnlineVideos.MediaPortal1.Player
 
                         Log.Instance.Debug("[processLavBufferLevel] Buffering deactivated.");
 
-                        GUIPropertyManager.SetProperty("#OnlineVideos.Buffering", string.Empty);
+                        GUIPropertyManager.SetProperty("#OnlineVideos.IsBuffering", "False");
                         this._Buffering = false;
 
                         if (g_Player.Paused)

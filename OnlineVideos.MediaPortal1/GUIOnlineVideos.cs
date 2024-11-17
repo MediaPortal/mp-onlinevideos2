@@ -168,7 +168,6 @@ namespace OnlineVideos.MediaPortal1
                 GUIPropertyManager.SetProperty("#OnlineVideos.bufferedenoughend", "0");
 
                 //Initiate buffer tags
-                GUIPropertyManager.SetProperty("#OnlineVideos.Buffering", "");
                 GUIPropertyManager.SetProperty("#OnlineVideos.BufferLevel", "0");
                 GUIPropertyManager.SetProperty("#OnlineVideos.BufferTime", "0");
                 GUIPropertyManager.SetProperty("#OnlineVideos.BufferSize", "0 B");
