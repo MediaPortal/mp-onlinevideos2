@@ -267,21 +267,5 @@ namespace OnlineVideos.MediaPortal1
                 default: SetVideosToInfoList(currentTrailerList); break;
             }
         }
-
-        private void SetWebviewHelpers()
-        {
-            Helpers.WebViewHelper wvh = Helpers.WebViewHelper.Instance;
-            //You get a webViewHelper, Everybody gets a webViewHelper
-            foreach (var hosterUtil in Hoster.HosterFactory.GetAllHosters())
-            {
-                hosterUtil.webViewHelper = wvh;
-            }
-
-            foreach (var util in OnlineVideoSettings.Instance.SiteUtilsList)
-            {
-                util.Value.webViewHelper = wvh;
-            }
-        }
-
     }
 }

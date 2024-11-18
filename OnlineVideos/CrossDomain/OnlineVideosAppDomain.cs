@@ -44,7 +44,7 @@ namespace OnlineVideos.CrossDomain
 
                     _pluginLoader = (PluginLoader)_domain.CreateInstanceFromAndUnwrap(
                       Assembly.GetExecutingAssembly().Location,
-                      typeof(PluginLoader).FullName);
+                      typeof(PluginLoader).FullName, false, BindingFlags.Default, null, args: new Object[] { Helpers.WebViewHelper.Instance }, null, null);
 
                     AppDomain.CurrentDomain.AssemblyResolve -= AssemblyResolve;
 
@@ -53,7 +53,7 @@ namespace OnlineVideos.CrossDomain
                 else
                 {
                     _domain = AppDomain.CurrentDomain;
-                    _pluginLoader = new PluginLoader();
+                    _pluginLoader = new PluginLoader(Helpers.WebViewHelper.Instance);
                 }
             }
             else

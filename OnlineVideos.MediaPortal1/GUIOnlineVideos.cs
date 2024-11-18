@@ -286,6 +286,19 @@ namespace OnlineVideos.MediaPortal1
                 preventDialogOnLoad = (lastActiveModuleSetting && (lastActiveModule == GetID));
             }
 
+            WebViewHelper wvh = null;
+            try
+            {
+                wvh = WebViewHelper.Instance;
+                if (wvh == null)
+                    Log.Instance.Error("Error initializing WebViewHelper");
+                else
+                    Log.Instance.Debug("WebViewHelper created successfully");
+            }
+            catch (Exception e)
+            {
+                Log.Instance.Error("Error initializing WebViewHelper: " + e.Message);
+            }
             StartBackgroundInitialization();
 
             return result;
@@ -1264,7 +1277,6 @@ namespace OnlineVideos.MediaPortal1
 
             CurrentState = State.groups;
             UpdateViewState();
-            SetWebviewHelpers();
         }
 
         private void AddFavoritesAndDownloadsSitesToFacade()
@@ -1384,7 +1396,6 @@ namespace OnlineVideos.MediaPortal1
             GUIPropertyManager.SetProperty("#OnlineVideos.filter", currentFilter.ToString());
             CurrentState = State.sites;
             UpdateViewState();
-            SetWebviewHelpers();
         }
 
         private void DisplayCategories(Category parentCategory, bool? diveDownOrUpIfSingle = null)

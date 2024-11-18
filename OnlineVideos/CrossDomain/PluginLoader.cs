@@ -16,11 +16,13 @@ namespace OnlineVideos.CrossDomain
         readonly Dictionary<String, Type> _utils = new Dictionary<String, Type>();
         readonly Dictionary<String, HosterBase> _hostersByName = new Dictionary<String, HosterBase>();
         readonly Dictionary<String, HosterBase> _hostersByDns = new Dictionary<String, HosterBase>();
+        private Helpers.WebViewHelper _wvh = null;
 
-        public PluginLoader()
+        public PluginLoader(Helpers.WebViewHelper wvh)
         {
             AppDomain.CurrentDomain.AssemblyResolve += AssemblyResolve;
             ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072 | SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls;
+            _wvh = wvh;
         }
 
         Assembly AssemblyResolve(object sender, ResolveEventArgs args)
@@ -104,6 +106,7 @@ namespace OnlineVideos.CrossDomain
                             if (!_hostersByName.TryGetValue(shortName, out alreadyAddedHoster))
                             {
                                 HosterBase hb = (HosterBase)Activator.CreateInstance(type);
+                                hb.webViewHelper = _wvh;
                                 hb.Initialize();
                                 _hostersByName.Add(shortName, hb);
                                 if (!_hostersByDns.ContainsKey(hb.GetHosterUrl().ToLower())) _hostersByDns.Add(hb.GetHosterUrl().ToLower(), hb);
@@ -114,6 +117,7 @@ namespace OnlineVideos.CrossDomain
                                 if (assemblies[alreadyAddedHoster.GetType().Assembly] < assembly.Value)
                                 {
                                     HosterBase hb = (HosterBase)Activator.CreateInstance(type);
+                                    hb.webViewHelper = _wvh;
                                     hb.Initialize();
                                     _hostersByName[shortName] = hb;
                                     Log.Warn(string.Format("Duplicate Hoster '{0}'. Using the one from '{1}', because DLL has newer compile time than '{2}'.",
@@ -155,6 +159,7 @@ namespace OnlineVideos.CrossDomain
                 try
                 {
                     util = (SiteUtilBase)Activator.CreateInstance(result);
+                    util.webViewHelper = _wvh;
                     util.Initialize(settings);
                     return util;
                 }
