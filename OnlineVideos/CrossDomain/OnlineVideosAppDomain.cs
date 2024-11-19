@@ -44,16 +44,17 @@ namespace OnlineVideos.CrossDomain
 
                     _pluginLoader = (PluginLoader)_domain.CreateInstanceFromAndUnwrap(
                       Assembly.GetExecutingAssembly().Location,
-                      typeof(PluginLoader).FullName, false, BindingFlags.Default, null, args: new Object[] { Helpers.WebViewHelper.Instance }, null, null);
+                      typeof(PluginLoader).FullName);
 
                     AppDomain.CurrentDomain.AssemblyResolve -= AssemblyResolve;
 
                     _domain.SetData(typeof(PluginLoader).FullName, _pluginLoader);
+                    _domain.SetData(typeof(Helpers.WebViewHelper).FullName, Helpers.WebViewHelper.Instance);
                 }
                 else
                 {
                     _domain = AppDomain.CurrentDomain;
-                    _pluginLoader = new PluginLoader(Helpers.WebViewHelper.Instance);
+                    _pluginLoader = new PluginLoader();
                 }
             }
             else

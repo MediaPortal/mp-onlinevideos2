@@ -25,6 +25,17 @@ namespace OnlineVideos.Helpers
             }
         }
 
+        public static WebViewHelper GetInstanceFromMainAppdomain
+        {
+            get
+            {
+                if (AppDomain.CurrentDomain.FriendlyName == "OnlineVideosSiteUtilDlls")
+                    return (WebViewHelper)AppDomain.CurrentDomain.GetData(typeof(WebViewHelper).FullName);
+                else
+                    return WebViewHelper.Instance;
+            }
+        }
+
         public override object InitializeLifetimeService()
         {
             // In order to have the lease across appdomains live forever, we return null.
