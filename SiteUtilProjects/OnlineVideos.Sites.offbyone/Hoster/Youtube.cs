@@ -329,7 +329,7 @@ namespace OnlineVideos.Hoster
                 {
                     Log.Error("[YoutubeHoster] Failed to get AdaptiveFormat working links. Trying yt-dlp ...");
 
-                    jDataYtDlp = parsePlayerStatusFromYtDlp(qualities, videoId);
+                    jDataYtDlp = this.parsePlayerStatusFromYtDlp(qualities, videoId);
                     if (jDataYtDlp == null || qualities.Count == 0)
                     {
                         Log.Error("[YoutubeHoster] Failed to get working links from yt-dlp. Fallback to non JS player ...");
@@ -754,7 +754,7 @@ namespace OnlineVideos.Hoster
             }
         }
 
-        private static JToken parsePlayerStatusFromYtDlp(List<YoutubeQuality> qualities, string strVideoId)
+        private JToken parsePlayerStatusFromYtDlp(List<YoutubeQuality> qualities, string strVideoId)
         {
             if (!checkYtDlpVersion())
                 return null;
@@ -812,6 +812,29 @@ namespace OnlineVideos.Hoster
                     && j.Value<int>("audio_channels") > 0).ToArray();
 
                 Log.Debug("[YoutubeHoster] parsePlayerStatusFromYtDlp() json data loaded");
+
+                //Check Live HLS first
+                JToken jHlsManifestUrl = jStreamingData["manifest_url"];
+                if (jHlsManifestUrl != null)
+                {
+                    string strContent = this.GetWebData((string)jHlsManifestUrl);
+                    Dictionary<string, HlsStreamInfo> options = HlsPlaylistParser.GetPlaybackOptionsEx(strContent, (string)jHlsManifestUrl, HlsStreamInfoComparer.BandwidtLowHigh, HlsStreamInfoFormatter.VideoDimension);
+                    foreach (KeyValuePair<string, HlsStreamInfo> kv in options)
+                    {
+                        string[] qualityKey = { "0", kv.Key };
+                        qualities.Add(new YoutubeQuality()
+                        {
+                            Url = kv.Value.Url,
+                            VideoType = "HLS",
+                            VideoID = 0,
+                            VideoWidth = kv.Value.Width,
+                            VideoHeight = kv.Value.Height,
+                            VideoBitrate = kv.Value.Bandwidth
+                        });
+                    }
+
+                    return jStreamingData;
+                }
 
                 foreach (JToken format in jFormats)
                 {
