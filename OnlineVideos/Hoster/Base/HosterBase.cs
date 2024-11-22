@@ -33,15 +33,9 @@ namespace OnlineVideos.Hoster
         {
             get
             {
-                if (this._webViewHelper == null)
-                {
-                    this._webViewHelper = Helpers.WebViewHelper.GetInstanceFromMainAppdomain;
-                }
-                return this._webViewHelper;
+                return Helpers.WebViewHelper.Instance;
             }
         }
-
-        private Helpers.WebViewHelper _webViewHelper = null;
 
         /// <summary>
         /// You should always call this implementation, even when overriding it. It is called after the instance has been created

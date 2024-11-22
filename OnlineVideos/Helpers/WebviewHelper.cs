@@ -21,18 +21,14 @@ namespace OnlineVideos.Helpers
         {
             get
             {
-                return _Instance ?? (_Instance = new WebViewHelper());
-            }
-        }
-
-        public static WebViewHelper GetInstanceFromMainAppdomain
-        {
-            get
-            {
-                if (AppDomain.CurrentDomain.FriendlyName == "OnlineVideosSiteUtilDlls")
-                    return (WebViewHelper)AppDomain.CurrentDomain.GetData(typeof(WebViewHelper).FullName);
-                else
-                    return WebViewHelper.Instance;
+                if (_Instance == null)
+                {
+                    if (AppDomain.CurrentDomain.FriendlyName == "OnlineVideosSiteUtilDlls")
+                        _Instance = (WebViewHelper)AppDomain.CurrentDomain.GetData(typeof(WebViewHelper).FullName);
+                    else
+                        _Instance = new WebViewHelper();
+                }
+                return _Instance;
             }
         }
 
@@ -65,7 +61,7 @@ namespace OnlineVideos.Helpers
             }
             else
             {
-                Log.Debug("Creating WebViewHelper");
+                //do not use logging at this point, as that will trigger a premature appdomain load, and another creation of the WebViewHelper
                 webView = new WebView2();
                 webView.Name = "OV_Webview";
                 webView.CoreWebView2InitializationCompleted += WebView_CoreWebView2InitializationCompleted;
