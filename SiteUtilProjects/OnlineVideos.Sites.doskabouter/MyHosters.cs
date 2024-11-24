@@ -192,7 +192,7 @@ namespace OnlineVideos.Hoster
 
         public override Dictionary<string, string> GetPlaybackOptions(string url)
         {
-            var m = Regex.Match(url, @"/video/(?<videoid>.*)$");
+            var m = Regex.Match(url, @"video=(?<videoid>.*)$");
             if (m.Success)
                 url = @"https://www.dailymotion.com/player/metadata/video/" + m.Groups["videoid"].Value;
 
