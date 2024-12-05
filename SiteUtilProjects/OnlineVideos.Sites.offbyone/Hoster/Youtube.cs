@@ -899,7 +899,7 @@ namespace OnlineVideos.Hoster
                                 string strVideoType = "video" + '/' + format.Value<string>("video_ext") + "; codecs=\"" + format.Value<string>("vcodec") + '\"';
                                 int iVideoBitrate = (int)format.Value<float>("vbr") * 1000;
                                 string strID = format.Value<string>("format_id");
-                                int iIdx = strVideoId.IndexOf('-');
+                                int iIdx = strID.IndexOf('-');
                                 int iVideoID = int.Parse(iIdx > 0 ? strID.Substring(0, iIdx) : strID);
                                 string strVideoUrl = format.Value<string>("url");
                                 int iVideoWidth = format.Value<int>("width");
