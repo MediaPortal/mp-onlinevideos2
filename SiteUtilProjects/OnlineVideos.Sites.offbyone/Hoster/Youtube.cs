@@ -278,7 +278,30 @@ namespace OnlineVideos.Hoster
 
                 if (_YoutubeDecryptor != null)
                 {
+                    //IOS
                     headers = new NameValueCollection
+                        {
+                            { "X-Youtube-Client-Name", "5" },
+                            { "X-Youtube-Client-Version", "19.29.1" },
+                            { "Origin", "https://www.youtube.com" },
+                            { "Content-Type", "application/json" },
+                            { "User-Agent", "com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)" },
+                            { "Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7" },
+                            { "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
+                            { "Accept-Encoding", "gzip, deflate" },
+                            { "Accept-Language", "en-us,en;q=0.5" }
+                        };
+
+                    postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""IOS"", ""clientVersion"": ""{1}"", ""deviceMake"": ""Apple"", ""deviceModel"": ""iPhone16,2"", ""hl"": ""en"", ""osName"": ""iPhone"", ""osVersion"": ""17.5.1.21F90"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
+                        videoId, headers["X-Youtube-Client-Version"], _YoutubeDecryptor.SignatureTimestamp);
+                    jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
+
+                    if (jDataWeb == null)
+                    {
+                        Log.Error("[YoutubeHoster] Failed to get json web data from youtube server. Trying MWEB client...");
+
+                        //MWEB
+                        headers = new NameValueCollection
                         {
                             { "X-Youtube-Client-Name", "2" },
                             { "X-Youtube-Client-Version", "2.20240726.01.00" },
@@ -291,10 +314,11 @@ namespace OnlineVideos.Hoster
                             { "Accept-Language", "en-us,en;q=0.5" }
                         };
 
-                    postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""MWEB"", ""clientVersion"": ""{1}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
-                        videoId, headers["X-Youtube-Client-Version"], _YoutubeDecryptor.SignatureTimestamp);
-                    jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
 
+                        postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""MWEB"", ""clientVersion"": ""{1}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
+                            videoId, headers["X-Youtube-Client-Version"], _YoutubeDecryptor.SignatureTimestamp);
+                        jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
+                    }
                     if (jDataWeb != null)
                     {
                         PlayerStatusEnum status;
@@ -600,7 +624,7 @@ namespace OnlineVideos.Hoster
             string hlsUrl = streamingData.Value<string>("hlsManifestUrl");
 
             //In case of LIVE stream take the HLS or DASH link only; adaptive formats have cca 5s streams only
-            bool bIsLive = (videoDetails?.Value<bool>("isLive") ?? false) || !string.IsNullOrWhiteSpace(hlsUrl);
+            bool bIsLive = (videoDetails?.Value<bool>("isLive") ?? false) || (videoDetails?.Value<int>("lengthSeconds") ?? 0) == 0;
 
             if (!bIsLive)
             {
