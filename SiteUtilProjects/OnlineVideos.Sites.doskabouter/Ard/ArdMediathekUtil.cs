@@ -76,7 +76,8 @@ namespace OnlineVideos.Sites.Ard
                 var result = page.GetVideos(rssCategory.Url, context.Token);
                 foreach (var filmInfoDto in result.Value)
                 {
-                    list.Add(filmInfoDto.AsVideoInfo(page, result.ContinuationToken, skipPlaybackOptionsDialog: _skipPlayackOptionsDialog));
+                    if (filmInfoDto != null)
+                        list.Add(filmInfoDto.AsVideoInfo(page, result.ContinuationToken, skipPlaybackOptionsDialog: _skipPlayackOptionsDialog));
                 }
             }
             return list;
