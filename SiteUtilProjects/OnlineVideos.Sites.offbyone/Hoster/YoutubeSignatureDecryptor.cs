@@ -37,11 +37,11 @@ namespace OnlineVideos.Hoster
         private static readonly Regex _RegexPlayerTs = new("\"STS\":(?<sts>[0-9]+)", RegexOptions.Compiled);
         private static readonly Regex[] _RegexPlayerJsFunctions = new Regex[]
         {
-            new Regex("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){var\\s+b=a\\.split\\(\"\"\\)(?s:.)+?return\\s+b\\.join\\(\"\"\\)};", RegexOptions.Compiled),
+            new Regex(@"(?<fname>[a-zA-Z0-9$]+)=function\([a-zA-Z0-9$]+\){var\s+[a-zA-Z0-9$]+=[a-zA-Z0-9$]+\.split\((?s:.)+?return\s+[a-zA-Z0-9$]+\.join\(""""\)};", RegexOptions.Compiled),
             new Regex("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){var\\s+b=String\\.prototype\\.split\\.(?s:.)+?return\\s+Array\\.prototype\\.join\\.call\\(b,\"\"\\)};", RegexOptions.Compiled),
             new Regex("(?<=(?<fname>[a-zA-Z0-9$]+)\\=function\\((?s:.)+?)\"enhanced_except_(?s:.)+?\\)};", RegexOptions.Compiled)
         };
-        private static readonly Regex _RegexPlayerJsSigFunction = new("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){a=a\\.split\\(\"\"\\);(?<fnamesub>[a-zA-Z0-9$]+)\\.(?s:.)+?return\\s+a\\.join\\(\"\"\\)};", RegexOptions.Compiled);
+        private static readonly Regex _RegexPlayerJsSigFunction = new(@"(?<fname>[a-zA-Z0-9$]+)=function\([a-zA-Z0-9$]+\){[a-zA-Z0-9$]+=[a-zA-Z0-9$]+\.split\(""""\);(?<fnamesub>[a-zA-Z0-9$]+)\.(?s:.)+?return\s+[a-zA-Z0-9$]+\.join\(""""\)};", RegexOptions.Compiled);
         private const string _JS_SUB_FUNCTION_REGEX = "var {0}={{(?s:.)+?}};";
         private const string _JS_FUNCTION_NAME = "decrypt";
 
