@@ -201,7 +201,6 @@ namespace OnlineVideos
         public string RemoveFromPlaylist = "Remove from Playlist";
         public string RemovingFromFavorites = "removing from favorites";
         public string Refresh = "Refresh";
-        public string RelatedVideos = "Related Videos";
         public string ReportBroken = "Report Broken";
         public string Reported = "Reported";
         public string Reports = "Reports";

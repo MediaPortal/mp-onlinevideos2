@@ -577,8 +577,6 @@ namespace OnlineVideos.Sites
             List<ContextMenuEntry> result = new List<ContextMenuEntry>();
             if (selectedItem != null)
             {
-                result.Add(new ContextMenuEntry() { DisplayText = Translation.Instance.RelatedVideos, Action = ContextMenuEntry.UIAction.Execute });
-
                 MyYouTubeEntry ytEntry = selectedItem.Other as MyYouTubeEntry;
                 if (ytEntry != null && ytEntry.YouTubeEntry != null)
                 {
@@ -646,12 +644,6 @@ namespace OnlineVideos.Sites
                 {
                     removeFavorite(selectedItem);
                     result.RefreshCurrentItems = true;
-                }
-                else if (choice.DisplayText == Translation.Instance.RelatedVideos)
-                {
-                    YouTubeQuery query = new YouTubeQuery() { Uri = new Uri((selectedItem.Other as MyYouTubeEntry).YouTubeEntry.RelatedVideosUri.Content), NumberToRetrieve = pageSize };
-                    result.ResultItems = parseGData(query).ConvertAll<SearchResultItem>(v => v as SearchResultItem);
-                    currentVideosTitle = Translation.Instance.RelatedVideos + " [" + selectedItem.Title + "]";
                 }
                 else if (choice.DisplayText.StartsWith(Translation.Instance.UploadsBy))
                 {
