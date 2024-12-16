@@ -88,7 +88,7 @@
     	<posY>888</posY>
     	<width>184</width>
     	<height>49</height>
-    	<texture>osd_buffering_button.png</texture>
+    	<texture>OnlineVideos\osd_buffering_button.png</texture>
 	    <visible>string.equals(#OnlineVideos.IsBuffering, true)+!window.isosdvisible+window.ispauseosdvisible+player.paused|player.rewinding|player.forwarding|control.isVisible(10)|control.isVisible(11)|control.isVisible(12)</visible>
     </control>
     	
