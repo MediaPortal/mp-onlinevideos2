@@ -40,6 +40,10 @@ namespace OnlineVideos.Hoster
             public int AudioBitrate = -1;
             public int AudioChannels = -1;
             public int AudioSampleRate = -1;
+
+            public string Language;
+            public string LanguageID;
+            public string LanguageDisplayName;
         }
 
         [Category("OnlineVideosUserConfiguration"), Description("Select subtitle language preferences (; separated and ISO 3166-2?), for example: en;de")]
@@ -438,7 +442,18 @@ namespace OnlineVideos.Hoster
                         else if (a.VideoType == "DASH" && b.VideoType != "DASH")
                             return -1;
                         else if (b.AudioID == a.AudioID)
-                            return a.AudioBitrate.CompareTo(b.AudioBitrate);
+                        {
+                            if (a.LanguageID == b.LanguageID)
+                                return a.AudioBitrate.CompareTo(b.AudioBitrate);
+
+                            if (a.LanguageID == null && a.LanguageID != null)
+                                return -1;
+
+                            if (a.LanguageID != null && a.LanguageID == null)
+                                return 1;
+
+                            return a.LanguageID.CompareTo(b.LanguageID);
+                        }
                         else
                             return Array.IndexOf(fmtOptionsQualityAudioSorted, (ushort)b.AudioID).CompareTo(Array.IndexOf(fmtOptionsQualityAudioSorted, (ushort)a.AudioID));
                     }
@@ -453,6 +468,9 @@ namespace OnlineVideos.Hoster
                     if (q.VideoID == qPrev.VideoID)
                     {
                         if (q.VideoID == 0 && q.VideoWidth != qPrev.VideoWidth) //HLS or DASH
+                            continue;
+
+                        if (q.LanguageID != qPrev.LanguageID)
                             continue;
 
                         if (q.AudioID == qPrev.AudioID)
@@ -499,9 +517,16 @@ namespace OnlineVideos.Hoster
                             strType += "/" + strTypeAudio.Substring(strTypeAudio.LastIndexOfAny(codecSep) + 1);
                         }
 
+                        //Langugae
+                        string strLng = null;
+                        if (!string.IsNullOrWhiteSpace(quality.LanguageDisplayName))
+                            strLng = quality.LanguageDisplayName + " |";
+                        else if (!string.IsNullOrWhiteSpace(quality.Language))
+                            strLng = quality.Language + " |";
+
                         //If the option already exists, then override old value
-                        options[string.Format("{0}x{1}/{{0}} | {2}{3}({4})",
-                            quality.VideoWidth, quality.VideoHeight, strType, strStereo, quality.VideoID)] = quality;
+                        options[string.Format("{0}x{1}/{{0}} |{5} {2}{3}({4})",
+                            quality.VideoWidth, quality.VideoHeight, strType, strStereo, quality.VideoID, strLng )] = quality;
                     }
                 };
 
@@ -950,6 +975,21 @@ namespace OnlineVideos.Hoster
                                                 AudioBitrate = (int)jAudio.Value<float>("abr") * 1000,
                                             };
 
+                                            //Audio language track (MLA)
+                                            JToken jLang = jAudio["language"];
+                                            if (jLang != null)
+                                            {
+                                                q.Language = (string)jAudio["language"];
+                                                if ((iIdx = q.Language.IndexOf('-')) > 0)
+                                                    q.Language = q.Language.Substring(0, iIdx); //remove suffix (like 'desc')
+
+                                                iIdx = strID.IndexOf('-'); //try locate number suffix from 'format_id'
+                                                q.LanguageID = iIdx > 0 ? q.Language + '.' + strID.Substring(iIdx) : q.Language;
+                                                q.LanguageDisplayName = jAudio["format_note"]?.Value<string>();
+                                                if (!string.IsNullOrWhiteSpace(q.LanguageDisplayName) && (iIdx = q.LanguageDisplayName.IndexOf(',')) > 0)
+                                                    q.LanguageDisplayName = q.LanguageDisplayName.Substring(0, iIdx); //remove other text like 'medium, IOS'
+                                            }
+
                                             q.Url = new MixedUrl(q.VideoUrl, q.AudioUrl).ToString();
                                             qualities.Add(q);
                                         }
@@ -1033,6 +1073,23 @@ namespace OnlineVideos.Hoster
                                 AudioType = jAudio.Value<string>("mimeType"),
                                 AudioBitrate = jAudio.Value<int>("bitrate"),
                             };
+
+                            //Audio language track (MLA)
+                            JToken jTrack = jAudio["audioTrack"];
+                            if (jTrack != null)
+                            {
+                                q.LanguageID = jTrack["id"]?.Value<string>();
+                                q.LanguageDisplayName = jTrack["displayName"]?.Value<string>();
+
+                                if (!string.IsNullOrEmpty(q.LanguageID))
+                                {
+                                    int iIdx = q.LanguageID.IndexOf('.');
+                                    if (iIdx > 0)
+                                        q.Language = q.LanguageID.Substring(0, iIdx);
+                                    else
+                                        q.Language = q.LanguageID;
+                                }
+                            }
 
                             q.Url = new MixedUrl(q.VideoUrl, q.AudioUrl).ToString();
                             qualities.Add(q);
