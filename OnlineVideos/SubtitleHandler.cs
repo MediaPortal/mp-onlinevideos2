@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Linq;
 using System.IO;
+using System.Diagnostics;
 using System.Threading;
 
 namespace OnlineVideos.Subtitles
@@ -28,7 +29,9 @@ namespace OnlineVideos.Subtitles
 
         public SubtitleHandler(string className, string languages)
         {
-            Log.Debug(String.Format("Create subtitlehandler for '{0}', languages '{1}'", className, languages));
+            var methodInfo = new StackTrace().GetFrame(1).GetMethod();
+            var fromName = methodInfo.ReflectedType.Name;
+            Log.Debug(String.Format("Create subtitlehandler for {0}:'{1}', languages '{2}'", fromName, className, languages));
 
             className = className.Trim();
             tryLoadSubtitles = !String.IsNullOrEmpty(className);
