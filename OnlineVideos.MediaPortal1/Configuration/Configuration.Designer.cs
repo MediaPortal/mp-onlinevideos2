@@ -105,6 +105,7 @@
             this.label15 = new System.Windows.Forms.Label();
             this.tbxUtilTimeout = new System.Windows.Forms.TextBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.chkUseMPUrlSourceSplitter = new System.Windows.Forms.CheckBox();
             this.chkAdaptRefreshRate = new System.Windows.Forms.CheckBox();
             this.label4 = new System.Windows.Forms.Label();
             this.label30 = new System.Windows.Forms.Label();
@@ -251,10 +252,22 @@
             this.labelUdpRtpOpenConnectionTimeout = new System.Windows.Forms.Label();
             this.labelUdpRtpNetworkInterface = new System.Windows.Forms.Label();
             this.comboBoxUdpRtpPreferredNetworkInterface = new System.Windows.Forms.ComboBox();
+            this.tabPageQuality = new System.Windows.Forms.TabPage();
+            this.groupBox8 = new System.Windows.Forms.GroupBox();
+            this.checkBoxAutoVideoSelection = new System.Windows.Forms.CheckBox();
+            this.comboBoxVideoResolution = new System.Windows.Forms.ComboBox();
+            this.checkBoxAllowHDR = new System.Windows.Forms.CheckBox();
+            this.checkBoxAllow3D = new System.Windows.Forms.CheckBox();
+            this.label11 = new System.Windows.Forms.Label();
+            this.groupBox6 = new System.Windows.Forms.GroupBox();
+            this.preferredListControlAudioCodec = new OnlineVideos.MediaPortal1.PreferredListControl();
+            this.groupBox7 = new System.Windows.Forms.GroupBox();
+            this.preferredListControlVideoCodec = new OnlineVideos.MediaPortal1.PreferredListControl();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.preferredListControlContainer = new OnlineVideos.MediaPortal1.PreferredListControl();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.errorProvider1 = new System.Windows.Forms.ErrorProvider(this.components);
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
-            this.chkUseMPUrlSourceSplitter = new System.Windows.Forms.CheckBox();
             siteNameIconPanel = new System.Windows.Forms.Panel();
             siteColumnName = ((BrightIdeasSoftware.OLVColumn)(new BrightIdeasSoftware.OLVColumn()));
             siteColumnDescription = ((BrightIdeasSoftware.OLVColumn)(new BrightIdeasSoftware.OLVColumn()));
@@ -316,6 +329,11 @@
             this.groupBoxRtspCommonParameters.SuspendLayout();
             this.tabPageUdpRtp.SuspendLayout();
             this.groupBoxUdpRtpCommonParameters.SuspendLayout();
+            this.tabPageQuality.SuspendLayout();
+            this.groupBox8.SuspendLayout();
+            this.groupBox6.SuspendLayout();
+            this.groupBox7.SuspendLayout();
+            this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -503,6 +521,7 @@
             // propertyGridUserConfig
             // 
             this.propertyGridUserConfig.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.propertyGridUserConfig.LineColor = System.Drawing.SystemColors.ControlDarkDark;
             this.propertyGridUserConfig.Location = new System.Drawing.Point(64, 0);
             this.propertyGridUserConfig.Name = "propertyGridUserConfig";
             this.propertyGridUserConfig.PropertySort = System.Windows.Forms.PropertySort.NoSort;
@@ -637,6 +656,7 @@
             this.mainTabControl.Controls.Add(this.tabSites);
             this.mainTabControl.Controls.Add(this.tabHosters);
             this.mainTabControl.Controls.Add(this.tabSourceFilter);
+            this.mainTabControl.Controls.Add(this.tabPageQuality);
             this.mainTabControl.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mainTabControl.Location = new System.Drawing.Point(0, 0);
             this.mainTabControl.Margin = new System.Windows.Forms.Padding(2);
@@ -1818,7 +1838,7 @@
             // 
             this.btnImportXml.Image = global::OnlineVideos.MediaPortal1.Properties.Resources.ImportXml;
             this.btnImportXml.Name = "btnImportXml";
-            this.btnImportXml.Size = new System.Drawing.Size(103, 22);
+            this.btnImportXml.Size = new System.Drawing.Size(123, 24);
             this.btnImportXml.Text = "XML";
             this.btnImportXml.ToolTipText = "Import from Xml";
             this.btnImportXml.Click += new System.EventHandler(this.btnImportSite_Click);
@@ -1827,7 +1847,7 @@
             // 
             this.btnImportGlobal.Image = global::OnlineVideos.MediaPortal1.Properties.Resources.ImportGlobal;
             this.btnImportGlobal.Name = "btnImportGlobal";
-            this.btnImportGlobal.Size = new System.Drawing.Size(103, 22);
+            this.btnImportGlobal.Size = new System.Drawing.Size(123, 24);
             this.btnImportGlobal.Text = "Global";
             this.btnImportGlobal.ToolTipText = "Import from global List";
             this.btnImportGlobal.Click += new System.EventHandler(this.btnImportGlobal_Click);
@@ -1938,6 +1958,7 @@
             // propertyGridHoster
             // 
             this.propertyGridHoster.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.propertyGridHoster.LineColor = System.Drawing.SystemColors.ControlDarkDark;
             this.propertyGridHoster.Location = new System.Drawing.Point(123, 0);
             this.propertyGridHoster.Name = "propertyGridHoster";
             this.propertyGridHoster.Size = new System.Drawing.Size(581, 518);
@@ -2800,6 +2821,133 @@
             this.comboBoxUdpRtpPreferredNetworkInterface.Size = new System.Drawing.Size(500, 21);
             this.comboBoxUdpRtpPreferredNetworkInterface.TabIndex = 0;
             // 
+            // tabPageQuality
+            // 
+            this.tabPageQuality.Controls.Add(this.groupBox8);
+            this.tabPageQuality.Controls.Add(this.groupBox6);
+            this.tabPageQuality.Controls.Add(this.groupBox7);
+            this.tabPageQuality.Controls.Add(this.groupBox1);
+            this.tabPageQuality.Location = new System.Drawing.Point(4, 22);
+            this.tabPageQuality.Name = "tabPageQuality";
+            this.tabPageQuality.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPageQuality.Size = new System.Drawing.Size(704, 542);
+            this.tabPageQuality.TabIndex = 7;
+            this.tabPageQuality.Text = "Quality Options";
+            this.tabPageQuality.UseVisualStyleBackColor = true;
+            // 
+            // groupBox8
+            // 
+            this.groupBox8.Controls.Add(this.checkBoxAutoVideoSelection);
+            this.groupBox8.Controls.Add(this.comboBoxVideoResolution);
+            this.groupBox8.Controls.Add(this.checkBoxAllowHDR);
+            this.groupBox8.Controls.Add(this.checkBoxAllow3D);
+            this.groupBox8.Controls.Add(this.label11);
+            this.groupBox8.Location = new System.Drawing.Point(8, 16);
+            this.groupBox8.Name = "groupBox8";
+            this.groupBox8.Size = new System.Drawing.Size(447, 90);
+            this.groupBox8.TabIndex = 13;
+            this.groupBox8.TabStop = false;
+            this.groupBox8.Text = "Video Quality";
+            // 
+            // checkBoxAutoVideoSelection
+            // 
+            this.checkBoxAutoVideoSelection.AutoSize = true;
+            this.checkBoxAutoVideoSelection.Location = new System.Drawing.Point(22, 28);
+            this.checkBoxAutoVideoSelection.Name = "checkBoxAutoVideoSelection";
+            this.checkBoxAutoVideoSelection.Size = new System.Drawing.Size(203, 17);
+            this.checkBoxAutoVideoSelection.TabIndex = 4;
+            this.checkBoxAutoVideoSelection.Text = "Automatic Video Resolution Selection";
+            this.checkBoxAutoVideoSelection.UseVisualStyleBackColor = true;
+            // 
+            // comboBoxVideoResolution
+            // 
+            this.comboBoxVideoResolution.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoxVideoResolution.FormattingEnabled = true;
+            this.comboBoxVideoResolution.Location = new System.Drawing.Point(158, 49);
+            this.comboBoxVideoResolution.Name = "comboBoxVideoResolution";
+            this.comboBoxVideoResolution.Size = new System.Drawing.Size(67, 21);
+            this.comboBoxVideoResolution.TabIndex = 3;
+            // 
+            // checkBoxAllowHDR
+            // 
+            this.checkBoxAllowHDR.AutoSize = true;
+            this.checkBoxAllowHDR.Location = new System.Drawing.Point(341, 53);
+            this.checkBoxAllowHDR.Name = "checkBoxAllowHDR";
+            this.checkBoxAllowHDR.Size = new System.Drawing.Size(78, 17);
+            this.checkBoxAllowHDR.TabIndex = 5;
+            this.checkBoxAllowHDR.Text = "Allow HDR";
+            this.checkBoxAllowHDR.UseVisualStyleBackColor = true;
+            // 
+            // checkBoxAllow3D
+            // 
+            this.checkBoxAllow3D.AutoSize = true;
+            this.checkBoxAllow3D.Location = new System.Drawing.Point(341, 30);
+            this.checkBoxAllow3D.Name = "checkBoxAllow3D";
+            this.checkBoxAllow3D.Size = new System.Drawing.Size(68, 17);
+            this.checkBoxAllow3D.TabIndex = 6;
+            this.checkBoxAllow3D.Text = "Allow 3D";
+            this.checkBoxAllow3D.UseVisualStyleBackColor = true;
+            // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(19, 55);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(133, 13);
+            this.label11.TabIndex = 7;
+            this.label11.Text = "Preferred Video Resolution";
+            // 
+            // groupBox6
+            // 
+            this.groupBox6.Controls.Add(this.preferredListControlAudioCodec);
+            this.groupBox6.Location = new System.Drawing.Point(310, 112);
+            this.groupBox6.Name = "groupBox6";
+            this.groupBox6.Size = new System.Drawing.Size(145, 200);
+            this.groupBox6.TabIndex = 12;
+            this.groupBox6.TabStop = false;
+            this.groupBox6.Text = "Preffered Audio Codecs";
+            // 
+            // preferredListControlAudioCodec
+            // 
+            this.preferredListControlAudioCodec.Location = new System.Drawing.Point(22, 18);
+            this.preferredListControlAudioCodec.Name = "preferredListControlAudioCodec";
+            this.preferredListControlAudioCodec.Size = new System.Drawing.Size(103, 176);
+            this.preferredListControlAudioCodec.TabIndex = 2;
+            // 
+            // groupBox7
+            // 
+            this.groupBox7.Controls.Add(this.preferredListControlVideoCodec);
+            this.groupBox7.Location = new System.Drawing.Point(159, 112);
+            this.groupBox7.Name = "groupBox7";
+            this.groupBox7.Size = new System.Drawing.Size(145, 200);
+            this.groupBox7.TabIndex = 12;
+            this.groupBox7.TabStop = false;
+            this.groupBox7.Text = "Preffered Video Codecs";
+            // 
+            // preferredListControlVideoCodec
+            // 
+            this.preferredListControlVideoCodec.Location = new System.Drawing.Point(22, 18);
+            this.preferredListControlVideoCodec.Name = "preferredListControlVideoCodec";
+            this.preferredListControlVideoCodec.Size = new System.Drawing.Size(103, 176);
+            this.preferredListControlVideoCodec.TabIndex = 1;
+            // 
+            // groupBox1
+            // 
+            this.groupBox1.Controls.Add(this.preferredListControlContainer);
+            this.groupBox1.Location = new System.Drawing.Point(8, 112);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(145, 200);
+            this.groupBox1.TabIndex = 11;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "Preffered Containers";
+            // 
+            // preferredListControlContainer
+            // 
+            this.preferredListControlContainer.Location = new System.Drawing.Point(22, 18);
+            this.preferredListControlContainer.Name = "preferredListControlContainer";
+            this.preferredListControlContainer.Size = new System.Drawing.Size(103, 176);
+            this.preferredListControlContainer.TabIndex = 0;
+            // 
             // errorProvider1
             // 
             this.errorProvider1.ContainerControl = this;
@@ -2898,6 +3046,12 @@
             this.tabPageUdpRtp.ResumeLayout(false);
             this.groupBoxUdpRtpCommonParameters.ResumeLayout(false);
             this.groupBoxUdpRtpCommonParameters.PerformLayout();
+            this.tabPageQuality.ResumeLayout(false);
+            this.groupBox8.ResumeLayout(false);
+            this.groupBox8.PerformLayout();
+            this.groupBox6.ResumeLayout(false);
+            this.groupBox7.ResumeLayout(false);
+            this.groupBox1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.errorProvider1)).EndInit();
             this.ResumeLayout(false);
 
@@ -3127,5 +3281,18 @@
         private System.Windows.Forms.TextBox textBoxHttpServerUserName;
         private System.Windows.Forms.Label labelHttpServerUserName;
         private System.Windows.Forms.CheckBox chkUseMPUrlSourceSplitter;
+        private System.Windows.Forms.TabPage tabPageQuality;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.CheckBox checkBoxAllow3D;
+        private System.Windows.Forms.CheckBox checkBoxAllowHDR;
+        private System.Windows.Forms.CheckBox checkBoxAutoVideoSelection;
+        private System.Windows.Forms.ComboBox comboBoxVideoResolution;
+        private PreferredListControl preferredListControlAudioCodec;
+        private PreferredListControl preferredListControlVideoCodec;
+        private PreferredListControl preferredListControlContainer;
+        private System.Windows.Forms.GroupBox groupBox6;
+        private System.Windows.Forms.GroupBox groupBox7;
+        private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.GroupBox groupBox8;
     }
 }

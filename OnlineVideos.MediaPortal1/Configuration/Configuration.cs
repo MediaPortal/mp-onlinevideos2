@@ -267,6 +267,15 @@ namespace OnlineVideos.MediaPortal1
 
                 tabProtocols.TabPages.Add(tabPageNotDetectedFilter);
             }
+
+            this.checkBoxAutoVideoSelection.Checked = OnlineVideoSettings.Instance.VideoQualitySelectionOptions.AutomaticVideoSelection;
+            this.checkBoxAllow3D.Checked = OnlineVideoSettings.Instance.VideoQualitySelectionOptions.Allow3D;
+            this.checkBoxAllowHDR.Checked = OnlineVideoSettings.Instance.VideoQualitySelectionOptions.AllowHDR;
+            this.preferredListControlContainer.Init(OnlineVideoSettings.Instance.VideoQualitySelectionOptions.PreferredContainers);
+            this.preferredListControlVideoCodec.Init(OnlineVideoSettings.Instance.VideoQualitySelectionOptions.PreferredVideoCodecs);
+            this.preferredListControlAudioCodec.Init(OnlineVideoSettings.Instance.VideoQualitySelectionOptions.PreferredAudioCodecs);
+            this.comboBoxVideoResolution.Items.AddRange(Enum.GetNames(typeof(PlaybackOptionsBuilder.VideoSelection)));
+            this.comboBoxVideoResolution.SelectedItem = OnlineVideoSettings.Instance.VideoQualitySelectionOptions.VideoResolution.ToString();
         }
 
         void ConfigurationFormClosing(object sender, FormClosingEventArgs e)
@@ -374,6 +383,14 @@ namespace OnlineVideos.MediaPortal1
                 catch { }
                 try { OnlineVideoSettings.Instance.UdpRtpReceiveDataCheckInterval = int.Parse(textBoxUdpRtpReceiveDataCheckInterval.Text); }
                 catch { }
+
+                OnlineVideoSettings.Instance.VideoQualitySelectionOptions.AutomaticVideoSelection = this.checkBoxAutoVideoSelection.Checked;
+                OnlineVideoSettings.Instance.VideoQualitySelectionOptions.Allow3D = this.checkBoxAllow3D.Checked;
+                OnlineVideoSettings.Instance.VideoQualitySelectionOptions.AllowHDR = this.checkBoxAllowHDR.Checked;
+                OnlineVideoSettings.Instance.VideoQualitySelectionOptions.PreferredContainers = this.preferredListControlContainer.GetList<PlaybackOptionsBuilder.Container>();
+                OnlineVideoSettings.Instance.VideoQualitySelectionOptions.PreferredVideoCodecs = this.preferredListControlVideoCodec.GetList<PlaybackOptionsBuilder.VideoCodec>();
+                OnlineVideoSettings.Instance.VideoQualitySelectionOptions.PreferredAudioCodecs = this.preferredListControlAudioCodec.GetList<PlaybackOptionsBuilder.AudioCodec>();
+                OnlineVideoSettings.Instance.VideoQualitySelectionOptions.VideoResolution = (PlaybackOptionsBuilder.VideoSelection)Enum.Parse(typeof(PlaybackOptionsBuilder.VideoSelection),(string)this.comboBoxVideoResolution.SelectedItem);
 
                 PluginConfiguration.Instance.Save(false);
             }

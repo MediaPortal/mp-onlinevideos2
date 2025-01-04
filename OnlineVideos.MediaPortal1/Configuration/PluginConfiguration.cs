@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using MediaPortal.Configuration;
 using System.IO;
 using System.Linq;
@@ -133,6 +134,15 @@ namespace OnlineVideos.MediaPortal1
         const string CFG_FILTER_V2_UDPRTP_OPEN_CONNECTION_SLEEP_TIME = "filterv2udprtpopenconnectionsleeptime";
         const string CFG_FILTER_V2_UDPRTP_TOTAL_REOPEN_CONNECTION_TIMEOUT = "filterv2udprtptotalreopenconnectiontimeout";
         const string CFG_FILTER_V2_UDPRTP_RECEIVE_DATA_CHECK_INTERVAL = "filterv2udprtpreceivedatacheckinterval";
+
+        //Video Selection
+        const string CFG_VIDEO_SELECTION_AUTO = "videoSelectionAuto";
+        const string CFG_VIDEO_SELECTION_QUALITY = "videoSelectionQuality";
+        const string CFG_VIDEO_SELECTION_ALLOW_3D = "videoSelectionAllow3D";
+        const string CFG_VIDEO_SELECTION_ALLOW_HDR = "videoSelectionAllowHDR";
+        const string CFG_VIDEO_SELECTION_PREF_CONTAINER = "videoSelectionPrefContainer";
+        const string CFG_VIDEO_SELECTION_PREF_CODEC_VIDEO = "videoSelectionPrefCodecVideo";
+        const string CFG_VIDEO_SELECTION_PREF_CODEC_AUDIO = "videoSelectionPrefCodecAudio";
 
         #endregion
 
@@ -345,6 +355,18 @@ namespace OnlineVideos.MediaPortal1
                     ovsconf.UdpRtpOpenConnectionSleepTime = settings.GetValueAsInt(CFG_SECTION, CFG_FILTER_V2_UDPRTP_OPEN_CONNECTION_SLEEP_TIME, ovsconf.UdpRtpOpenConnectionSleepTime);
                     ovsconf.UdpRtpTotalReopenConnectionTimeout = settings.GetValueAsInt(CFG_SECTION, CFG_FILTER_V2_UDPRTP_TOTAL_REOPEN_CONNECTION_TIMEOUT, ovsconf.UdpRtpTotalReopenConnectionTimeout);
                     ovsconf.UdpRtpReceiveDataCheckInterval = settings.GetValueAsInt(CFG_SECTION, CFG_FILTER_V2_UDPRTP_RECEIVE_DATA_CHECK_INTERVAL, ovsconf.UdpRtpReceiveDataCheckInterval);
+
+
+                    ovsconf.VideoQualitySelectionOptions = new PlaybackOptionsBuilder.SelectionOptions();
+                    ovsconf.VideoQualitySelectionOptions.AutomaticVideoSelection = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_AUTO, true);
+                    if (!Enum.TryParse(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_QUALITY, PlaybackOptionsBuilder.VideoSelection.Highest.ToString()), out ovsconf.VideoQualitySelectionOptions.VideoResolution))
+                        ovsconf.VideoQualitySelectionOptions.VideoResolution = PlaybackOptionsBuilder.VideoSelection.Highest;
+                    ovsconf.VideoQualitySelectionOptions.Allow3D = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_3D, true);
+                    ovsconf.VideoQualitySelectionOptions.AllowHDR = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_HDR, true);
+                    ovsconf.VideoQualitySelectionOptions.PreferredContainers = DeserializeEnumList<PlaybackOptionsBuilder.Container>(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CONTAINER, string.Empty));
+                    ovsconf.VideoQualitySelectionOptions.PreferredVideoCodecs  = DeserializeEnumList<PlaybackOptionsBuilder.VideoCodec>(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CODEC_VIDEO, string.Empty));
+                    ovsconf.VideoQualitySelectionOptions.PreferredAudioCodecs = DeserializeEnumList<PlaybackOptionsBuilder.AudioCodec>(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CODEC_AUDIO, string.Empty));
+
                 }
                 LoadSitesGroups();
                 ovsconf.LoadSites();
@@ -453,6 +475,14 @@ namespace OnlineVideos.MediaPortal1
                         settings.SetValue(CFG_SECTION, CFG_FILTER_V2_UDPRTP_OPEN_CONNECTION_SLEEP_TIME, ovsconf.UdpRtpOpenConnectionSleepTime);
                         settings.SetValue(CFG_SECTION, CFG_FILTER_V2_UDPRTP_TOTAL_REOPEN_CONNECTION_TIMEOUT, ovsconf.UdpRtpTotalReopenConnectionTimeout);
                         settings.SetValue(CFG_SECTION, CFG_FILTER_V2_UDPRTP_RECEIVE_DATA_CHECK_INTERVAL, ovsconf.UdpRtpReceiveDataCheckInterval);
+
+                        settings.SetValue(CFG_SECTION, CFG_VIDEO_SELECTION_AUTO, ovsconf.VideoQualitySelectionOptions.AutomaticVideoSelection);
+                        settings.SetValue(CFG_SECTION, CFG_VIDEO_SELECTION_QUALITY, ovsconf.VideoQualitySelectionOptions.VideoResolution);
+                        settings.SetValue(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_3D, ovsconf.VideoQualitySelectionOptions.Allow3D);
+                        settings.SetValue(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_HDR, ovsconf.VideoQualitySelectionOptions.AllowHDR);
+                        settings.SetValue(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CONTAINER, SerializeEnumList(ovsconf.VideoQualitySelectionOptions.PreferredContainers));
+                        settings.SetValue(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CODEC_VIDEO, SerializeEnumList(ovsconf.VideoQualitySelectionOptions.PreferredVideoCodecs));
+                        settings.SetValue(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CODEC_AUDIO, SerializeEnumList(ovsconf.VideoQualitySelectionOptions.PreferredAudioCodecs));
                     }
                 }
             }
@@ -568,6 +598,38 @@ namespace OnlineVideos.MediaPortal1
                     }
                 }
             }
+        }
+
+        private static TEnum[] DeserializeEnumList<TEnum>(string strInput) where TEnum : struct
+        {
+            List<TEnum> result = new List<TEnum>();
+            if (!string.IsNullOrWhiteSpace(strInput))
+            {
+                string[] parts = strInput.Split(',');
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    if (Enum.TryParse(parts[i], out TEnum o))
+                        result.Add(o);
+                }
+            }
+
+            return result.ToArray();
+        }
+
+        private static string SerializeEnumList<TEnum>(TEnum[] input) where TEnum : struct
+        {
+            if (input == null || input.Length == 0)
+                return string.Empty;
+
+            StringBuilder sb = new StringBuilder(256);
+            for (int i = 0; i < input.Length; i++)
+            {
+                if (sb.Length > 0)
+                    sb.Append(',');
+                sb.Append(input[i]);
+            }
+
+            return sb.ToString();
         }
     }
 }

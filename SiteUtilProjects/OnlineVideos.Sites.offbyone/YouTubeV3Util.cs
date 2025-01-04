@@ -223,10 +223,14 @@ namespace OnlineVideos.Sites
         public override List<String> GetMultipleVideoUrls(VideoInfo video, bool inPlaylist = false)
         {
             var hoster = Hoster.HosterFactory.GetHoster("Youtube");
-            video.PlaybackOptions = hoster.GetPlaybackOptions(video.VideoUrl);
-            if (video.PlaybackOptions != null && video.PlaybackOptions.Count > 0)
+            video.PlaybackOptions = hoster.GetPlaybackOptions(video.VideoUrl, out int iPreselection);
+            if (video.PlaybackOptions?.Count > 0)
             {
                 video.SubtitleTexts = ((Hoster.ISubtitle)hoster).SubtitleTexts;
+
+                return new List<string>() { iPreselection >= 0 && iPreselection < video.PlaybackOptions.Count ? 
+                    video.PlaybackOptions.ElementAt(iPreselection).Value : video.PlaybackOptions.First().Value };
+
 
                 if (video.PlaybackOptions.Count == 1)
                 {

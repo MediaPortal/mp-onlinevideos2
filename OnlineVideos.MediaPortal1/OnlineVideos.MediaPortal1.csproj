@@ -237,6 +237,12 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Configuration\PluginConfiguration.cs" />
+    <Compile Include="Configuration\PreferredListControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Configuration\PreferredListControl.Designer.cs">
+      <DependentUpon>PreferredListControl.cs</DependentUpon>
+    </Compile>
     <Compile Include="Configuration\RegisterEmail.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -392,6 +398,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Configuration\ObjectListView\Utilities\ColumnSelectionForm.resx">
       <DependentUpon>ColumnSelectionForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Configuration\PreferredListControl.resx">
+      <DependentUpon>PreferredListControl.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Configuration\RtmpUrlGenerator.resx">
       <DependentUpon>RtmpUrlGenerator.cs</DependentUpon>

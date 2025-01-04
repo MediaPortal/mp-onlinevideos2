@@ -167,8 +167,7 @@ namespace OnlineVideos.Downloading
 
         private volatile bool _Cancelled;
 
-        private DownloadTask _TaskVideo;
-        private DownloadTask _TaskAudio;
+        private List<DownloadTask> _Tasks;
 
         private DateTime _TsReport = DateTime.MinValue;
 
@@ -179,16 +178,10 @@ namespace OnlineVideos.Downloading
         {
             this._Cancelled = true;
 
-            if (this._TaskVideo != null)
+            if (this._Tasks != null)
             {
-                this._TaskVideo.Cancelled = true;
-                this._TaskVideo.Complete.WaitOne();
-            }
-
-            if (this._TaskAudio != null)
-            {
-                this._TaskAudio.Cancelled = true;
-                this._TaskAudio.Complete.WaitOne();
+                this._Tasks.ForEach(t => t.Cancelled = true);
+                this._Tasks.ForEach(t => t.Complete.WaitOne());
             }
         }
 
@@ -196,11 +189,8 @@ namespace OnlineVideos.Downloading
         {
             this._Cancelled = true;
 
-            if (this._TaskVideo != null)
-                this._TaskVideo.Cancelled = true;
-
-            if (this._TaskAudio != null)
-                this._TaskAudio.Cancelled = true;
+            if (this._Tasks != null)
+                this._Tasks.ForEach(t => t.Cancelled = true);
         }
 
         public Exception Download(DownloadInfo downloadInfo)
@@ -211,51 +201,101 @@ namespace OnlineVideos.Downloading
 
                 MixedUrl url = new MixedUrl(downloadInfo.Url);
                 if (url.Valid && Uri.IsWellFormedUriString(url.VideoUrl, UriKind.Absolute)
-                        && Uri.IsWellFormedUriString(url.AudioUrl, UriKind.Absolute))
+                        && url.AudioTracks?.Length > 0)
                 {
-                    this._TaskVideo = new DownloadTask()
+                    this._Tasks = new List<DownloadTask>();
+
+                    this._Tasks.Add(new DownloadTask()
                     {
                         Url = url.VideoUrl,
                         FilePath = downloadInfo.LocalFile + ".video",
                         Callback = this.cbTask,
                         DownloadInfo = downloadInfo
-                    };
+                    });
 
-                    this._TaskAudio = new DownloadTask()
+                    for (int i = 0; i < url.AudioTracks.Length; i++)
                     {
-                        Url = url.AudioUrl,
-                        FilePath = downloadInfo.LocalFile + ".audio",
-                        Callback = this.cbTask,
-                        DownloadInfo = downloadInfo
-                    };
+                        this._Tasks.Add(new DownloadTask()
+                        {
+                            Url = url.AudioTracks[i].Url,
+                            FilePath = downloadInfo.LocalFile + ".audio_" + i,
+                            Callback = this.cbTask,
+                            DownloadInfo = downloadInfo
+                        });
+                    }
 
                     //Start download tasks
-                    this._TaskVideo.Download();
-                    this._TaskAudio.Download();
+                    this._Tasks.ForEach(t => t.Download());
 
                     //Wait for finish
-                    this._TaskVideo.Complete.WaitOne();
-                    this._TaskAudio.Complete.WaitOne();
+                    this._Tasks.ForEach(t => t.Complete.WaitOne());
 
                     if (this._Cancelled)
                         return null;
 
-                    if (this._TaskVideo.Result == null && this._TaskVideo.FileSize > 0
-                        && this._TaskAudio.Result == null && this._TaskAudio.FileSize > 0)
+                    //Merge all files
+                    if (this._Tasks.All(t => t.Result == null && t.FileSize > 0))
                     {
-                        string strArgs = string.Format(" -i \"{0}\" -i \"{1}\" -c copy \"{2}\"",
-                            this._TaskVideo.FilePath,
-                            this._TaskAudio.FilePath,
-                            downloadInfo.LocalFile
-                            );
+                        //Build ffmpeg arguments
+                        StringBuilder sbArgs = new StringBuilder(1024);
+
+                        //Input files
+                        this._Tasks.ForEach(t =>
+                        {
+                            sbArgs.Append(" -i \"");
+                            sbArgs.Append(t.FilePath);
+                            sbArgs.Append('\"');
+                        });
+
+                        //Mapping
+                        for (int i = 0; i < this._Tasks.Count; i++)
+                        {
+                            sbArgs.Append(" -map ");
+                            sbArgs.Append(i);
+                        }
+
+                        //Language tags
+                        CultureInfo ciTrack = null;
+                        CultureInfo[] cultures = CultureInfo.GetCultures(CultureTypes.AllCultures);
+                        for (int i = 0; i < url.AudioTracks.Length; i++)
+                        {
+                            string strLanguage = url.AudioTracks[i].Language;
+
+                            if (!string.IsNullOrWhiteSpace(strLanguage))
+                            {
+                                if (strLanguage.Length >= 5 && strLanguage[2] == '-')
+                                    strLanguage = strLanguage.Substring(0, 2);
+
+                                ciTrack = cultures.FirstOrDefault(ci => ci.Name.Equals(strLanguage, StringComparison.OrdinalIgnoreCase)
+                                    || ci.ThreeLetterISOLanguageName.Equals(strLanguage, StringComparison.OrdinalIgnoreCase)
+                                    || ci.EnglishName.Equals(strLanguage, StringComparison.OrdinalIgnoreCase)
+                                    );
+
+                                //-metadata:s:a:0 language=...
+                                if (ciTrack != null)
+                                {
+                                    sbArgs.Append(" -metadata:s:a:");
+                                    sbArgs.Append(i);
+                                    sbArgs.Append(" language=");
+                                    sbArgs.Append(ciTrack.ThreeLetterISOLanguageName);
+                                }
+                            }
+                        }
+
+                        //Destination file
+                        sbArgs.Append(" -strict -2 -c copy \"");
+                        sbArgs.Append(downloadInfo.LocalFile);
+                        sbArgs.Append('\"');
 
                         ProcessStartInfo psi = new ProcessStartInfo
                         {
                             UseShellExecute = false,
                             CreateNoWindow = true,
                             FileName = "MovieThumbnailer\\ffmpeg.exe",
-                            Arguments = strArgs
+                            Arguments = sbArgs.ToString()
                         };
+
+                        Log.Debug("[Download] ffmpeg: {0}", psi.Arguments);
 
                         Process proc = new Process()
                         {
@@ -268,7 +308,7 @@ namespace OnlineVideos.Downloading
                         //Wait for ffmpeg exit
                         proc.WaitForExit();
 
-                        if (!File.Exists(downloadInfo.LocalFile))
+                        if (!File.Exists(downloadInfo.LocalFile) || new FileInfo(downloadInfo.LocalFile).Length <= 0)
                             return new Exception("[OnlineVideosDownloader] FFmpeg merge failed.");
 
                         //Final callback
@@ -279,18 +319,14 @@ namespace OnlineVideos.Downloading
                     else
                     {
                         //Download failed
-
-                        if (this._TaskVideo.Result != null)
-                            Log.Error("[OnlineVideosDownloader][Download] Error Video: {0} {1} {2}",
-                                this._TaskVideo.Result.Message,
-                                this._TaskVideo.Result.Source,
-                                this._TaskVideo.Result.StackTrace);
-
-                        if (this._TaskAudio.Result != null)
-                            Log.Error("[OnlineVideosDownloader][Download] Error Audio: {0} {1} {2}",
-                                this._TaskAudio.Result.Message,
-                                this._TaskAudio.Result.Source,
-                                this._TaskAudio.Result.StackTrace);
+                        this._Tasks.ForEach(t =>
+                        {
+                            if (t.Result != null)
+                                Log.Error("[OnlineVideosDownloader][Download] Error Audio: {0} {1} {2}",
+                                    t.Result.Message,
+                                    t.Result.Source,
+                                    t.Result.StackTrace);
+                        });
 
                         return new Exception("[OnlineVideosDownloader] Download failed.");
                     }
@@ -311,14 +347,17 @@ namespace OnlineVideos.Downloading
             finally
             {
                 //Delete downloaded files (if exists)
-
-                if (this._TaskVideo != null && File.Exists(this._TaskVideo.FilePath))
-                    try { File.Delete(this._TaskVideo.FilePath); }
-                    catch { }
-
-                if (this._TaskAudio != null && File.Exists(this._TaskAudio.FilePath))
-                    try { File.Delete(this._TaskAudio.FilePath); }
-                    catch { }
+                if (this._Tasks != null)
+                {
+                    this._Tasks.ForEach(t =>
+                    {
+                        if (File.Exists(t.FilePath))
+                        {
+                            try { File.Delete(t.FilePath); }
+                            catch { }
+                        }
+                    });
+                }
             }
         }
 
@@ -344,7 +383,7 @@ namespace OnlineVideos.Downloading
 
             MixedUrl url = new MixedUrl(downloadInfo.Url);
             return url.Valid && Uri.IsWellFormedUriString(url.VideoUrl, UriKind.Absolute)
-                        && Uri.IsWellFormedUriString(url.AudioUrl, UriKind.Absolute);
+                        && url.AudioTracks?.Length > 0;
         }
 
 
@@ -365,8 +404,8 @@ namespace OnlineVideos.Downloading
                         DownloadTask task = (DownloadTask)sender;
 
                         task.DownloadInfo.DownloadProgressCallback(
-                            this._TaskVideo.FileSize + this._TaskAudio.FileSize,
-                            this._TaskVideo.CurrentRead + this._TaskAudio.CurrentRead
+                            this._Tasks.Sum(t => t.FileSize),
+                            this._Tasks.Sum(t => t.CurrentRead)
                             );
 
                         this._TsReport = DateTime.Now;

@@ -76,6 +76,14 @@ namespace OnlineVideos
 
         public static readonly String NetworkInterfaceSystemDefault = "System default";
 
+        public PlaybackOptionsBuilder.SelectionOptions VideoQualitySelectionOptions = new PlaybackOptionsBuilder.SelectionOptions
+        {
+            AutomaticVideoSelection = true,
+            VideoResolution = PlaybackOptionsBuilder.VideoSelection.Highest,
+            Allow3D = true,
+            AllowHDR = true
+        };
+
         private OnlineVideoSettings()
         {
             // set some defaults
@@ -112,6 +120,7 @@ namespace OnlineVideos
             CultureInfo locale = Instance.Locale;
             SortedList<string, bool> videoExtensions = Instance.VideoExtensions;
             bool favoritesFirst = Instance.FavoritesFirst;
+            PlaybackOptionsBuilder.SelectionOptions videoSel = Instance.VideoQualitySelectionOptions;
             // reload domain and create new instance
             OnlineVideosAppDomain.Reload();
             var newInstance = Instance;
@@ -134,6 +143,7 @@ namespace OnlineVideos
             newInstance.Locale = locale;
             newInstance.VideoExtensions = videoExtensions;
             newInstance.FavoritesFirst = favoritesFirst;
+            newInstance.VideoQualitySelectionOptions = videoSel;
             // load Sites Xml
             newInstance.LoadSites();
         }
