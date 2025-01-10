@@ -103,6 +103,12 @@ namespace OnlineVideos
             /// List of preferred containers. Top container in the list has highest priority.
             /// </summary>
             public Container[] PreferredContainers;
+
+            public override object InitializeLifetimeService()
+            {
+                // In order to have the lease across appdomains live forever, we return null.
+                return null;
+            }
         };
 
         #endregion
@@ -133,7 +139,7 @@ namespace OnlineVideos
             }
 
         }
-        
+
         private class AudioQuality
         {
             public string Url;
@@ -286,6 +292,17 @@ namespace OnlineVideos
         #endregion
 
         #region Public methods
+        /// <summary>
+        /// Add video quality to the list.
+        /// </summary>
+        /// <param name="strUrl">URL link</param>
+        /// <param name="iWidth">Video width resolution</param>
+        /// <param name="iHeight">Video height resolution</param>
+        public void AddVideoQuality(string strUrl, int iWidth, int iHeight)
+        {
+            this.AddVideoQuality(strUrl, false, null, null, iWidth, iHeight, 0, false, false);
+        }
+
         /// <summary>
         /// Add video quality to the list.
         /// </summary>
@@ -517,6 +534,8 @@ namespace OnlineVideos
                             result.Add(string.Empty, audioTracks != null ? new MixedUrl(videoQ.Url, audioTracks).ToString() : videoQ.Url);
                         else
                             result.Add(string.Empty, videoQ.Url);
+
+                        iPreselection = 0;
 
                         #endregion
                     }
