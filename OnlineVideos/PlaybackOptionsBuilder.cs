@@ -51,7 +51,8 @@ namespace OnlineVideos
             H264,
             HEVC,
             MPEG2,
-            VP9
+            VP9,
+            AV1 //AOMedia
         }
 
         public enum AudioCodec
@@ -560,7 +561,7 @@ namespace OnlineVideos
 
             if (!string.IsNullOrEmpty(strType))
             {
-                string strResult = Enum.GetNames(typeof(Container)).FirstOrDefault(strName => strType.Contains(strName));
+                string strResult = Enum.GetNames(typeof(Container)).FirstOrDefault(strName => strType.IndexOf(strName, StringComparison.OrdinalIgnoreCase) >= 0);
                 if (strResult != null)
                     return (Container)Enum.Parse(typeof(Container), strResult);
             }
@@ -574,9 +575,15 @@ namespace OnlineVideos
 
             if (!string.IsNullOrEmpty(strType))
             {
-                string strResult = Enum.GetNames(typeof(VideoCodec)).FirstOrDefault(strName => strType.Contains(strName));
+                string strResult = Enum.GetNames(typeof(VideoCodec)).FirstOrDefault(strName => strType.IndexOf(strName, StringComparison.OrdinalIgnoreCase) >= 0);
                 if (strResult != null)
                     return (VideoCodec)Enum.Parse(typeof(VideoCodec), strResult);
+                else if (strType.IndexOf("vp09", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return VideoCodec.VP9;
+                else if (strType.IndexOf("avc1", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return VideoCodec.H264;
+                else if (strType.IndexOf("av01", StringComparison.OrdinalIgnoreCase) >= 0)
+                    return VideoCodec.AV1;
             }
 
             return result;
@@ -589,7 +596,7 @@ namespace OnlineVideos
 
             if (!string.IsNullOrEmpty(strType))
             {
-                string strResult = Enum.GetNames(typeof(AudioCodec)).FirstOrDefault(strName => strType.Contains(strName));
+                string strResult = Enum.GetNames(typeof(AudioCodec)).FirstOrDefault(strName => strType.IndexOf(strName, StringComparison.OrdinalIgnoreCase) >= 0);
                 if (strResult != null)
                     return (AudioCodec)Enum.Parse(typeof(AudioCodec), strResult);
             }
