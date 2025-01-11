@@ -521,7 +521,6 @@
             // propertyGridUserConfig
             // 
             this.propertyGridUserConfig.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.propertyGridUserConfig.LineColor = System.Drawing.SystemColors.ControlDarkDark;
             this.propertyGridUserConfig.Location = new System.Drawing.Point(64, 0);
             this.propertyGridUserConfig.Name = "propertyGridUserConfig";
             this.propertyGridUserConfig.PropertySort = System.Windows.Forms.PropertySort.NoSort;
@@ -1958,7 +1957,6 @@
             // propertyGridHoster
             // 
             this.propertyGridHoster.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.propertyGridHoster.LineColor = System.Drawing.SystemColors.ControlDarkDark;
             this.propertyGridHoster.Location = new System.Drawing.Point(123, 0);
             this.propertyGridHoster.Name = "propertyGridHoster";
             this.propertyGridHoster.Size = new System.Drawing.Size(581, 518);
