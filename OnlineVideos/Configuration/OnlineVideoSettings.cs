@@ -78,10 +78,10 @@ namespace OnlineVideos
 
         public PlaybackOptionsBuilder.SelectionOptions VideoQualitySelectionOptions = new PlaybackOptionsBuilder.SelectionOptions
         {
-            AutomaticVideoSelection = true,
+            AutomaticVideoSelection = false,
             VideoResolution = PlaybackOptionsBuilder.VideoSelection.Highest,
-            Allow3D = true,
-            AllowHDR = true
+            Allow3D = false,
+            AllowHDR = false
         };
 
         private OnlineVideoSettings()
