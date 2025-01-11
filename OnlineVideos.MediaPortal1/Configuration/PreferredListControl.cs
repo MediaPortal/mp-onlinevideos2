@@ -74,10 +74,17 @@ namespace OnlineVideos.MediaPortal1
                 this.comboBox.Items.Add(str);
             }
 
-            if (iSel >= 0 && iSel < this.comboBox.Items.Count)
-                this.comboBox.SelectedIndex = iSel;
+            if (this.comboBox.Items.Count == 0)
+                this.comboBox.Enabled = false;
             else
-                this.comboBox.SelectedIndex = 0;
+            {
+                if (iSel >= 0 && iSel < this.comboBox.Items.Count)
+                    this.comboBox.SelectedIndex = iSel;
+                else
+                    this.comboBox.SelectedIndex = 0;
+
+                this.comboBox.Enabled = true;
+            }
         }
 
         private void toolStripButtonAdd_Click(object sender, EventArgs e)
