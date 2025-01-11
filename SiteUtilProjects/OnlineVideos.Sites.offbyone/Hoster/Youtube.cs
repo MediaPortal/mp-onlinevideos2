@@ -23,29 +23,6 @@ namespace OnlineVideos.Hoster
             Error,
         }
 
-        private class YoutubeQuality
-        {
-            public string Url;
-
-            public int VideoID = -1;
-            public string VideoUrl;
-            public string VideoType;
-            public int VideoBitrate = -1;
-            public int VideoWidth = -1;
-            public int VideoHeight = -1;
-
-            public int AudioID = -1;
-            public string AudioUrl;
-            public string AudioType;
-            public int AudioBitrate = -1;
-            public int AudioChannels = -1;
-            public int AudioSampleRate = -1;
-
-            public string Language;
-            public string LanguageID;
-            public string LanguageDisplayName;
-        }
-
         [Category("OnlineVideosUserConfiguration"), Description("Select subtitle language preferences (; separated and ISO 3166-2?), for example: en;de")]
         protected string subtitleLanguages = "";
 
