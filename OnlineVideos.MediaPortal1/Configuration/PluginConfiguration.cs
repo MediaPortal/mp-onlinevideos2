@@ -359,7 +359,10 @@ namespace OnlineVideos.MediaPortal1
 
                     ovsconf.VideoQualitySelectionOptions = new PlaybackOptionsBuilder.SelectionOptions();
                     ovsconf.VideoQualitySelectionOptions.AutomaticVideoSelection = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_AUTO, true);
-                    if (!Enum.TryParse(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_QUALITY, PlaybackOptionsBuilder.VideoSelection.Highest.ToString()), out ovsconf.VideoQualitySelectionOptions.VideoResolution))
+                    PlaybackOptionsBuilder.VideoSelection sel;
+                    if (Enum.TryParse(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_QUALITY, PlaybackOptionsBuilder.VideoSelection.Highest.ToString()), out sel))
+                        ovsconf.VideoQualitySelectionOptions.VideoResolution = sel;
+                    else
                         ovsconf.VideoQualitySelectionOptions.VideoResolution = PlaybackOptionsBuilder.VideoSelection.Highest;
                     ovsconf.VideoQualitySelectionOptions.Allow3D = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_3D, true);
                     ovsconf.VideoQualitySelectionOptions.AllowHDR = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_HDR, true);
@@ -476,10 +479,10 @@ namespace OnlineVideos.MediaPortal1
                         settings.SetValue(CFG_SECTION, CFG_FILTER_V2_UDPRTP_TOTAL_REOPEN_CONNECTION_TIMEOUT, ovsconf.UdpRtpTotalReopenConnectionTimeout);
                         settings.SetValue(CFG_SECTION, CFG_FILTER_V2_UDPRTP_RECEIVE_DATA_CHECK_INTERVAL, ovsconf.UdpRtpReceiveDataCheckInterval);
 
-                        settings.SetValue(CFG_SECTION, CFG_VIDEO_SELECTION_AUTO, ovsconf.VideoQualitySelectionOptions.AutomaticVideoSelection);
+                        settings.SetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_AUTO, ovsconf.VideoQualitySelectionOptions.AutomaticVideoSelection);
                         settings.SetValue(CFG_SECTION, CFG_VIDEO_SELECTION_QUALITY, ovsconf.VideoQualitySelectionOptions.VideoResolution);
-                        settings.SetValue(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_3D, ovsconf.VideoQualitySelectionOptions.Allow3D);
-                        settings.SetValue(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_HDR, ovsconf.VideoQualitySelectionOptions.AllowHDR);
+                        settings.SetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_3D, ovsconf.VideoQualitySelectionOptions.Allow3D);
+                        settings.SetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_HDR, ovsconf.VideoQualitySelectionOptions.AllowHDR);
                         settings.SetValue(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CONTAINER, SerializeEnumList(ovsconf.VideoQualitySelectionOptions.PreferredContainers));
                         settings.SetValue(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CODEC_VIDEO, SerializeEnumList(ovsconf.VideoQualitySelectionOptions.PreferredVideoCodecs));
                         settings.SetValue(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CODEC_AUDIO, SerializeEnumList(ovsconf.VideoQualitySelectionOptions.PreferredAudioCodecs));
