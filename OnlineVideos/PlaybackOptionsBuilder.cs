@@ -254,7 +254,7 @@ namespace OnlineVideos
                     {
                         VideoQuality q = this._Qualities[i];
                         if ((selection.Allow3D || !q.Is3D) && (selection.AllowHDR || !q.IsHDR))
-                            return this._Qualities[this._Qualities.Count - 1];
+                            return q;
                     }
                 }
 
