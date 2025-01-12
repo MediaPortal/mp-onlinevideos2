@@ -183,13 +183,20 @@ namespace OnlineVideos
                 {
                     this._Qualities.Sort((q1, q2) =>
                     {
-                        int i = compare(selection.PreferredContainers, (int)q1.Container, (int)q2.Container);
-                        if (i != 0)
-                            return i;
+                        int i;
+                        if (selection.PreferredContainers != null)
+                        {
+                            i = compare(selection.PreferredContainers, (int)q1.Container, (int)q2.Container);
+                            if (i != 0)
+                                return i;
+                        }
 
-                        i = compare(selection.PreferredContainers, (int)q1.Codec, (int)q2.Codec);
-                        if (i != 0)
-                            return i;
+                        if (selection.PreferredAudioCodecs != null)
+                        {
+                            i = compare(selection.PreferredAudioCodecs, (int)q1.Codec, (int)q2.Codec);
+                            if (i != 0)
+                                return i;
+                        }
 
                         i = q1.SampleRate.CompareTo(q2.SampleRate);
                         if (i != 0)
@@ -225,13 +232,20 @@ namespace OnlineVideos
                 {
                     this._Qualities.Sort((q1, q2) =>
                     {
-                        int i = compare(selection.PreferredContainers, (int)q1.Container, (int)q2.Container);
-                        if (i != 0)
-                            return i;
+                        int i;
+                        if (selection.PreferredContainers != null)
+                        {
+                            i = compare(selection.PreferredContainers, (int)q1.Container, (int)q2.Container);
+                            if (i != 0)
+                                return i;
+                        }
 
-                        i = compare(selection.PreferredContainers, (int)q1.Codec, (int)q2.Codec);
-                        if (i != 0)
-                            return i;
+                        if (selection.PreferredVideoCodecs != null)
+                        {
+                            i = compare(selection.PreferredVideoCodecs, (int)q1.Codec, (int)q2.Codec);
+                            if (i != 0)
+                                return i;
+                        }
 
                         return q1.Bitrate.CompareTo(q2.Bitrate);
                     });
