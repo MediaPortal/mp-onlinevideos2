@@ -415,7 +415,6 @@ namespace OnlineVideos
             {
                 Dictionary<string, string> result = new Dictionary<string, string>();
 
-                VideoQuality videoQ = null;
 
                 if (this._VideoResolutions != null && this._VideoResolutions.Count > 0)
                 {
@@ -467,8 +466,7 @@ namespace OnlineVideos
                         for (int i = 0; i < sorted.Count; i++)
                         {
                             KeyValuePair<VideoResolution, VideoQuality> pair = sorted[i];
-
-                            videoQ = pair.Value;
+                            VideoQuality videoQ = pair.Value;
 
                             //Title
                             sb.Clear();
@@ -509,6 +507,7 @@ namespace OnlineVideos
                     else
                     {
                         #region Single playback option
+                        VideoQuality videoQ = null;
 
                         switch (selection.VideoResolution)
                         {
