@@ -358,7 +358,7 @@ namespace OnlineVideos
             }
 
 
-            group.AddQuality(new VideoQuality(strUrl, iWidth, iHeight)
+            VideoQuality vq = new VideoQuality(strUrl, iWidth, iHeight)
             {
                 IsVideoOnly = bIsVideoOnly,
                 Container = parseContainer(strType),
@@ -366,7 +366,12 @@ namespace OnlineVideos
                 Bitrate = iBitrate,
                 Is3D = bIs3D,
                 IsHDR = bIsHDR
-            });
+            };
+
+            group.AddQuality(vq);
+
+            Log.Debug("[AddVideoQuality] Group:{0} Width:{1} Height:{2} Container:{3} Codec:{4} 3D:{5} HDR:{6} Bitrate:{7}",
+                resolution, vq.Width, vq.Height, vq.Container, vq.Codec, vq.Is3D, vq.IsHDR, vq.Bitrate);
         }
 
         /// <summary>
@@ -402,7 +407,12 @@ namespace OnlineVideos
                 this._AudioTracks[strTrackID] = track;
             }
 
-            track.AddQuality(strUrl, parseContainer(strType), parseAudioCodec(strCodec), iBitrate, iChannels, iSampleRate);
+            Container cont = parseContainer(strType);
+            AudioCodec cod = parseAudioCodec(strCodec);
+            track.AddQuality(strUrl, cont, cod, iBitrate, iChannels, iSampleRate);
+
+            Log.Debug("[AddAudioQuality] TrackID:{0} Channels:{1} SampleRate:{2} Container:{3} Codec:{4} Bitrate:{5}",
+                strTrackID, iChannels, iSampleRate, cont, cod, iBitrate);
         }
 
         /// <summary>
@@ -439,8 +449,9 @@ namespace OnlineVideos
                     {
                         int iCnt = 0;
                         audioTracks = new MixedUrl.AudioTrack[this._AudioTracks.Count];
-                        foreach (AudioTrack track in this._AudioTracks.Values)
+                        foreach (KeyValuePair<string, AudioTrack> pair in this._AudioTracks)
                         {
+                            AudioTrack track = pair.Value;
                             AudioQuality audioQ = track.GetBest(selection);
                             audioTracks[iCnt++] = new MixedUrl.AudioTrack()
                             {
@@ -453,6 +464,9 @@ namespace OnlineVideos
                             //Pick first bitrate
                             if (iBitrateAudio == 0 && audioQ.Bitrate > 0)
                                 iBitrateAudio = audioQ.Bitrate;
+
+                            Log.Debug("[GetPlaybackOptions] AudioTrackID:{0} Language:{1} Channels:{2} SampleRate:{3} Container:{4} Codec:{5} Bitrate:{6}",
+                               pair.Key, track.Language, audioQ.Channels, audioQ.SampleRate, audioQ.Container, audioQ.Codec, audioQ.Bitrate);
                         }
                     }
                     #endregion
@@ -502,6 +516,13 @@ namespace OnlineVideos
                                 sb.Append(']');
                             }
 
+                            if (videoQ.Codec > VideoCodec.Default)
+                            {
+                                sb.Append(" [");
+                                sb.Append(videoQ.Codec);
+                                sb.Append(']');
+                            }
+
                             if (videoQ.Is3D)
                                 sb.Append("[3D]");
 
@@ -515,6 +536,9 @@ namespace OnlineVideos
                             //Preselection
                             if (iPreselection < 0 || (int)sorted[i].Key <= (selection.VideoResolution - VideoSelection.SD))
                                 iPreselection = i;
+
+                            Log.Debug("[GetPlaybackOptions] Option:{0} Width:{1} Height:{2} Container:{3} Codec:{4} 3D:{5} HDR:{6} Bitrate:{7}",
+                             pair.Key, videoQ.Width, videoQ.Height, videoQ.Container, videoQ.Codec, videoQ.Is3D, videoQ.IsHDR, videoQ.Bitrate);
                         }
                         #endregion
                     }
@@ -548,6 +572,9 @@ namespace OnlineVideos
                             result.Add(string.Empty, audioTracks != null ? new MixedUrl(videoQ.Url, audioTracks).ToString() : videoQ.Url);
                         else
                             result.Add(string.Empty, videoQ.Url);
+
+                        Log.Debug("[GetPlaybackOptions] Option:{0} Width:{1} Height:{2} Container:{3} Codec:{4} 3D:{5} HDR:{6} Bitrate:{7}",
+                             selection.VideoResolution, videoQ.Width, videoQ.Height, videoQ.Container, videoQ.Codec, videoQ.Is3D, videoQ.IsHDR, videoQ.Bitrate);
 
                         iPreselection = 0;
 
