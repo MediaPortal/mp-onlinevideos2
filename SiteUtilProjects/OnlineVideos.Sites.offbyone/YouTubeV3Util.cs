@@ -90,12 +90,6 @@ namespace OnlineVideos.Sites
         [Category("OnlineVideosConfiguration"), Description("Add some dynamic categories found at startup to the list of configured ones.")]
         bool useDynamicCategories = true;
 
-        [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Preferred Format"), Description("Prefer this format when there are more than one for the desired quality.")]
-        VideoFormat preferredFormat = VideoFormat.mp4;
-        [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Undesired Format"), Description("Try to avoid this format when there are more than one for the desired quality.")]
-        VideoFormat undesiredFormat = VideoFormat.webm;
-        [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Video Quality", TranslationFieldName = "VideoQuality"), Description("Defines the maximum quality for the video to be played.")]
-        VideoQuality videoQuality = VideoQuality.High;
         [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Videos per Page"), Description("Defines the default number of videos to display per page.")]
         int pageSize = 26;
         [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Enable Login"), Description("Will popup a browser on first use to select your YouTube account.")]
@@ -230,86 +224,7 @@ namespace OnlineVideos.Sites
 
                 return new List<string>() { iPreselection >= 0 && iPreselection < video.PlaybackOptions.Count ? 
                     video.PlaybackOptions.ElementAt(iPreselection).Value : video.PlaybackOptions.First().Value };
-
-
-                if (video.PlaybackOptions.Count == 1)
-                {
-                    // nothing to chose from, only one option available
-                    return new List<string>() { video.PlaybackOptions.First().Value };
-                }
-                else
-                {
-                    KeyValuePair<string, string> foundQuality = default(KeyValuePair<string, string>);
-
-                    if (videoQuality == VideoQuality.Low)
-                        foundQuality = video.PlaybackOptions.First();
-                    else
-                    {
-                        Regex regex = new Regex(@"(?<w>\d+)x(?<h>\d+)(.+\s(?<td>3D))?");
-                        for (int i = video.PlaybackOptions.Count - 1; i >= 0; i--)
-                        {
-                            KeyValuePair<string, string> q = video.PlaybackOptions.ElementAt(i);
-                            Match m = regex.Match(q.Key);
-                            if (m.Success)
-                            {
-                                //Height 
-                                int iHeight = int.Parse(m.Groups["h"].Value);
-
-                                //Width 
-                                int iWidth = int.Parse(m.Groups["w"].Value);
-
-                                //3D
-                                if (m.Groups["td"].Success)
-                                    continue;
-
-                                switch (videoQuality)
-                                {
-                                    case VideoQuality.Medium:
-                                        if (iHeight > 240)
-                                            continue;
-                                        break;
-                                    case VideoQuality.High:
-                                        if (iHeight > 480)
-                                            continue;
-                                        break;
-                                    case VideoQuality.HD:
-                                        if (iHeight > 720 || iWidth > 1440)
-                                            continue;
-                                        break;
-                                    case VideoQuality.FullHD:
-                                        if (iHeight > 1080 || iWidth > 1920)
-                                            continue;
-                                        break;
-                                }
-
-                                foundQuality = q;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!string.IsNullOrEmpty(foundQuality.Key))
-                    {
-                        string resolution = foundQuality.Key.Substring(0, foundQuality.Key.IndexOf('/'));
-                        // try to find one that has the same resolution and the preferred format and not the undesired format
-                        KeyValuePair<string, string> bestMatch = video.PlaybackOptions.LastOrDefault(q => q.Key.Contains(resolution) && !q.Key.Contains("3D") && q.Key.Contains(preferredFormat.ToString()) && !q.Key.Contains(undesiredFormat.ToString()));
-
-                        // try to find one that has the same resolution and the preferred format
-                        if (string.IsNullOrEmpty(bestMatch.Key))
-                            bestMatch = video.PlaybackOptions.LastOrDefault(q => q.Key.Contains(resolution) && !q.Key.Contains("3D") && q.Key.Contains(preferredFormat.ToString()));
-
-                        // try to find one that has the same resolution and not the undesired format
-                        if (string.IsNullOrEmpty(bestMatch.Key))
-                            bestMatch = video.PlaybackOptions.LastOrDefault(q => q.Key.Contains(resolution) && !q.Key.Contains("3D") && !q.Key.Contains(undesiredFormat.ToString()));
-
-                        if (!string.IsNullOrEmpty(bestMatch.Key))
-                            foundQuality = bestMatch;
-                    }
-                    // fallback when no match was found -> use first choice
-                    if (string.IsNullOrEmpty(foundQuality.Key)) foundQuality = video.PlaybackOptions.First();
-                    if (inPlaylist) video.PlaybackOptions = null;
-                    return new List<string>() { foundQuality.Value };
-                }
+                
             }
             return null; // no playback options
         }
