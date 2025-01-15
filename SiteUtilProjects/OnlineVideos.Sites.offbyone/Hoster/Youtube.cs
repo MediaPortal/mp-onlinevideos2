@@ -783,10 +783,12 @@ namespace OnlineVideos.Hoster
                                         strLanguageDisplayName = strLanguageDisplayName.Substring(0, iIdx); //remove other text like 'medium, IOS'
 
                                     strLanguage = (string)format["language"];
-                                    if ((iIdx = strLanguage.IndexOf('-')) > 0)
-                                        strLanguage = strLanguage.Substring(0, iIdx); //remove suffix (like 'desc')
-
-                                    strLanguageID = strLanguage + '.' + strLanguageDisplayName;
+                                    if (!string.IsNullOrWhiteSpace(strLanguage))
+                                    {
+                                        strLanguageID = strLanguage;
+                                        if ((iIdx = strLanguage.IndexOf('-')) > 0)
+                                            strLanguage = strLanguage.Substring(0, iIdx); //remove suffix (like 'desc')
+                                    }
                                 }
 
                                 qualities.AddAudioQuality(
