@@ -754,7 +754,7 @@ namespace OnlineVideos.Hoster
                                      format.Value<string>("vcodec"),
                                      format.Value<int>("width"),
                                      format.Value<int>("height"),
-                                     format.Value<int>("asr"),
+                                     (int)format.Value<float>(iAudioCh <= 0 ? "vbr" : "tbr") * 1000,
                                      fmtOptions3D.Contains(iID),
                                      fmtOptionsHDR.Contains(iID));
                             }
@@ -778,15 +778,15 @@ namespace OnlineVideos.Hoster
                                 JToken jLang = format["language"];
                                 if (jLang != null)
                                 {
+                                    strLanguageDisplayName = format["format_note"]?.Value<string>();
+                                    if (!string.IsNullOrWhiteSpace(strLanguageDisplayName) && (iIdx = strLanguageDisplayName.IndexOf(',')) > 0)
+                                        strLanguageDisplayName = strLanguageDisplayName.Substring(0, iIdx); //remove other text like 'medium, IOS'
+
                                     strLanguage = (string)format["language"];
                                     if ((iIdx = strLanguage.IndexOf('-')) > 0)
                                         strLanguage = strLanguage.Substring(0, iIdx); //remove suffix (like 'desc')
 
-                                    iIdx = strID.IndexOf('-'); //try locate number suffix from 'format_id'
-                                    strLanguageID = iIdx > 0 ? strLanguage + '.' + strID.Substring(iIdx) : strLanguage;
-                                    strLanguageDisplayName = format["format_note"]?.Value<string>();
-                                    if (!string.IsNullOrWhiteSpace(strLanguageDisplayName) && (iIdx = strLanguageDisplayName.IndexOf(',')) > 0)
-                                        strLanguageDisplayName = strLanguageDisplayName.Substring(0, iIdx); //remove other text like 'medium, IOS'
+                                    strLanguageID = strLanguage + '.' + strLanguageDisplayName;
                                 }
 
                                 qualities.AddAudioQuality(
