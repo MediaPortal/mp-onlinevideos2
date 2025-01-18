@@ -87,6 +87,7 @@
     </Reference>
     <Reference Include="SubtitleDownloader, Version=3.1.4.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\Packages\SubtitleDownloader.3.1.4\lib\net40\SubtitleDownloader.dll</HintPath>
+      <Aliases>OVSubs</Aliases>
     </Reference>
     <Reference Include="System.configuration" />
     <Reference Include="System.Runtime.Serialization" />
