@@ -82,7 +82,7 @@ namespace OnlineVideos
         public int Id { get; set; }
 
         /// <summary>Holds the recursive name of the original category.</summary>
-        public string RecursiveName { get; set; }
+        public new string RecursiveName { get; set; }
 
         public bool IsSearchCat { get; set; }
 

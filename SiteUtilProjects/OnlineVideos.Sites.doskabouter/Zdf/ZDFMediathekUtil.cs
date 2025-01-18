@@ -347,12 +347,9 @@ namespace OnlineVideos.Sites.Zdf
         private const string ZDF_QUALITY_MED = "med";
         private const string ZDF_QUALITY_LOW = "low";
 
-        private static readonly string JSON_ELEMENT_ATTRIBUTES = "attributes";
         private static readonly string JSON_ELEMENT_AUDIO = "audio";
-        private static readonly string JSON_ELEMENT_CAPTIONS = "captions";
         private static readonly string JSON_ELEMENT_CLASS = "class";
         private static readonly string JSON_ELEMENT_FORMITAET = "formitaeten";
-        private static readonly string JSON_ELEMENT_GEOLOCATION = "geoLocation";
         private static readonly string JSON_ELEMENT_HD = "hd";
         private static readonly string JSON_ELEMENT_LANGUAGE = "language";
         private static readonly string JSON_ELEMENT_MIMETYPE = "mimeType";
@@ -363,7 +360,6 @@ namespace OnlineVideos.Sites.Zdf
 
         private static readonly String CLASS_AD = "ad";
 
-        private static readonly string RELEVANT_SUBTITLE_TYPE = ".xml";
         private static readonly string JSON_ELEMENT_QUALITIES = "qualities";
 
         private void ParseVideoUrls(JObject rootNode)

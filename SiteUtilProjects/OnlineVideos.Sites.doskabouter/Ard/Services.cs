@@ -219,8 +219,6 @@ namespace OnlineVideos.Sites.Ard
     {
         private static readonly string _categoryLevel = "Level";
 
-        private static readonly string DAY_PAGE = "https://api.ardmediathek.de//page-gateway/compilations/{0}/pastbroadcasts?startDateTime={1}T00:00:00.000Z&endDateTime={2}T23:59:59.000Z&pageNumber=0&pageSize={3}";
-
         /// <inheritdoc />
         public override ArdCategoryInfoDto RootCategory { get; } = new ArdCategoryInfoDto(nameof(ArdDayPageDeserializer), string.Empty)
         {
@@ -316,13 +314,9 @@ namespace OnlineVideos.Sites.Ard
         private static readonly string ELEMENT_STREAM = "_stream";
         private static readonly string ELEMENT_MEDIA_STREAM_ARRAY = "_mediaStreamArray";
 
-        private static readonly string ELEMENT_HEIGHT = "_height";
         private static readonly string ELEMENT_PLUGIN = "_plugin";
         private static readonly string ELEMENT_QUALITY = "_quality";
-        private static readonly string ELEMENT_SERVER = "_server";
         private static readonly string ELEMENT_SORT_ARRAY = "_sortierArray";
-        private static readonly string ELEMENT_WIDTH = "_width";
-
 
 
         public IEnumerable<DownloadDetailsDto> ParseVideoUrls(/*DownloadDto dto,*/ JObject jsonElement)

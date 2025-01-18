@@ -27,7 +27,6 @@ namespace OnlineVideos.Downloading
             public string Url;
             public long FileSize = 0;
             public long CurrentRead = 0;
-            public string ContentType;
             public DownloadInfo DownloadInfo;
             public ManualResetEvent Complete = new ManualResetEvent(false);
             public volatile bool Cancelled = false;
