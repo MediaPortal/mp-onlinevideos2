@@ -40,7 +40,9 @@ namespace Google.Apis.Auth.OAuth2
         /// An initializer class for the Compute credential. It uses <see cref="GoogleAuthConsts.ComputeTokenUrl"/>
         /// as the token server URL.
         /// </summary>
+#pragma warning disable CS0108 // Member hides inherited member; missing new keyword
         public class Initializer : ServiceCredential.Initializer
+#pragma warning restore CS0108 // Member hides inherited member; missing new keyword
         {
             /// <summary>Constructs a new initializer using the default compute token URL.</summary>
             public Initializer()

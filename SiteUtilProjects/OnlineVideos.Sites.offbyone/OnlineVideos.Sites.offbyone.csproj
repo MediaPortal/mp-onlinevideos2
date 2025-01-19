@@ -177,7 +177,6 @@
     <Compile Include="Google\GoogleApiException.cs" />
     <Compile Include="HeiseVideoUtil.cs" />
     <Compile Include="Hoster\Youtube.cs" />
-    <Compile Include="Hoster\LiveVideo.cs" />
     <Compile Include="Hoster\YoutubeSignatureDecryptor.cs" />
     <Compile Include="KeyValuePairComparer.cs" />
     <Compile Include="KinoDeUtil.cs" />

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
+#nullable enable
 
 namespace OnlineVideos.Sites.Ard
 {
@@ -62,7 +63,9 @@ namespace OnlineVideos.Sites.Ard
         /// <param name="key"></param>
         /// <param name="defaultValue"></param>
         /// <returns></returns>
+#pragma warning disable CS8601 // Possible null reference assignment.
         public static TValue GetValueOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue defaultValue = default)
+#pragma warning restore CS8601 // Possible null reference assignment.
         {
             if (dictionary == null)
             {

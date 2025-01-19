@@ -40,7 +40,7 @@ namespace RssToolkit.Rss
             {
                 if (!string.IsNullOrEmpty(channelName))
                 {
-                    stringBuilder.Append("?c=" + HttpUtility.UrlEncodeUnicode(channelName));
+                    stringBuilder.Append("?c=" + HttpUtility.UrlEncode(channelName));
                 }
             }
             else 

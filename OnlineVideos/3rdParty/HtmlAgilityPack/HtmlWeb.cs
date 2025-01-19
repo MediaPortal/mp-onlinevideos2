@@ -872,7 +872,9 @@ namespace HtmlAgilityPack
             }
             string contentType = "";
 
+#pragma warning disable CS0618 // Type or member is obsolete
             if (!SecurityManager.IsGranted(new RegistryPermission(PermissionState.Unrestricted)))
+#pragma warning restore CS0618 // Type or member is obsolete
             {
                 if (MimeTypes.ContainsKey(extension))
                     contentType = MimeTypes[extension];
@@ -880,7 +882,9 @@ namespace HtmlAgilityPack
                     contentType = def;
             }
 
+#pragma warning disable CS0618 // Type or member is obsolete
             if (!SecurityManager.IsGranted(new DnsPermission(PermissionState.Unrestricted)))
+#pragma warning restore CS0618 // Type or member is obsolete
             {
                 //do something.... not at full trust
                 try
@@ -910,7 +914,9 @@ namespace HtmlAgilityPack
                 return def;
             }
             string ext = "";
+#pragma warning disable CS0618 // Type or member is obsolete
             if (!SecurityManager.IsGranted(new RegistryPermission(PermissionState.Unrestricted)))
+#pragma warning restore CS0618 // Type or member is obsolete
             {
                 if (MimeTypes.ContainsValue(contentType))
                 {
@@ -921,7 +927,9 @@ namespace HtmlAgilityPack
                 return def;
             }
 
+#pragma warning disable CS0618 // Type or member is obsolete
             if (SecurityManager.IsGranted(new RegistryPermission(PermissionState.Unrestricted)))
+#pragma warning restore CS0618 // Type or member is obsolete
             {
                 try
                 {

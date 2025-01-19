@@ -41,7 +41,9 @@ namespace Google.Apis.Auth.OAuth2
     public class ServiceAccountCredential : ServiceCredential
     {
         /// <summary>An initializer class for the service account credential. </summary>
+#pragma warning disable CS0108 // Member hides inherited member; missing new keyword
         public class Initializer : ServiceCredential.Initializer
+#pragma warning restore CS0108 // Member hides inherited member; missing new keyword
         {
             /// <summary>Gets the service account ID (typically an e-mail address).</summary>
             public string Id { get; private set; }

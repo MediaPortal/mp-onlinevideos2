@@ -12,7 +12,9 @@ namespace OnlineVideos.Sites.Ard
             //MimeType = mimeType;
             //Language = language;
             Quality = quality;
+#pragma warning disable CS0618 // Type or member is obsolete
             var uriBuilder = new UriBuilder(new Uri(url, true))
+#pragma warning restore CS0618 // Type or member is obsolete
             {
                 Scheme = Uri.UriSchemeHttps,
                 Port = -1, //default port of scheme
