@@ -39,7 +39,7 @@ namespace OnlineVideos.Sites
         public override void Initialize(SiteSettings siteSettings)
         {
             base.Initialize(siteSettings);
-            sh = new SubtitleHandler(subtitleSource, subtitleLanguages);
+            sh = new SubtitleHandler(subtitleSource, subtitleLanguages, siteSettings.Name);
         }
 
         public override string GetVideoUrl(VideoInfo video)

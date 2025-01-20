@@ -27,9 +27,9 @@ namespace OnlineVideos.Subtitles
         private Dictionary<string, int> languagePrios = null;
         public delegate ITrackingInfo GetTrackingInfo(VideoInfo video);
 
-        public SubtitleHandler(string className, string languages)
+        public SubtitleHandler(string className, string languages, string parentUtil)
         {
-            Log.Debug(String.Format("Create subtitlehandler for '{0}', languages '{1}'", className, languages));
+            Log.Debug(String.Format("Create subtitlehandler for {0}:'{1}', languages '{2}'", parentUtil, className, languages));
 
             className = className.Trim();
             tryLoadSubtitles = !String.IsNullOrEmpty(className);
