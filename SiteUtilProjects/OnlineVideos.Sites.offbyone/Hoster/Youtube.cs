@@ -554,6 +554,7 @@ namespace OnlineVideos.Hoster
             return PlayerStatusEnum.OK; //LAV is failing to play YouTube MPEG-DASH(so far)
 
             //MPEG-DASH; LAV does support this format
+            /*
             string strDashUrl = streamingData.Value<string>("dashManifestUrl");
             if (!string.IsNullOrEmpty(strDashUrl))
             {
@@ -601,6 +602,7 @@ namespace OnlineVideos.Hoster
                     Log.Error("[YoutubeHoster] parsePlayerStatus() Error downloading MPEG-DASH manifest: {0}", ex.Message);
                 }
             }
+            */
         }
 
         private static bool checkYtDlpVersion()
