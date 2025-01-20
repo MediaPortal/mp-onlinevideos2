@@ -37,7 +37,7 @@ namespace OnlineVideos.Hoster
         //YouTube IOS               AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc
         //YouTube IOS Music         AIzaSyBAETezhkwP0ZWA02RsqT1zu78Fpt0bC_s
         private SubtitleList subtitleTexts = null;
-        private const string YoutubePlayerKey = "<playerkey>";
+        private const string YoutubePlayerKey = "AIzaSyD_qjV8zaaUMehtLkrKFgVeSX_Iqbtyws8";
         private const string YoutubePlayerUrl = "https://www.youtube.com/youtubei/v1/player?key=" + YoutubePlayerKey;
 
         public override string GetHosterUrl()
