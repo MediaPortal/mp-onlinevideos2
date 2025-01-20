@@ -23,29 +23,6 @@ namespace OnlineVideos.Hoster
             Error,
         }
 
-        private class YoutubeQuality
-        {
-            public string Url;
-
-            public int VideoID = -1;
-            public string VideoUrl;
-            public string VideoType;
-            public int VideoBitrate = -1;
-            public int VideoWidth = -1;
-            public int VideoHeight = -1;
-
-            public int AudioID = -1;
-            public string AudioUrl;
-            public string AudioType;
-            public int AudioBitrate = -1;
-            public int AudioChannels = -1;
-            public int AudioSampleRate = -1;
-
-            public string Language;
-            public string LanguageID;
-            public string LanguageDisplayName;
-        }
-
         [Category("OnlineVideosUserConfiguration"), Description("Select subtitle language preferences (; separated and ISO 3166-2?), for example: en;de")]
         protected string subtitleLanguages = "";
 
@@ -163,9 +140,10 @@ namespace OnlineVideos.Hoster
         //702   mp4 video           3840p
         #endregion
 
-        static readonly ushort[] fmtOptions3D = new ushort[] { 82, 83, 84, 85, 100, 101, 102 };
-        static readonly ushort[] fmtOptionsMobile = new ushort[] { 13, 17 };
-        static readonly ushort[] fmtOptionsQualitySorted = new ushort[] {
+        static readonly int[] fmtOptions3D = new int[] { 82, 83, 84, 85, 92, 93, 94, 95, 100, 101, 102 };
+        static readonly int[] fmtOptionsHDR = new int[] { 330, 331, 332, 333, 334, 335, 336, 337 };
+        static readonly int[] fmtOptionsMobile = new int[] { 13, 17 };
+        static readonly int[] fmtOptionsQualitySorted = new int[] {
             // > 2160p
             272, 571, 702, 38, 402,
 
@@ -194,17 +172,18 @@ namespace OnlineVideos.Hoster
             17, 13, 160, 219, 278, 330, 394
         };
 
-        static readonly ushort[] fmtOptionsQualityAudioSorted = new ushort[] { 141, 251, 140, 171, 250, 249 };
+        static readonly int[] fmtOptionsQualityAudioSorted = new int[] { 141, 251, 140, 171, 250, 249 };
 
         private static YoutubeSignatureDecryptor _YoutubeDecryptor = null;
         private static DateTime _YtDlpLastCheck = DateTime.MinValue;
         private static readonly string _YtDlpExeName = Environment.Is64BitOperatingSystem ? "yt-dlp.exe" : "yt-dlp_x86.exe";
         private static readonly string _YtDlpExePath = System.IO.Path.Combine(OnlineVideoSettings.Instance.DllsDir, _YtDlpExeName);
 
-        public override Dictionary<string, string> GetPlaybackOptions(string url)
+        public override Dictionary<string, string> GetPlaybackOptions(string url, PlaybackOptionsBuilder.SelectionOptions selection, out int iPreselection)
         {
+            iPreselection = 0;
             IWebProxy proxy = null;
-            Dictionary<string, string> PlaybackOptions = null;
+            PlaybackOptionsBuilder qualities = new();
 
             string videoId = url;
             if (videoId.ToLower().Contains("youtube.com"))
@@ -220,8 +199,6 @@ namespace OnlineVideos.Hoster
                 if (q < 0) q = videoId.Length;
                 videoId = videoId.Substring(p, q - p);
             }
-
-            List<YoutubeQuality> qualities = new List<YoutubeQuality>();
 
             try
             {
@@ -426,128 +403,6 @@ namespace OnlineVideos.Hoster
 
                 Log.Debug("[YoutubeHoster] VideoQualities count: {0}", qualities.Count);
 
-                //Sort by quality
-                qualities.Sort(new Comparison<YoutubeQuality>((a, b) =>
-                {
-                    if (a.VideoWidth != b.VideoWidth)
-                        return a.VideoWidth.CompareTo(b.VideoWidth);
-                    else if (a.VideoBitrate != b.VideoBitrate)
-                        return a.VideoBitrate.CompareTo(b.VideoBitrate);
-                    else if (a.VideoID != b.VideoID)
-                        return Array.IndexOf(fmtOptionsQualitySorted, (ushort)b.VideoID).CompareTo(Array.IndexOf(fmtOptionsQualitySorted, (ushort)a.VideoID));
-                    else
-                    {
-                        if (a.VideoType != "DASH" && b.VideoType == "DASH")
-                            return 1;
-                        else if (a.VideoType == "DASH" && b.VideoType != "DASH")
-                            return -1;
-                        else if (b.AudioID == a.AudioID)
-                        {
-                            if (a.LanguageID == b.LanguageID)
-                                return a.AudioBitrate.CompareTo(b.AudioBitrate);
-
-                            if (a.LanguageID == null && a.LanguageID != null)
-                                return -1;
-
-                            if (a.LanguageID != null && a.LanguageID == null)
-                                return 1;
-
-                            return a.LanguageID.CompareTo(b.LanguageID);
-                        }
-                        else
-                            return Array.IndexOf(fmtOptionsQualityAudioSorted, (ushort)b.AudioID).CompareTo(Array.IndexOf(fmtOptionsQualityAudioSorted, (ushort)a.AudioID));
-                    }
-                }));
-
-                //Remove duplicates
-                for (int i = qualities.Count - 1; i > 0; i--)
-                {
-                    YoutubeQuality q = qualities[i];
-                    YoutubeQuality qPrev = qualities[i - 1];
-
-                    if (q.VideoID == qPrev.VideoID)
-                    {
-                        if (q.VideoID == 0 && q.VideoWidth != qPrev.VideoWidth) //HLS or DASH
-                            continue;
-
-                        if (q.LanguageID != qPrev.LanguageID)
-                            continue;
-
-                        if (q.AudioID == qPrev.AudioID)
-                            qualities.RemoveAt(--i);
-                    }
-                }
-
-                //Create playback list
-                Dictionary<string, YoutubeQuality> options = new();
-                System.Globalization.CultureInfo ciEn = System.Globalization.CultureInfo.GetCultureInfo("en-US");
-                Regex codecRegex = new(@"; codecs=""[^""]*""");
-                char[] codecSep = new char[] { '/', '-' };
-                foreach (YoutubeQuality quality in qualities)
-                {
-                    ushort uId = (ushort)quality.VideoID;
-
-                    if (!fmtOptionsQualitySorted.Contains(uId))
-                        continue;
-
-                    if (hideMobileFormats && fmtOptionsMobile.Any(b => b == uId))
-                        continue;
-
-                    if (hide3DFormats && fmtOptions3D.Any(b => b == uId))
-                        continue;
-
-                    if (Uri.IsWellFormedUriString(quality.Url, UriKind.Absolute))
-                    {
-                        NameValueCollection urlOptions = HttpUtility.ParseQueryString(new Uri(quality.Url).Query);
-                        string strType = urlOptions.Get("type");
-                        string strStereo = urlOptions["stereo3d"] == "1" ? " 3D " : " ";
-
-                        if (string.IsNullOrEmpty(strType))
-                            strType = quality.VideoType;
-
-                        if (!string.IsNullOrEmpty(strType))
-                        {
-                            strType = codecRegex.Replace(strType, "");
-                            strType = strType.Substring(strType.LastIndexOfAny(codecSep) + 1);
-                        }
-                        if (quality.AudioID >= 0)
-                        {
-                            //Add audio codec
-                            string strTypeAudio = codecRegex.Replace(quality.AudioType, "");
-                            strType += "/" + strTypeAudio.Substring(strTypeAudio.LastIndexOfAny(codecSep) + 1);
-                        }
-
-                        //Langugae
-                        string strLng = null;
-                        if (!string.IsNullOrWhiteSpace(quality.LanguageDisplayName))
-                            strLng = quality.LanguageDisplayName + " |";
-                        else if (!string.IsNullOrWhiteSpace(quality.Language))
-                            strLng = quality.Language + " |";
-
-                        //If the option already exists, then override old value
-                        options[string.Format("{0}x{1}/{{0}} |{5} {2}{3}({4})",
-                            quality.VideoWidth, quality.VideoHeight, strType, strStereo, quality.VideoID, strLng )] = quality;
-                    }
-                };
-
-                //Create final playback list and insert bitrate
-                PlaybackOptions = new Dictionary<string, string>();
-                foreach (string strKey in options.Keys)
-                {
-                    YoutubeQuality quality = options[strKey];
-
-                    string strBitrate = string.Empty;
-                    int iBr = quality.VideoBitrate + (quality.AudioBitrate > 0 ? quality.AudioBitrate : 0);
-                    if (iBr >= 1000000)
-                        strBitrate = (iBr / 1000000f).ToString("0.0", ciEn) + "mb";
-                    else if (iBr >= 1000)
-                        strBitrate = (iBr / 1000f).ToString("0.0", ciEn) + "kb";
-                    else if (iBr > 0)
-                        strBitrate = iBr.ToString() + "b";
-
-                    PlaybackOptions[string.Format(strKey, strBitrate)] = quality.Url;
-                }
-
                 //Subtitles
                 subtitleTexts = null;
                 if (!string.IsNullOrEmpty(subtitleLanguages))
@@ -603,8 +458,10 @@ namespace OnlineVideos.Hoster
             catch (Exception e)
             {
                 Log.Error("[YoutubeHoster] Error getting url: {0} {1} {2}", e.Message, e.Source, e.StackTrace);
+                return null;
             }
-            return PlaybackOptions;
+
+            return qualities.GetPlaybackOptions(selection, out iPreselection);
         }
         public override string GetVideoUrl(string url)
         {
@@ -658,7 +515,7 @@ namespace OnlineVideos.Hoster
             return result;
         }
 
-        private PlayerStatusEnum parsePlayerStatus(JToken videoDetails, JToken streamingData, List<YoutubeQuality> qualities, YoutubeSignatureDecryptor dec)
+        private PlayerStatusEnum parsePlayerStatus(JToken videoDetails, JToken streamingData, PlaybackOptionsBuilder qualities, YoutubeSignatureDecryptor dec)
         {
             if (streamingData == null)
                 return PlayerStatusEnum.Error;
@@ -671,11 +528,11 @@ namespace OnlineVideos.Hoster
             if (!bIsLive)
             {
                 if (streamingData["formats"] is JArray formats)
-                    parseFormats(formats, qualities, null, dec, false);
+                    parseFormats(formats, qualities, dec, false);
 
                 if (streamingData["adaptiveFormats"] is JArray formatsAdapt)
                 {
-                    if (parseFormats(formatsAdapt, qualities, formatsAdapt.Where(j => j["width"] == null && j["audioChannels"] != null).ToArray(), dec, dec != null) == PlayerStatusEnum.InvalidLink)
+                    if (parseFormats(formatsAdapt, qualities, dec, dec != null) == PlayerStatusEnum.InvalidLink)
                         return PlayerStatusEnum.InvalidLink;
                 }
             }
@@ -689,16 +546,7 @@ namespace OnlineVideos.Hoster
                     var res = HlsPlaylistParser.GetPlaybackOptionsEx(data, hlsUrl, HlsStreamInfoComparer.BandwidtLowHigh, HlsStreamInfoFormatter.VideoDimension);
                     foreach (var kv in res)
                     {
-                        string[] qualityKey = { "0", kv.Key };
-                        qualities.Add(new YoutubeQuality()
-                        {
-                            Url = kv.Value.Url,
-                            VideoType = "HLS",
-                            VideoID = 0,
-                            VideoWidth = kv.Value.Width,
-                            VideoHeight = kv.Value.Height,
-                            VideoBitrate = kv.Value.Bandwidth
-                        });
+                        qualities.AddVideoQuality(kv.Value.Url, false, "HLS", string.Empty, kv.Value.Width, kv.Value.Height, kv.Value.Bandwidth, false, false);
                     }
                 }
             }
@@ -745,15 +593,7 @@ namespace OnlineVideos.Hoster
                             iBandwidth = 0;
                     }
 
-                    qualities.Add(new YoutubeQuality()
-                    {
-                        Url = strDashUrl,
-                        VideoType = "DASH",
-                        VideoID = 0,
-                        VideoWidth = iWidthMax,
-                        VideoHeight = iHeightMax,
-                        VideoBitrate = iBandwidth
-                    });
+                    qualities.AddVideoQuality(strDashUrl, false, "DASH", string.Empty, iWidthMax, iHeightMax, iBandwidth, false, false);
 
                 }
                 catch (Exception ex)
@@ -820,7 +660,7 @@ namespace OnlineVideos.Hoster
             }
         }
 
-        private JToken parsePlayerStatusFromYtDlp(List<YoutubeQuality> qualities, string strVideoId)
+        private JToken parsePlayerStatusFromYtDlp(PlaybackOptionsBuilder qualities, string strVideoId)
         {
             if (!checkYtDlpVersion())
                 return null;
@@ -873,9 +713,6 @@ namespace OnlineVideos.Hoster
 
                 jStreamingData = Newtonsoft.Json.JsonConvert.DeserializeObject<JToken>(sbStd.ToString());
                 JArray jFormats = jStreamingData["formats"] as JArray;
-                JToken[] jAudioSreams = jFormats.Where(j => j.Value<string>("protocol").StartsWith("http")
-                    && j.Value<string>("resolution") == "audio only"
-                    && j.Value<int>("audio_channels") > 0).ToArray();
 
                 Log.Debug("[YoutubeHoster] parsePlayerStatusFromYtDlp() json data loaded");
 
@@ -887,16 +724,7 @@ namespace OnlineVideos.Hoster
                     Dictionary<string, HlsStreamInfo> options = HlsPlaylistParser.GetPlaybackOptionsEx(strContent, (string)jHlsManifestUrl, HlsStreamInfoComparer.BandwidtLowHigh, HlsStreamInfoFormatter.VideoDimension);
                     foreach (KeyValuePair<string, HlsStreamInfo> kv in options)
                     {
-                        string[] qualityKey = { "0", kv.Key };
-                        qualities.Add(new YoutubeQuality()
-                        {
-                            Url = kv.Value.Url,
-                            VideoType = "HLS",
-                            VideoID = 0,
-                            VideoWidth = kv.Value.Width,
-                            VideoHeight = kv.Value.Height,
-                            VideoBitrate = kv.Value.Bandwidth
-                        });
+                        qualities.AddVideoQuality(kv.Value.Url, false, "HLS", string.Empty, kv.Value.Width, kv.Value.Height, kv.Value.Bandwidth, false, false);
                     }
 
                     return jStreamingData;
@@ -906,99 +734,79 @@ namespace OnlineVideos.Hoster
                 {
                     if (format.Value<string>("protocol").StartsWith("http"))
                     {
+                        string strID = format.Value<string>("format_id");
+                        int iIdx = strID.IndexOf('-');
+                        if (!int.TryParse(iIdx > 0 ? strID.Substring(0, iIdx) : strID, out int iID))
+                            iID = 0;
+
                         JToken jWidth = format["width"];
                         if (jWidth != null && jWidth.Type == JTokenType.Integer && (int)jWidth > 0)
                         {
                             JToken jAudioCh = format["audio_channels"];
                             int iAudioCh = jAudioCh != null && jAudioCh.Type == JTokenType.Integer ? (int)jAudioCh : -1;
-                            if (iAudioCh > 0)
+
+                            try
                             {
-                                //Single stream (video + audio)
-                                try
-                                {
-                                    qualities.Add(new YoutubeQuality()
-                                    {
-                                        VideoType = "video" + '/' + format.Value<string>("video_ext") + "; codecs=\"" + format.Value<string>("vcodec") + '\"',
-                                        VideoBitrate = (int)format.Value<float>("tbr") * 1000,
-                                        Url = format.Value<string>("url"),
-                                        VideoID = format.Value<int>("format_id"),
-                                        VideoUrl = format.Value<string>("url"),
-                                        VideoWidth = format.Value<int>("width"),
-                                        VideoHeight = format.Value<int>("height"),
-                                        AudioSampleRate = format.Value<int>("asr"),
-                                        AudioChannels = iAudioCh,
-                                    });
-                                }
-                                catch (Exception ex)
-                                {
-                                    Log.Error("[YoutubeHoster] parsePlayerStatusFromYtDlp() Error: {0}", ex.Message);
-                                }
+                                qualities.AddVideoQuality(
+                                     format.Value<string>("url"),
+                                     iAudioCh <= 0,
+                                     format.Value<string>("video_ext"),
+                                     format.Value<string>("vcodec"),
+                                     format.Value<int>("width"),
+                                     format.Value<int>("height"),
+                                     (int)format.Value<float>(iAudioCh <= 0 ? "vbr" : "tbr") * 1000,
+                                     fmtOptions3D.Contains(iID),
+                                     fmtOptionsHDR.Contains(iID));
                             }
-                            else
+                            catch (Exception ex)
                             {
-                                //Video stream only
+                                Log.Error("[YoutubeHoster] parsePlayerStatusFromYtDlp() Error: {0}", ex.Message);
+                            }
+                        }
+                        else
+                        {
+                            //Audio only
 
-                                string strVideoType = "video" + '/' + format.Value<string>("video_ext") + "; codecs=\"" + format.Value<string>("vcodec") + '\"';
-                                int iVideoBitrate = (int)format.Value<float>("vbr") * 1000;
-                                string strID = format.Value<string>("format_id");
-                                int iIdx = strID.IndexOf('-');
-                                int iVideoID = int.Parse(iIdx > 0 ? strID.Substring(0, iIdx) : strID);
-                                string strVideoUrl = format.Value<string>("url");
-                                int iVideoWidth = format.Value<int>("width");
-                                int iVideoHeight = format.Value<int>("height");
+                            try
+                            {
+                                string strLanguageID = null;
+                                string strLanguage = null;
+                                string strLanguageDisplayName = null;
+                                bool bDefault = false;
 
-                                if (jAudioSreams.Length > 0)
+                                //Audio language track (MLA)
+                                JToken jLang = format["language"];
+                                if (jLang != null)
                                 {
-                                    for (int i = 0; i < jAudioSreams.Length; i++)
+                                    strLanguageDisplayName = format["format_note"]?.Value<string>();
+                                    if (!string.IsNullOrWhiteSpace(strLanguageDisplayName) && (iIdx = strLanguageDisplayName.IndexOf(',')) > 0)
+                                        strLanguageDisplayName = strLanguageDisplayName.Substring(0, iIdx); //remove other text like 'medium, IOS'
+
+                                    strLanguage = (string)format["language"];
+                                    if (!string.IsNullOrWhiteSpace(strLanguage))
                                     {
-                                        JToken jAudio = jAudioSreams[i];
-
-                                        try
-                                        {
-                                            strID = jAudio.Value<string>("format_id");
-                                            iIdx = strID.IndexOf('-');
-                                            int iAudioID = int.Parse(iIdx > 0 ? strID.Substring(0, iIdx) : strID);
-
-                                            YoutubeQuality q = new()
-                                            {
-                                                VideoType = strVideoType,
-                                                VideoBitrate = iVideoBitrate,
-                                                VideoID = iVideoID,
-                                                VideoUrl = strVideoUrl,
-                                                VideoWidth = iVideoWidth,
-                                                VideoHeight = iVideoHeight,
-                                                AudioID = iAudioID,
-                                                AudioUrl = jAudio.Value<string>("url"),
-                                                AudioSampleRate = jAudio.Value<int>("asr"),
-                                                AudioChannels = jAudio.Value<int>("audio_channels"),
-                                                AudioType = "audio" + '/' + jAudio.Value<string>("audio_ext") + "; codecs=\"" + jAudio.Value<string>("acodec") + '\"',
-                                                AudioBitrate = (int)jAudio.Value<float>("abr") * 1000,
-                                            };
-
-                                            //Audio language track (MLA)
-                                            JToken jLang = jAudio["language"];
-                                            if (jLang != null)
-                                            {
-                                                q.Language = (string)jAudio["language"];
-                                                if ((iIdx = q.Language.IndexOf('-')) > 0)
-                                                    q.Language = q.Language.Substring(0, iIdx); //remove suffix (like 'desc')
-
-                                                iIdx = strID.IndexOf('-'); //try locate number suffix from 'format_id'
-                                                q.LanguageID = iIdx > 0 ? q.Language + '.' + strID.Substring(iIdx) : q.Language;
-                                                q.LanguageDisplayName = jAudio["format_note"]?.Value<string>();
-                                                if (!string.IsNullOrWhiteSpace(q.LanguageDisplayName) && (iIdx = q.LanguageDisplayName.IndexOf(',')) > 0)
-                                                    q.LanguageDisplayName = q.LanguageDisplayName.Substring(0, iIdx); //remove other text like 'medium, IOS'
-                                            }
-
-                                            q.Url = new MixedUrl(q.VideoUrl, q.AudioUrl).ToString();
-                                            qualities.Add(q);
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Log.Error("[YoutubeHoster] parsePlayerStatusFromYtDlp() Error: {0}", ex.Message);
-                                        }
+                                        strLanguageID = strLanguage;
+                                        if ((iIdx = strLanguage.IndexOf('-')) > 0)
+                                            strLanguage = strLanguage.Substring(0, iIdx); //remove suffix (like 'desc')
                                     }
                                 }
+
+                                qualities.AddAudioQuality(
+                                   format.Value<string>("url"),
+                                   bDefault,
+                                   strLanguageID,
+                                   strLanguage,
+                                   strLanguageDisplayName,
+                                   format.Value<string>("audio_ext"),
+                                   format.Value<string>("acodec"),
+                                   (int)format.Value<float>("abr") * 1000,
+                                   format.Value<int>("audio_channels"),
+                                   format.Value<int>("asr")
+                                   );
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Error("[YoutubeHoster] parsePlayerStatusFromYtDlp() Error: {0}", ex.Message);
                             }
                         }
                     }
@@ -1013,103 +821,109 @@ namespace OnlineVideos.Hoster
             return jStreamingData;
         }
 
-        private static PlayerStatusEnum parseFormats(JArray formats, List<YoutubeQuality> qualities, JToken[] audioStreams, YoutubeSignatureDecryptor dec, bool bCheckLink)
+        private static PlayerStatusEnum parseFormats(JArray formats, PlaybackOptionsBuilder qualities, YoutubeSignatureDecryptor dec, bool bCheckLink)
         {
             bool bStreamValid = !bCheckLink;
 
             foreach (JToken format in formats)
             {
-                if (format["width"] == null)
-                    continue; //skip audio streams
-
                 string strUrl = getStreamUrl(format, dec);
                 if (strUrl == null)
                     continue;
 
-                if (format["audioChannels"] == null)
+                int iItag = (int)format["itag"];
+
+                if (!bStreamValid)
                 {
-                    //Video stream only
-
-                    if (!bStreamValid)
+                    //Check for stream availability
+                    HttpWebRequest wr = (HttpWebRequest)WebRequest.Create(strUrl);
+                    wr.Method = "HEAD";
+                    HttpWebResponse resp = null;
+                    try { resp = (HttpWebResponse)wr.GetResponse(); }
+                    catch { }
+                    if (resp == null || resp.StatusCode != HttpStatusCode.OK)
                     {
-                        //Check for stream availability
-                        HttpWebRequest wr = (HttpWebRequest)WebRequest.Create(strUrl);
-                        wr.Method = "HEAD";
-                        HttpWebResponse resp = null;
-                        try { resp = (HttpWebResponse)wr.GetResponse(); }
-                        catch { }
-                        if (resp == null || resp.StatusCode != HttpStatusCode.OK)
-                        {
-                            Log.Warn("[YoutubeHoster] parseFormats() Invalid link.");
-                            return PlayerStatusEnum.InvalidLink;
-                        }
-
-                        Log.Debug("[YoutubeHoster] parseFormats() Link is valid.");
-                        bStreamValid = true; //links seems to be valid; no more checks
+                        Log.Warn("[YoutubeHoster] parseFormats() Invalid link.");
+                        return PlayerStatusEnum.InvalidLink;
                     }
 
-                    if (audioStreams != null)
+                    Log.Debug("[YoutubeHoster] parseFormats() Link is valid.");
+                    bStreamValid = true; //links seems to be valid; no more checks
+                }
+
+                if (format["width"] == null)
+                {
+                    //Audio only
+
+                    //Audio language track check (MLA)
+                    JToken jTrack = format["audioTrack"];
+                    string strLanguageID = null;
+                    string strLanguage = null;
+                    string strLanguageDisplayName = null;
+                    bool bDefault = false;
+                    if (jTrack != null)
                     {
-                        for (int i = 0; i < audioStreams.Length; i++)
+                        strLanguageID = jTrack["id"]?.Value<string>();
+                        strLanguageDisplayName = jTrack["displayName"]?.Value<string>();
+
+                        if (!string.IsNullOrEmpty(strLanguageID))
                         {
-                            JToken jAudio = audioStreams[i];
-
-                            string strUrlAudio = getStreamUrl(jAudio, dec);
-                            if (strUrlAudio == null)
-                                continue;
-
-                            YoutubeQuality q = new()
-                            {
-                                VideoType = format.Value<string>("mimeType"),
-                                VideoBitrate = format.Value<int>("bitrate"),
-                                VideoID = format.Value<int>("itag"),
-                                VideoUrl = strUrl,
-                                VideoWidth = format.Value<int>("width"),
-                                VideoHeight = format.Value<int>("height"),
-                                AudioID = jAudio.Value<int>("itag"),
-                                AudioUrl = strUrlAudio,
-                                AudioSampleRate = jAudio.Value<int>("audioSampleRate"),
-                                AudioChannels = jAudio.Value<int>("audioChannels"),
-                                AudioType = jAudio.Value<string>("mimeType"),
-                                AudioBitrate = jAudio.Value<int>("bitrate"),
-                            };
-
-                            //Audio language track (MLA)
-                            JToken jTrack = jAudio["audioTrack"];
-                            if (jTrack != null)
-                            {
-                                q.LanguageID = jTrack["id"]?.Value<string>();
-                                q.LanguageDisplayName = jTrack["displayName"]?.Value<string>();
-
-                                if (!string.IsNullOrEmpty(q.LanguageID))
-                                {
-                                    int iIdx = q.LanguageID.IndexOf('.');
-                                    if (iIdx > 0)
-                                        q.Language = q.LanguageID.Substring(0, iIdx);
-                                    else
-                                        q.Language = q.LanguageID;
-                                }
-                            }
-
-                            q.Url = new MixedUrl(q.VideoUrl, q.AudioUrl).ToString();
-                            qualities.Add(q);
+                            int iIdx = strLanguageID.IndexOf('.');
+                            if (iIdx > 0)
+                                strLanguage = strLanguageID.Substring(0, iIdx);
+                            else
+                                strLanguage = strLanguageID;
                         }
+
+                        bDefault = jTrack["audioIsDefault"]?.Value<bool>() ?? false;
                     }
+
+                    qualities.AddAudioQuality(
+                        strUrl,
+                        bDefault,
+                        strLanguageID,
+                        strLanguage,
+                        strLanguageDisplayName,
+                        format.Value<string>("mimeType"),
+                        format.Value<string>("mimeType"),
+                        format.Value<int>("bitrate"),
+                        format.Value<int>("audioChannels"),
+                        format.Value<int>("audioSampleRate"));
+
+
                 }
                 else
                 {
-                    qualities.Add(new YoutubeQuality()
+                    if (format["audioChannels"] == null)
                     {
-                        VideoType = format.Value<string>("mimeType"),
-                        VideoBitrate = format.Value<int>("bitrate"),
-                        Url = strUrl,
-                        VideoID = format.Value<int>("itag"),
-                        VideoUrl = strUrl,
-                        VideoWidth = format.Value<int>("width"),
-                        VideoHeight = format.Value<int>("height"),
-                        AudioSampleRate = format.Value<int>("audioSampleRate"),
-                        AudioChannels = format.Value<int>("audioChannels"),
-                    });
+                        //Video stream only; no audio
+
+                        qualities.AddVideoQuality(
+                            (string)format["url"],
+                            true,
+                            format.Value<string>("mimeType"),
+                            format.Value<string>("mimeType"),
+                            format.Value<int>("width"),
+                            format.Value<int>("height"),
+                            format.Value<int>("bitrate"),
+                            fmtOptions3D.Contains(iItag),
+                            fmtOptionsHDR.Contains(iItag));
+                    }
+                    else
+                    {
+                        //Video with audio
+
+                        qualities.AddVideoQuality(
+                          (string)format["url"],
+                          false,
+                          format.Value<string>("mimeType"),
+                          format.Value<string>("mimeType"),
+                          format.Value<int>("width"),
+                          format.Value<int>("height"),
+                          format.Value<int>("bitrate"),
+                          fmtOptions3D.Contains(iItag),
+                          fmtOptionsHDR.Contains(iItag));
+                    }
                 }
             }
 

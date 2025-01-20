@@ -56,11 +56,22 @@ namespace OnlineVideos.Hoster
 
         public virtual Dictionary<string, string> GetPlaybackOptions(string url)
         {
-            return new Dictionary<string, string> { { GetType().Name, GetVideoUrl(url) } };
+            return this.GetPlaybackOptions(url, OnlineVideoSettings.Instance.VideoQualitySelectionOptions, out _);
         }
 
         public virtual Dictionary<string, string> GetPlaybackOptions(string url, System.Net.IWebProxy proxy)
         {
+            return this.GetPlaybackOptions(url, OnlineVideoSettings.Instance.VideoQualitySelectionOptions, out _);
+        }
+
+        public virtual Dictionary<string, string> GetPlaybackOptions(string url, out int iPreselection)
+        {
+            return this.GetPlaybackOptions(url, OnlineVideoSettings.Instance.VideoQualitySelectionOptions, out iPreselection);
+        }
+
+        public virtual Dictionary<string, string> GetPlaybackOptions(string url, PlaybackOptionsBuilder.SelectionOptions selection, out int iPreselection)
+        {
+            iPreselection = 0;
             return new Dictionary<string, string> { { GetType().Name, GetVideoUrl(url) } };
         }
 

@@ -831,6 +831,7 @@
     </Compile>
     <Compile Include="3rdParty\Newtonsoft.Json\WriteState.cs" />
     <Compile Include="OnlineVideosException.cs" />
+    <Compile Include="PlaybackOptionsBuilder.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
