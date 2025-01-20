@@ -358,14 +358,14 @@ namespace OnlineVideos.MediaPortal1
 
 
                     ovsconf.VideoQualitySelectionOptions = new PlaybackOptionsBuilder.SelectionOptions();
-                    ovsconf.VideoQualitySelectionOptions.AutomaticVideoSelection = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_AUTO, true);
+                    ovsconf.VideoQualitySelectionOptions.AutomaticVideoSelection = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_AUTO, false);
                     PlaybackOptionsBuilder.VideoSelection sel;
                     if (Enum.TryParse(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_QUALITY, PlaybackOptionsBuilder.VideoSelection.Highest.ToString()), out sel))
                         ovsconf.VideoQualitySelectionOptions.VideoResolution = sel;
                     else
                         ovsconf.VideoQualitySelectionOptions.VideoResolution = PlaybackOptionsBuilder.VideoSelection.Highest;
-                    ovsconf.VideoQualitySelectionOptions.Allow3D = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_3D, true);
-                    ovsconf.VideoQualitySelectionOptions.AllowHDR = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_HDR, true);
+                    ovsconf.VideoQualitySelectionOptions.Allow3D = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_3D, false);
+                    ovsconf.VideoQualitySelectionOptions.AllowHDR = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_HDR, false);
                     ovsconf.VideoQualitySelectionOptions.PreferredContainers = DeserializeEnumList<PlaybackOptionsBuilder.Container>(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CONTAINER, string.Empty));
                     ovsconf.VideoQualitySelectionOptions.PreferredVideoCodecs  = DeserializeEnumList<PlaybackOptionsBuilder.VideoCodec>(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CODEC_VIDEO, string.Empty));
                     ovsconf.VideoQualitySelectionOptions.PreferredAudioCodecs = DeserializeEnumList<PlaybackOptionsBuilder.AudioCodec>(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CODEC_AUDIO, string.Empty));
