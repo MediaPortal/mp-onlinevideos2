@@ -214,6 +214,29 @@ namespace OnlineVideos.Hoster
                     _YoutubeDecryptor = null; //don't use the same decryptor for more than 1 day
 
                 string strContentsWeb = null;
+                string strSecure = null;
+
+                try
+                {
+                    CookieContainer cookies = new();
+                    strContentsWeb = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId),
+                        proxy: proxy,
+                        userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
+                        cache: false,
+                        cookies: cookies
+                        );
+
+                    if (strContentsWeb == null)
+                    {
+                        Log.Error("[YoutubeHoster] Failed to get web content.");
+                        return null;
+                    }
+
+                    strSecure = cookies.GetCookies(new Uri("https://www.youtube.com"))["__Secure-YEC"]?.Value;
+
+                    Log.Debug("[YoutubeHoster] Secure: {0}", strSecure);
+                }
+                catch { };
 
                 //IOS
                 headers = new NameValueCollection
@@ -229,7 +252,10 @@ namespace OnlineVideos.Hoster
                             { "Accept-Language", "en-us,en;q=0.5" }
                         };
 
-                postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""IOS"", ""clientVersion"": ""{1}"", ""deviceMake"": ""Apple"", ""deviceModel"": ""iPhone16,2"", ""hl"": ""en"", ""osName"": ""iPhone"", ""osVersion"": ""17.5.1.21F90"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
+                if (strSecure != null)
+                    headers.Add("X-Goog-Visitor-Id", strSecure);
+
+                postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""IOS"", ""clientVersion"": ""{1}"", ""deviceMake"": ""Apple"", ""deviceModel"": ""iPhone16,2"", ""hl"": ""en"", ""osName"": ""iPhone"", ""osVersion"": ""17.5.1.21F90"", ""timeZone"": ""UTC"", ""userAgent"": ""com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
                     videoId, headers["X-Youtube-Client-Version"], "0");
                 jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
 
@@ -261,11 +287,6 @@ namespace OnlineVideos.Hoster
                         {
                             try
                             {
-                                strContentsWeb = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId),
-                                    proxy: proxy,
-                                    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
-                                    cache: false
-                                    );
                                 Match m = Regex.Match(strContentsWeb, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
                                 if (m.Success)
                                 {
