@@ -12,7 +12,7 @@ namespace OnlineVideos.Hoster
     public class YoutubeSignatureDecryptor
     {
         //Current version of the Decryptor structure
-        private const int _DECRYPTOR_VERSION_CURRENT = 2;
+        private const int _DECRYPTOR_VERSION_CURRENT = 3;
 
         private class Decryptor
         {
@@ -40,6 +40,10 @@ namespace OnlineVideos.Hoster
             new Regex(@"(?<fname>[a-zA-Z0-9$]+)=function\([a-zA-Z0-9$]+\){var\s+[a-zA-Z0-9$]+=[a-zA-Z0-9$]+\.split\((?s:.)+?return\s+[a-zA-Z0-9$]+\.join\(""""\)};", RegexOptions.Compiled),
             new Regex("(?<fname>[a-zA-Z0-9$]+)=function\\(a\\){var\\s+b=String\\.prototype\\.split\\.(?s:.)+?return\\s+Array\\.prototype\\.join\\.call\\(b,\"\"\\)};", RegexOptions.Compiled),
             new Regex("(?<=(?<fname>[a-zA-Z0-9$]+)\\=function\\((?s:.)+?)\"enhanced_except_(?s:.)+?\\)};", RegexOptions.Compiled)
+        };
+        private static readonly Regex[] _RegexPlayerRemove = new[]
+        {
+            new Regex(@"if\(typeof [a-zA-Z0-9$]+===\""undefined\""\)return [a-zA-Z0-9$]+;", RegexOptions.Compiled)
         };
         private static readonly Regex _RegexPlayerJsSigFunction = new(@"(?<fname>[a-zA-Z0-9$]+)=function\([a-zA-Z0-9$]+\){[a-zA-Z0-9$]+=[a-zA-Z0-9$]+\.split\(""""\);(?<fnamesub>[a-zA-Z0-9$]+)\.(?s:.)+?return\s+[a-zA-Z0-9$]+\.join\(""""\)};", RegexOptions.Compiled);
         private const string _JS_SUB_FUNCTION_REGEX = "var {0}={{(?s:.)+?}};";
@@ -234,7 +238,13 @@ namespace OnlineVideos.Hoster
                             int iIdxStart = grFcName.Index + grFcName.Length;
                             sb.Clear();
                             sb.Append(_JS_FUNCTION_NAME);
-                            sb.Append(strJsBase, iIdxStart, grFcCode.Index + grFcCode.Length - iIdxStart);
+                            string strCode = strJsBase.Substring(iIdxStart, grFcCode.Index + grFcCode.Length - iIdxStart);
+                            //Remove unneeded code
+                            for (int i = 0; i < _RegexPlayerRemove.Length; i++)
+                            {
+                                strCode = _RegexPlayerRemove[i].Replace(strCode, string.Empty);
+                            }
+                            sb.Append(strCode);
                             dec.NSignatureJsCode = sb.ToString();
 
                             #endregion
@@ -336,7 +346,7 @@ namespace OnlineVideos.Hoster
         {
             string strResult = this._Webview.ExecuteFunc(this._Decryptor.NSignatureJsCode + _JS_FUNCTION_NAME + "(\"" + strSig + "\");");
 
-            if (string.IsNullOrWhiteSpace(strResult) || strResult == "\"\"" || strResult == "null")
+            if (string.IsNullOrWhiteSpace(strResult) || strResult == "\"\"" || strResult == "null" || strResult.Contains(strSig))
                 Log.Error("[DecryptNSignature] Failed to execute the js function. Signature: " + strSig);
 
             return strResult.Trim('\"');
@@ -346,7 +356,7 @@ namespace OnlineVideos.Hoster
         {
             string strResult = this._Webview.ExecuteFunc(this._Decryptor.SignatureJsCode + _JS_FUNCTION_NAME + "(\"" + strSig + "\");");
 
-            if (string.IsNullOrWhiteSpace(strResult) || strResult == "\"\"" || strResult == "null")
+            if (string.IsNullOrWhiteSpace(strResult) || strResult == "\"\"" || strResult == "null" || strResult.Contains(strSig))
                 Log.Error("[DecryptSignature] Failed to execute the js function. Signature: " + strSig);
 
             return strResult.Trim('\"');
