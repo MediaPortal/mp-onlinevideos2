@@ -216,27 +216,23 @@ namespace OnlineVideos.Hoster
                 string strContentsWeb = null;
                 string strSecure = null;
 
-                try
+                CookieContainer cookies = new();
+                strContentsWeb = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId),
+                    proxy: proxy,
+                    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
+                    cache: false,
+                    cookies: cookies
+                    );
+
+                if (strContentsWeb == null)
                 {
-                    CookieContainer cookies = new();
-                    strContentsWeb = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId),
-                        proxy: proxy,
-                        userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
-                        cache: false,
-                        cookies: cookies
-                        );
-
-                    if (strContentsWeb == null)
-                    {
-                        Log.Error("[YoutubeHoster] Failed to get web content.");
-                        return null;
-                    }
-
-                    strSecure = cookies.GetCookies(new Uri("https://www.youtube.com"))["__Secure-YEC"]?.Value;
-
-                    Log.Debug("[YoutubeHoster] Secure: {0}", strSecure);
+                    Log.Error("[YoutubeHoster] Failed to get web content.");
+                    return null;
                 }
-                catch { };
+
+                strSecure = cookies.GetCookies(new Uri("https://www.youtube.com"))["__Secure-YEC"]?.Value;
+
+                Log.Debug("[YoutubeHoster] Secure: {0}", strSecure);
 
                 //IOS
                 headers = new NameValueCollection
@@ -259,7 +255,7 @@ namespace OnlineVideos.Hoster
                     videoId, headers["X-Youtube-Client-Version"], "0");
                 jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
 
-                PlayerStatusEnum status;
+                PlayerStatusEnum status = PlayerStatusEnum.Error;
 
                 if (jDataWeb != null)
                 {
@@ -317,28 +313,26 @@ namespace OnlineVideos.Hoster
 
                     if (_YoutubeDecryptor != null)
                     {
-                        if (jDataWeb == null)
+                        //TVHTML5
+                        headers = new NameValueCollection
                         {
-                            Log.Error("[YoutubeHoster] Failed to get json web data from youtube server. Trying MWEB client...");
-
-                            //MWEB
-                            headers = new NameValueCollection
-                        {
-                            { "X-Youtube-Client-Name", "2" },
-                            { "X-Youtube-Client-Version", "2.20240726.01.00" },
+                            { "X-Youtube-Client-Name", "7" },
+                            { "X-Youtube-Client-Version", "7.20241201.18.00" },
                             { "Origin", "https://www.youtube.com" },
                             { "Content-Type", "application/json" },
-                            { "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.41 Safari/537.36" },
+                            { "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.15 Safari/537.36" },
                             { "Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7" },
                             { "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
                             { "Accept-Encoding", "gzip, deflate" },
                             { "Accept-Language", "en-us,en;q=0.5" }
                         };
 
-                            postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""MWEB"", ""clientVersion"": ""{1}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
-                                videoId, headers["X-Youtube-Client-Version"], _YoutubeDecryptor.SignatureTimestamp);
-                            jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
-                        }
+                        if (strSecure != null)
+                            headers.Add("X-Goog-Visitor-Id", strSecure);
+
+                        postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""TVHTML5"", ""clientVersion"": ""{1}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
+                            videoId, headers["X-Youtube-Client-Version"], _YoutubeDecryptor.SignatureTimestamp);
+                        jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
 
                         if (jDataWeb != null)
                         {
@@ -369,22 +363,23 @@ namespace OnlineVideos.Hoster
                             Log.Error("[YoutubeHoster] Failed to get json web data from youtube server.");
                     }
 
-
-                    Log.Error("[YoutubeHoster] Failed to get AdaptiveFormat working links. Trying yt-dlp ...");
-
-                    jDataYtDlp = this.parsePlayerStatusFromYtDlp(qualities, videoId);
-                    if (jDataYtDlp == null || qualities.Count == 0)
+                    if (status != PlayerStatusEnum.OK || qualities.Count == 0)
                     {
-                        Log.Error("[YoutubeHoster] Failed to get working links from yt-dlp. Fallback to non JS player ...");
+                        Log.Error("[YoutubeHoster] Failed to get AdaptiveFormat working links. Trying yt-dlp ...");
 
-                        try
+                        jDataYtDlp = this.parsePlayerStatusFromYtDlp(qualities, videoId);
+                        if (jDataYtDlp == null || qualities.Count == 0)
                         {
-                            //Non JS player API
+                            Log.Error("[YoutubeHoster] Failed to get working links from yt-dlp. Fallback to non JS player ...");
 
-                            CookieContainer cc = new CookieContainer();
-                            cc.Add(new Cookie("CONSENT", "YES+cb.20210328-17-p0.en+FX+684", "", ".youtube.com"));
+                            try
+                            {
+                                //Non JS player API
 
-                            headers = new NameValueCollection
+                                CookieContainer cc = new CookieContainer();
+                                cc.Add(new Cookie("CONSENT", "YES+cb.20210328-17-p0.en+FX+684", "", ".youtube.com"));
+
+                                headers = new NameValueCollection
                             {
                                 { "X-Youtube-Client-Name", "95" },
                                 { "X-Youtube-Client-Version", "0.1" },
@@ -397,27 +392,28 @@ namespace OnlineVideos.Hoster
                                 { "Accept-Language", "en-us,en;q=0.5" }
                             };
 
-                            postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""MEDIA_CONNECT_FRONTEND"", ""clientVersion"": ""{1}"", ""androidSdkVersion"": 30, ""userAgent"": ""{2}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""params"": ""CgIQBg=="", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS""}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
-                                videoId, headers["X-Youtube-Client-Version"], headers["User-Agent"]);
-                            jDataWeb = WebCache.Instance.GetWebData<JObject>(YoutubePlayerUrl, postData: postdata, headers: headers);
+                                postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""MEDIA_CONNECT_FRONTEND"", ""clientVersion"": ""{1}"", ""androidSdkVersion"": 30, ""userAgent"": ""{2}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""params"": ""CgIQBg=="", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS""}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
+                                    videoId, headers["X-Youtube-Client-Version"], headers["User-Agent"]);
+                                jDataWeb = WebCache.Instance.GetWebData<JObject>(YoutubePlayerUrl, postData: postdata, headers: headers);
 
-                            if (jDataWeb != null)
-                            {
-                                parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, null);
-
-                                if (qualities.Count == 0)
+                                if (jDataWeb != null)
                                 {
-                                    Log.Error("[YoutubeHoster] Failed to get working links from non JS player.");
-                                    return null;
+                                    parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, null);
+
+                                    if (qualities.Count == 0)
+                                    {
+                                        Log.Error("[YoutubeHoster] Failed to get working links from non JS player.");
+                                        return null;
+                                    }
                                 }
+                                else
+                                    Log.Error("[YoutubeHoster] Failed to get json web data from youtube server.");
                             }
-                            else
-                                Log.Error("[YoutubeHoster] Failed to get json web data from youtube server.");
-                        }
-                        catch (Exception e)
-                        {
-                            Log.Error("Error getting links from non JS player api: {0}", e.Message);
-                            return null;
+                            catch (Exception e)
+                            {
+                                Log.Error("Error getting links from non JS player api: {0}", e.Message);
+                                return null;
+                            }
                         }
                     }
                 }
@@ -575,7 +571,6 @@ namespace OnlineVideos.Hoster
             return PlayerStatusEnum.OK; //LAV is failing to play YouTube MPEG-DASH(so far)
 
             //MPEG-DASH; LAV does support this format
-            /*
             string strDashUrl = streamingData.Value<string>("dashManifestUrl");
             if (!string.IsNullOrEmpty(strDashUrl))
             {
@@ -623,7 +618,6 @@ namespace OnlineVideos.Hoster
                     Log.Error("[YoutubeHoster] parsePlayerStatus() Error downloading MPEG-DASH manifest: {0}", ex.Message);
                 }
             }
-            */
         }
 
         private static bool checkYtDlpVersion()
@@ -922,7 +916,7 @@ namespace OnlineVideos.Hoster
                         //Video stream only; no audio
 
                         qualities.AddVideoQuality(
-                            (string)format["url"],
+                            strUrl,
                             true,
                             format.Value<string>("mimeType"),
                             format.Value<string>("mimeType"),
@@ -937,7 +931,7 @@ namespace OnlineVideos.Hoster
                         //Video with audio
 
                         qualities.AddVideoQuality(
-                          (string)format["url"],
+                          strUrl,
                           false,
                           format.Value<string>("mimeType"),
                           format.Value<string>("mimeType"),
