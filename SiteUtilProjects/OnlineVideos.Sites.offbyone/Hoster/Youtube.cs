@@ -207,7 +207,7 @@ namespace OnlineVideos.Hoster
 
                 //yt-dlp processing
                 JToken jDataYtDlp = null;
-
+                JObject jData = null;
                 JObject jDataWeb = null;
 
                 if (_YoutubeDecryptor != null && (DateTime.Now - _YoutubeDecryptor.LoadTimestamp).TotalDays >= 1)
@@ -253,15 +253,15 @@ namespace OnlineVideos.Hoster
 
                 postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""IOS"", ""clientVersion"": ""{1}"", ""deviceMake"": ""Apple"", ""deviceModel"": ""iPhone16,2"", ""hl"": ""en"", ""osName"": ""iPhone"", ""osVersion"": ""17.5.1.21F90"", ""timeZone"": ""UTC"", ""userAgent"": ""com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
                     videoId, headers["X-Youtube-Client-Version"], "0");
-                jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
+                jData = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
 
                 PlayerStatusEnum status = PlayerStatusEnum.Error;
 
-                if (jDataWeb != null)
+                if (jData != null)
                 {
                     try
                     {
-                        status = parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, null);
+                        status = parsePlayerStatus(jData["videoDetails"], jData["streamingData"], qualities, null);
                     }
                     catch (Exception e)
                     {
@@ -300,7 +300,7 @@ namespace OnlineVideos.Hoster
                                     }
                                 }
                             }
-                            catch { jDataWeb = null; };
+                            catch { jData = null; };
                         }
                         else
                         {
@@ -332,13 +332,13 @@ namespace OnlineVideos.Hoster
 
                         postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""TVHTML5"", ""clientVersion"": ""{1}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
                             videoId, headers["X-Youtube-Client-Version"], _YoutubeDecryptor.SignatureTimestamp);
-                        jDataWeb = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
+                        jData = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
 
-                        if (jDataWeb != null)
+                        if (jData != null)
                         {
                             try
                             {
-                                status = parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, _YoutubeDecryptor);
+                                status = parsePlayerStatus(jData["videoDetails"], jData["streamingData"], qualities, _YoutubeDecryptor);
                             }
                             catch (Exception e)
                             {
@@ -365,54 +365,65 @@ namespace OnlineVideos.Hoster
 
                     if (status != PlayerStatusEnum.OK || qualities.Count == 0)
                     {
-                        Log.Error("[YoutubeHoster] Failed to get AdaptiveFormat working links. Trying yt-dlp ...");
-
-                        jDataYtDlp = this.parsePlayerStatusFromYtDlp(qualities, videoId);
-                        if (jDataYtDlp == null || qualities.Count == 0)
+                        qualities.Clear();
+                        if (jDataWeb != null)
                         {
-                            Log.Error("[YoutubeHoster] Failed to get working links from yt-dlp. Fallback to non JS player ...");
+                            //TVHTML5 client doesn't include HLS manifest. Try load the qualities from web content first.
+                            status = parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, null, true);
+                        }
 
-                            try
+                        if (status != PlayerStatusEnum.OK || qualities.Count == 0)
+                        {
+                            Log.Error("[YoutubeHoster] Failed to get AdaptiveFormat working links. Trying yt-dlp ...");
+
+                            qualities.Clear();
+                            jDataYtDlp = this.parsePlayerStatusFromYtDlp(qualities, videoId);
+                            if (jDataYtDlp == null || qualities.Count == 0)
                             {
-                                //Non JS player API
+                                Log.Error("[YoutubeHoster] Failed to get working links from yt-dlp. Fallback to non JS player ...");
 
-                                CookieContainer cc = new CookieContainer();
-                                cc.Add(new Cookie("CONSENT", "YES+cb.20210328-17-p0.en+FX+684", "", ".youtube.com"));
-
-                                headers = new NameValueCollection
-                            {
-                                { "X-Youtube-Client-Name", "95" },
-                                { "X-Youtube-Client-Version", "0.1" },
-                                { "Origin", "https://www.youtube.com" },
-                                { "Content-Type", "application/json" },
-                                { "User-Agent", "com.google.android.apps.youtube.producer/0.111.1 (Linux; U; Android 11) gzip" },
-                                { "Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7" },
-                                { "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
-                                { "Accept-Encoding", "gzip, deflate" },
-                                { "Accept-Language", "en-us,en;q=0.5" }
-                            };
-
-                                postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""MEDIA_CONNECT_FRONTEND"", ""clientVersion"": ""{1}"", ""androidSdkVersion"": 30, ""userAgent"": ""{2}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""params"": ""CgIQBg=="", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS""}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
-                                    videoId, headers["X-Youtube-Client-Version"], headers["User-Agent"]);
-                                jDataWeb = WebCache.Instance.GetWebData<JObject>(YoutubePlayerUrl, postData: postdata, headers: headers);
-
-                                if (jDataWeb != null)
+                                try
                                 {
-                                    parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, null);
+                                    //Non JS player API
 
-                                    if (qualities.Count == 0)
+                                    CookieContainer cc = new CookieContainer();
+                                    cc.Add(new Cookie("CONSENT", "YES+cb.20210328-17-p0.en+FX+684", "", ".youtube.com"));
+
+                                    headers = new NameValueCollection
+                                        {
+                                            { "X-Youtube-Client-Name", "95" },
+                                            { "X-Youtube-Client-Version", "0.1" },
+                                            { "Origin", "https://www.youtube.com" },
+                                            { "Content-Type", "application/json" },
+                                            { "User-Agent", "com.google.android.apps.youtube.producer/0.111.1 (Linux; U; Android 11) gzip" },
+                                            { "Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7" },
+                                            { "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
+                                            { "Accept-Encoding", "gzip, deflate" },
+                                            { "Accept-Language", "en-us,en;q=0.5" }
+                                        };
+
+                                    postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""MEDIA_CONNECT_FRONTEND"", ""clientVersion"": ""{1}"", ""androidSdkVersion"": 30, ""userAgent"": ""{2}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""params"": ""CgIQBg=="", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS""}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
+                                        videoId, headers["X-Youtube-Client-Version"], headers["User-Agent"]);
+                                    jData = WebCache.Instance.GetWebData<JObject>(YoutubePlayerUrl, postData: postdata, headers: headers);
+
+                                    if (jData != null)
                                     {
-                                        Log.Error("[YoutubeHoster] Failed to get working links from non JS player.");
-                                        return null;
+                                        parsePlayerStatus(jData["videoDetails"], jData["streamingData"], qualities, null);
+
+                                        if (qualities.Count == 0)
+                                        {
+                                            Log.Error("[YoutubeHoster] Failed to get working links from non JS player.");
+                                            return null;
+                                        }
                                     }
+                                    else
+                                        Log.Error("[YoutubeHoster] Failed to get json web data from youtube server.");
                                 }
-                                else
-                                    Log.Error("[YoutubeHoster] Failed to get json web data from youtube server.");
-                            }
-                            catch (Exception e)
-                            {
-                                Log.Error("Error getting links from non JS player api: {0}", e.Message);
-                                return null;
+                                catch (Exception e)
+                                {
+                                    Log.Error("Error getting links from non JS player api: {0}", e.Message);
+                                    return null;
+                                }
                             }
                         }
                     }
@@ -435,16 +446,16 @@ namespace OnlineVideos.Hoster
                         {
                             JArray captions = null;
 
-                            if (jDataWeb != null)
-                                captions = jDataWeb["captions"]?["playerCaptionsTracklistRenderer"]?["captionTracks"] as JArray;
+                            if (jData != null)
+                                captions = jData["captions"]?["playerCaptionsTracklistRenderer"]?["captionTracks"] as JArray;
                             else
                             {
                                 string contents = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId), proxy: proxy);
                                 Match m = Regex.Match(contents, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
                                 if (m.Success)
                                 {
-                                    jDataWeb = JObject.Parse(m.Groups["js"].Value);
-                                    captions = jDataWeb["captions"]?["playerCaptionsTracklistRenderer"]?["captionTracks"] as JArray;
+                                    jData = JObject.Parse(m.Groups["js"].Value);
+                                    captions = jData["captions"]?["playerCaptionsTracklistRenderer"]?["captionTracks"] as JArray;
                                 }
                             }
 
@@ -545,7 +556,7 @@ namespace OnlineVideos.Hoster
             return result;
         }
 
-        private PlayerStatusEnum parsePlayerStatus(JToken videoDetails, JToken streamingData, PlaybackOptionsBuilder qualities, YoutubeSignatureDecryptor dec)
+        private PlayerStatusEnum parsePlayerStatus(JToken videoDetails, JToken streamingData, PlaybackOptionsBuilder qualities, YoutubeSignatureDecryptor dec, bool bLiveOnly = false)
         {
             if (streamingData == null)
                 return PlayerStatusEnum.Error;
@@ -555,7 +566,7 @@ namespace OnlineVideos.Hoster
             //In case of LIVE stream take the HLS or DASH link only; adaptive formats have cca 5s streams only
             bool bIsLive = (videoDetails?.Value<bool>("isLive") ?? false) || (videoDetails?.Value<int>("lengthSeconds") ?? 0) == 0;
 
-            if (!bIsLive)
+            if (!bLiveOnly && !bIsLive)
             {
                 if (streamingData["formats"] is JArray formats)
                     parseFormats(formats, qualities, dec, false);
@@ -582,56 +593,56 @@ namespace OnlineVideos.Hoster
             }
 
             return PlayerStatusEnum.OK; //LAV is failing to play YouTube MPEG-DASH(so far)
-             /*
-            //MPEG-DASH; LAV does support this format
-            string strDashUrl = streamingData.Value<string>("dashManifestUrl");
-            if (!string.IsNullOrEmpty(strDashUrl))
-            {
-                try
-                {
-                    const string MPD_NS = "urn:mpeg:dash:schema:mpd:2011";
-                    const string MPD_NS2 = "urn:mpeg:DASH:schema:MPD:2011";
-                    string strContent = WebCache.Instance.GetWebData(strDashUrl);
-                    XmlDocument xml = new();
-                    xml.LoadXml(strContent);
-                    XmlNamespaceManager mgr = new(xml.NameTable);
-                    mgr.AddNamespace("ns", MPD_NS);
-                    XmlNode nodeMPD = xml.SelectSingleNode("ns:MPD", mgr);
-                    if (nodeMPD == null)
-                    {
-                        mgr.AddNamespace("ns", MPD_NS2);
-                        nodeMPD = xml.SelectSingleNode("ns:MPD", mgr);
-                    }
+            /*
+           //MPEG-DASH; LAV does support this format
+           string strDashUrl = streamingData.Value<string>("dashManifestUrl");
+           if (!string.IsNullOrEmpty(strDashUrl))
+           {
+               try
+               {
+                   const string MPD_NS = "urn:mpeg:dash:schema:mpd:2011";
+                   const string MPD_NS2 = "urn:mpeg:DASH:schema:MPD:2011";
+                   string strContent = WebCache.Instance.GetWebData(strDashUrl);
+                   XmlDocument xml = new();
+                   xml.LoadXml(strContent);
+                   XmlNamespaceManager mgr = new(xml.NameTable);
+                   mgr.AddNamespace("ns", MPD_NS);
+                   XmlNode nodeMPD = xml.SelectSingleNode("ns:MPD", mgr);
+                   if (nodeMPD == null)
+                   {
+                       mgr.AddNamespace("ns", MPD_NS2);
+                       nodeMPD = xml.SelectSingleNode("ns:MPD", mgr);
+                   }
 
-                    //Find highest video resolution
-                    XmlNodeList nodesRepresentation = nodeMPD.SelectNodes("//ns:AdaptationSet/ns:Representation[@width][@height]", mgr);
-                    int iWidthMax = 0;
-                    int iHeightMax = 0;
-                    int iBandwidth = 0;
-                    for (int i = 0; i < nodesRepresentation.Count; i++)
-                    {
-                        XmlNode nodeR = nodesRepresentation[i];
-                        int iW = int.Parse(nodeR.Attributes["width"].Value);
-                        int iH = int.Parse(nodeR.Attributes["height"].Value);
-                        if (iW > iWidthMax || iH > iHeightMax)
-                        {
-                            iWidthMax = iW;
-                            iHeightMax = iH;
-                        }
+                   //Find highest video resolution
+                   XmlNodeList nodesRepresentation = nodeMPD.SelectNodes("//ns:AdaptationSet/ns:Representation[@width][@height]", mgr);
+                   int iWidthMax = 0;
+                   int iHeightMax = 0;
+                   int iBandwidth = 0;
+                   for (int i = 0; i < nodesRepresentation.Count; i++)
+                   {
+                       XmlNode nodeR = nodesRepresentation[i];
+                       int iW = int.Parse(nodeR.Attributes["width"].Value);
+                       int iH = int.Parse(nodeR.Attributes["height"].Value);
+                       if (iW > iWidthMax || iH > iHeightMax)
+                       {
+                           iWidthMax = iW;
+                           iHeightMax = iH;
+                       }
 
-                        if (!int.TryParse(nodeR.Attributes["bandwidth"]?.Value, out iBandwidth))
-                            iBandwidth = 0;
-                    }
+                       if (!int.TryParse(nodeR.Attributes["bandwidth"]?.Value, out iBandwidth))
+                           iBandwidth = 0;
+                   }
 
-                    qualities.AddVideoQuality(strDashUrl, false, "DASH", string.Empty, iWidthMax, iHeightMax, iBandwidth, false, false);
+                   qualities.AddVideoQuality(strDashUrl, false, "DASH", string.Empty, iWidthMax, iHeightMax, iBandwidth, false, false);
 
-                }
-                catch (Exception ex)
-                {
-                    Log.Error("[YoutubeHoster] parsePlayerStatus() Error downloading MPEG-DASH manifest: {0}", ex.Message);
-                }
-            }
-            */
+               }
+               catch (Exception ex)
+               {
+                   Log.Error("[YoutubeHoster] parsePlayerStatus() Error downloading MPEG-DASH manifest: {0}", ex.Message);
+               }
+           }
+           */
         }
 
         private static bool checkYtDlpVersion()
