@@ -469,7 +469,10 @@ namespace OnlineVideos.Hoster
                             }
                         }
                     }
-                    catch { };
+                    catch (Exception e)
+                    {
+                        Log.Error("[YoutubeHoster] Error parsing subtitles: {0} {1} {2}", e.Message, e.Source, e.StackTrace);
+                    };
                 }
             }
             catch (Exception e)
@@ -505,7 +508,12 @@ namespace OnlineVideos.Hoster
                 foreach (string lang in langs)
                     foreach (JToken caption in captions)
                         if (lang == caption.Value<string>("languageCode"))
-                            result.Add(lang, caption.Value<string>("baseUrl") + "&fmt=vtt");
+                        {
+                            if (result.ContainsKey(lang))
+                                result.Add(lang + '.' + (result.Count(pair => pair.Key == lang) + 1).ToString(), caption.Value<string>("baseUrl") + "&fmt=vtt");
+                            else
+                                result.Add(lang, caption.Value<string>("baseUrl") + "&fmt=vtt");
+                        }
             }
             return result;
         }
@@ -524,7 +532,12 @@ namespace OnlineVideos.Hoster
                         foreach (JToken jSub in jSubtitle.Value)
                         {
                             if (jSub.Value<string>("ext") == "vtt" && jSub.Value<string>("name").EndsWith(strName))
-                                result.Add(lang, jSub.Value<string>("url"));
+                            {
+                                if (result.ContainsKey(lang))
+                                    result.Add(lang + '.' + (result.Count(pair => pair.Key == lang) + 1).ToString(), jSub.Value<string>("url"));
+                                else
+                                    result.Add(lang, jSub.Value<string>("url"));
+                            }
                         }
                     }
                 }
