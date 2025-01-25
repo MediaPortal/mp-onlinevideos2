@@ -920,41 +920,19 @@ namespace OnlineVideos.Hoster
                         format.Value<int>("bitrate"),
                         format.Value<int>("audioChannels"),
                         format.Value<int>("audioSampleRate"));
-
-
                 }
                 else
                 {
-                    if (format["audioChannels"] == null)
-                    {
-                        //Video stream only; no audio
-
-                        qualities.AddVideoQuality(
-                            strUrl,
-                            true,
-                            format.Value<string>("mimeType"),
-                            format.Value<string>("mimeType"),
-                            format.Value<int>("width"),
-                            format.Value<int>("height"),
-                            format.Value<int>("bitrate"),
-                            fmtOptions3D.Contains(iItag),
-                            fmtOptionsHDR.Contains(iItag));
-                    }
-                    else
-                    {
-                        //Video with audio
-
-                        qualities.AddVideoQuality(
-                          strUrl,
-                          false,
-                          format.Value<string>("mimeType"),
-                          format.Value<string>("mimeType"),
-                          format.Value<int>("width"),
-                          format.Value<int>("height"),
-                          format.Value<int>("bitrate"),
-                          fmtOptions3D.Contains(iItag),
-                          fmtOptionsHDR.Contains(iItag));
-                    }
+                    qualities.AddVideoQuality(
+                           strUrl,
+                           format["audioChannels"] == null,
+                           format.Value<string>("mimeType"),
+                           format.Value<string>("mimeType"),
+                           format.Value<int>("width"),
+                           format.Value<int>("height"),
+                           format.Value<int>("bitrate"),
+                           fmtOptions3D.Contains(iItag),
+                           fmtOptionsHDR.Contains(iItag));
                 }
             }
 
