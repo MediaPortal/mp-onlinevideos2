@@ -214,7 +214,7 @@ namespace OnlineVideos.Hoster
                     _YoutubeDecryptor = null; //don't use the same decryptor for more than 1 day
 
                 string strContentsWeb = null;
-                string strSecure = null;
+                string strVisitorData = null;
 
                 CookieContainer cookies = new();
                 strContentsWeb = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId),
@@ -230,9 +230,20 @@ namespace OnlineVideos.Hoster
                     return null;
                 }
 
-                strSecure = cookies.GetCookies(new Uri("https://www.youtube.com"))["__Secure-YEC"]?.Value;
+                //Extract VisitorData
+                Match m = Regex.Match(strContentsWeb, @"ytcfg.set\((?<js>[^<]*?(?<=}))\);", RegexOptions.IgnoreCase);
+                if (m.Success)
+                {
+                    JToken jCfg = JObject.Parse(m.Groups["js"].Value);
+                    strVisitorData = jCfg["INNERTUBE_CONTEXT"]?["client"]?["visitorData"]?.ToString();
+                }
+                else
+                    Log.Error("[YoutubeHoster] Failed to load ytcfg data.");
 
-                Log.Debug("[YoutubeHoster] Secure: {0}", strSecure);
+                if (string.IsNullOrWhiteSpace(strVisitorData))
+                    strVisitorData = cookies.GetCookies(new Uri("https://www.youtube.com"))["__Secure-YEC"]?.Value;
+
+                Log.Debug("[YoutubeHoster] VisitorData: {0}", strVisitorData);
 
                 //IOS
                 headers = new NameValueCollection
@@ -248,8 +259,8 @@ namespace OnlineVideos.Hoster
                             { "Accept-Language", "en-us,en;q=0.5" }
                         };
 
-                if (strSecure != null)
-                    headers.Add("X-Goog-Visitor-Id", strSecure);
+                if (strVisitorData != null)
+                    headers.Add("X-Goog-Visitor-Id", strVisitorData);
 
                 postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""IOS"", ""clientVersion"": ""{1}"", ""deviceMake"": ""Apple"", ""deviceModel"": ""iPhone16,2"", ""hl"": ""en"", ""osName"": ""iPhone"", ""osVersion"": ""17.5.1.21F90"", ""timeZone"": ""UTC"", ""userAgent"": ""com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
                     videoId, headers["X-Youtube-Client-Version"], "0");
@@ -283,7 +294,7 @@ namespace OnlineVideos.Hoster
                         {
                             try
                             {
-                                Match m = Regex.Match(strContentsWeb, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
+                                m = Regex.Match(strContentsWeb, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
                                 if (m.Success)
                                 {
                                     jDataWeb = JObject.Parse(m.Groups["js"].Value);
@@ -327,8 +338,8 @@ namespace OnlineVideos.Hoster
                             { "Accept-Language", "en-us,en;q=0.5" }
                         };
 
-                        if (strSecure != null)
-                            headers.Add("X-Goog-Visitor-Id", strSecure);
+                        if (strVisitorData != null)
+                            headers.Add("X-Goog-Visitor-Id", strVisitorData);
 
                         postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""TVHTML5"", ""clientVersion"": ""{1}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
                             videoId, headers["X-Youtube-Client-Version"], _YoutubeDecryptor.SignatureTimestamp);
@@ -451,7 +462,7 @@ namespace OnlineVideos.Hoster
                             else
                             {
                                 string contents = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId), proxy: proxy);
-                                Match m = Regex.Match(contents, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
+                                m = Regex.Match(contents, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
                                 if (m.Success)
                                 {
                                     jData = JObject.Parse(m.Groups["js"].Value);
