@@ -287,10 +287,20 @@ namespace OnlineVideos.Sites
         void DeleteVideo(string path)
         {
             if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
-            foreach (var extension in new string[] { ".jpg", ".png", ".gif", ".srt", ".xml" })
+
+            //Get all files starting with given path
+            string[] files = Directory.GetFiles(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path) + ".*", SearchOption.TopDirectoryOnly);
+
+            //Take video files from the list only
+            string[] filesVideo = files.Where(f => IsPossibleVideo(f)).Select(f => f.Substring(0, f.LastIndexOf('.'))).ToArray();
+
+            //Remove additional files
+            foreach (string strFile in files)
             {
-                string additionalFile = Path.ChangeExtension(path, extension);
-                if (System.IO.File.Exists(additionalFile)) System.IO.File.Delete(additionalFile);
+                if (filesVideo.Any(f => strFile.StartsWith(f, StringComparison.CurrentCultureIgnoreCase)))
+                    continue; //the file belongs to another video; skip this file
+
+                File.Delete(strFile);
             }
         }
 
