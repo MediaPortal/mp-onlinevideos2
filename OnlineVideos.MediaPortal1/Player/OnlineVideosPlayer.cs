@@ -40,6 +40,7 @@ namespace OnlineVideos.MediaPortal1.Player
 
         private MixedUrl _MixedUrl = null;
         private int _CurrentAudioStream = 0;
+        private int _InternalAudioStreams = 0;
 
         void AdaptRefreshRateFromCacheFile()
         {
@@ -453,10 +454,6 @@ namespace OnlineVideos.MediaPortal1.Player
                 mediaPos = (IMediaPosition)graphBuilder;
                 basicAudio = (IBasicAudio)graphBuilder;
                 videoWin = (IVideoWindow)graphBuilder;
-
-                //Multiple audio tracks: we need MPAudioSwitcher
-                if (this._MixedUrl?.AudioTracks.Length > 1)
-                    _audioSwitcher = DirectShowUtil.AddFilterToGraph(graphBuilder, MEDIAPORTAL_AUDIOSWITCHER_FILTER);
 
                 // add the source filter
                 IBaseFilter sourceFilter = null;
@@ -1062,7 +1059,7 @@ namespace OnlineVideos.MediaPortal1.Player
                 AudioPostEngine.engine = new AudioPostEngine.DummyEngine();
             }
 
-            if (this._MixedUrl?.AudioTracks.Length > 1)
+            if (this._audioSwitcher != null)
             {
                 this.analyseStreams();
 
@@ -1183,21 +1180,46 @@ namespace OnlineVideos.MediaPortal1.Player
         {
             get
             {
-                return this._MixedUrl?.AudioTracks.Length > 1 ? this._CurrentAudioStream : base.CurrentAudioStream;
+                return this._audioSwitcher != null ? this._CurrentAudioStream : base.CurrentAudioStream;
             }
 
             set
             {
                 this.disposeSourceFilter();
 
-                if (this._MixedUrl?.AudioTracks.Length > 1)
+                if (this._audioSwitcher != null)
                 {
                     if (this._CurrentAudioStream != value)
                     {
-                        bool bResult = this.EnableStream(value, AMStreamSelectEnableFlags.Enable, MEDIAPORTAL_AUDIOSWITCHER_FILTER);
+                        Log.Instance.Debug("OnlineVideosPlayer: CurrentAudioStream:{0} Request:{1}", this._CurrentAudioStream, value);
+
+                        int iIdxSwitcher = -1;
+                        bool bResult = false;
+
+                        if (this._InternalAudioStreams == 0)
+                            iIdxSwitcher = value; //external only
+                        else if (value >= this._InternalAudioStreams)
+                            iIdxSwitcher = value - this._InternalAudioStreams + 1; //to external
+                        else
+                        {
+                            //to internal
+                            FilterStreamInfos fsi = FStreams.GetStreamInfos(StreamType.Audio, value);
+                            if (!(bResult = EnableStream(fsi.Id, AMStreamSelectEnableFlags.Enable, fsi.Filter)))
+                                goto log;
+
+                            if (this._CurrentAudioStream >= this._InternalAudioStreams)
+                                iIdxSwitcher = 0; //Switch to first input of AudioSwitcher(internal audio)
+                        }
+
+                        if (iIdxSwitcher >= 0)
+                        {
+                            Log.Instance.Debug("OnlineVideosPlayer: Switching AudioSwitcher to input: {0}", iIdxSwitcher);
+                            bResult = this.EnableStream(iIdxSwitcher, AMStreamSelectEnableFlags.Enable, MEDIAPORTAL_AUDIOSWITCHER_FILTER);
+                        }
+
                         if (bResult)
                             this._CurrentAudioStream = value;
-
+                    log:
                         Log.Instance.Info("OnlineVideosPlayer: CurrentAudioStream:{0} Result:{1}", value, bResult);
                     }
                 }
@@ -1210,8 +1232,8 @@ namespace OnlineVideos.MediaPortal1.Player
         {
             get
             {
-                if (this._MixedUrl?.AudioTracks.Length > 1)
-                    return this._MixedUrl.AudioTracks.Length;
+                if (this._audioSwitcher != null)
+                    return this._MixedUrl.AudioTracks.Length + this._InternalAudioStreams;
 
                 return base.AudioStreams;
             }
@@ -1224,8 +1246,10 @@ namespace OnlineVideos.MediaPortal1.Player
 
         public override string AudioLanguage(int iStream)
         {
-            if (this._MixedUrl?.AudioTracks.Length > 1)
+            if (this._audioSwitcher != null && (this._InternalAudioStreams == 0 || iStream >= this._InternalAudioStreams))
             {
+                iStream -= this._InternalAudioStreams;
+
                 CultureInfo ciTrack = null;
                 CultureInfo[] cultures = CultureInfo.GetCultures(CultureTypes.AllCultures);
 
@@ -1439,13 +1463,14 @@ namespace OnlineVideos.MediaPortal1.Player
         public static void LogOutputPinsConnectionRecursive(IBaseFilter filter)
         {
             StringBuilder sb = new StringBuilder(128);
-            LogOutputPinsConnectionRecursive(filter, sb);
+            LogOutputPinsConnectionRecursive(filter, sb, true);
             Log.Instance.Debug(sb.ToString());
         }
-        private static void LogOutputPinsConnectionRecursive(IBaseFilter filter, StringBuilder sb)
+        private static void LogOutputPinsConnectionRecursive(IBaseFilter filter,  StringBuilder sb, bool bIsRoot)
         {
             if (filter.EnumPins(out IEnumPins pinEnum) == 0)
             {
+                int iPinCnt = 0;
                 filter.QueryFilterInfo(out FilterInfo sourceFilterInfo);
                 IPin[] pins = new IPin[1];
                 while (pinEnum.Next(1, pins, out int fetched) == 0 && fetched > 0)
@@ -1466,15 +1491,23 @@ namespace OnlineVideos.MediaPortal1.Player
                             DirectShowUtil.ReleaseComObject(connectedPin, 2000);
                             if (connectedFilterInfo.pGraph.FindFilterByName(connectedFilterInfo.achName, out IBaseFilter connectedFilter) == 0 && connectedFilter != null)
                             {
+                                if (bIsRoot)
+                                {
+                                    sb.Append("\r\n#Pin[");
+                                    sb.Append(iPinCnt);
+                                    sb.Append("]");
+                                }
+
                                 sb.Append(" --> ");
                                 sb.Append(connectedFilterInfo.achName);
-                                LogOutputPinsConnectionRecursive(connectedFilter, sb);
+                                LogOutputPinsConnectionRecursive(connectedFilter, sb, false);
                                 DirectShowUtil.ReleaseComObject(connectedFilter);
                             }
 
                             DirectShowUtil.ReleaseComObject(connectedFilterInfo.pGraph);
                         }
                         DirectShowUtil.ReleaseComObject(pin, 2000);
+                        iPinCnt++;
                     }
                 }
                 DirectShowUtil.ReleaseComObject(sourceFilterInfo.pGraph);
@@ -1489,47 +1522,99 @@ namespace OnlineVideos.MediaPortal1.Player
 
             string strSourceFilterName = GetSourceFilterName(this.m_strCurrentFile);
 
-            this.graphBuilder.FindFilterByName(strSourceFilterName, out IBaseFilter sourceFilter);
+            IBaseFilter sourceFilter = null;
 
-            // add audio and video filter from MP Movie Codec setting section
-            AddPreferredFilters(this.graphBuilder, sourceFilter);
-            // connect the pin automatically -> will buffer the full file in cases of bad metadata in the file or request of the audio or video filter
-            DirectShowUtil.RenderUnconnectedOutputPins(this.graphBuilder, sourceFilter);
+            int iAudioSwitcherPinIndex = 0;
 
-            DirectShowUtil.ReleaseComObject(sourceFilter);
+            try
+            {
+                this.graphBuilder.FindFilterByName(strSourceFilterName, out sourceFilter);
+
+                this._InternalAudioStreams = this.getNumberOfAudioStreams(sourceFilter);
+
+                //Multiple audio tracks: we need MPAudioSwitcher
+                if (this._MixedUrl != null && (this._MixedUrl.AudioTracks.Length > 1 || (this._MixedUrl.AudioTracks.Length > 0 && this._InternalAudioStreams > 0)))
+                    this._audioSwitcher = DirectShowUtil.AddFilterToGraph(this.graphBuilder, MEDIAPORTAL_AUDIOSWITCHER_FILTER);
+
+                if (this._audioSwitcher != null && this._InternalAudioStreams > 0)
+                {
+                    IBaseFilter audioDecoder = AddPreferredFilters(this.graphBuilder, sourceFilter, false);
+                    try
+                    {
+                        //Connect sourcefilter's audio output to audio decoder
+                        IPin pinIn = DsFindPin.ByDirection(audioDecoder, PinDirection.Input, 0);
+                        this.tryConnect(sourceFilter, pinIn);
+                        DirectShowUtil.ReleaseComObject(pinIn, 2000);
+
+                        //Connect audiodecoder with audioswitcher
+                        this.connectAudioToSwitcher(audioDecoder, ref iAudioSwitcherPinIndex);
+                    }
+                    finally
+                    {
+                        DirectShowUtil.ReleaseComObject(audioDecoder);
+                    }
+                }
+                else
+                {
+                    // add audio and video filter from MP Movie Codec setting section
+                    AddPreferredFilters(this.graphBuilder, sourceFilter);
+                }
+
+                // connect the pin automatically -> will buffer the full file in cases of bad metadata in the file or request of the audio or video filter
+                DirectShowUtil.RenderUnconnectedOutputPins(this.graphBuilder, sourceFilter);
+            }
+            finally
+            {
+                if (sourceFilter != null)
+                    DirectShowUtil.ReleaseComObject(sourceFilter);
+            }
 
             if (this._MixedUrl != null)
             {
                 for (int i = 0; i < this._MixedUrl.AudioTracks.Length; i++)
                 {
-                    this.graphBuilder.FindFilterByName(strSourceFilterName + ' ' + (i + 1).ToString("0000"), out sourceFilter);
-
-                    if (this._MixedUrl.AudioTracks.Length == 1)
+                    try
                     {
-                        AddPreferredFilters(this.graphBuilder, sourceFilter);
-                        DirectShowUtil.RenderUnconnectedOutputPins(this.graphBuilder, sourceFilter);
+                        this.graphBuilder.FindFilterByName(strSourceFilterName + ' ' + (i + 1).ToString("0000"), out sourceFilter);
+
+                        if (this._MixedUrl.AudioTracks.Length == 1)
+                        {
+                            AddPreferredFilters(this.graphBuilder, sourceFilter);
+                            DirectShowUtil.RenderUnconnectedOutputPins(this.graphBuilder, sourceFilter);
+                        }
+                        else
+                        {
+                            IBaseFilter audioDecoder = AddPreferredFilters(this.graphBuilder, sourceFilter, false);
+                            IPin pinOut = null;
+                            IPin pinIn = null;
+                            try
+                            {
+                                //Connect source filter with audiodecoder
+                                pinOut = DsFindPin.ByDirection(sourceFilter, PinDirection.Output, 0);
+                                pinIn = DsFindPin.ByDirection(audioDecoder, PinDirection.Input, 0);
+                                Marshal.ThrowExceptionForHR(this.graphBuilder.Connect(pinOut, pinIn));
+
+                                //Connect audiodecoder with audioswitcher
+                                this.connectAudioToSwitcher(audioDecoder, ref iAudioSwitcherPinIndex);
+                            }
+                            finally
+                            {
+                                if (audioDecoder != null)
+                                    DirectShowUtil.ReleaseComObject(audioDecoder);
+
+                                if (pinOut != null)
+                                    DirectShowUtil.ReleaseComObject(pinOut, 2000);
+
+                                if (pinIn != null)
+                                    DirectShowUtil.ReleaseComObject(pinIn, 2000);
+                            }
+                        }
                     }
-                    else
+                    finally
                     {
-                        IBaseFilter audioDecoder = AddPreferredFilters(this.graphBuilder, sourceFilter, false);
-
-                        //Connect source filter with audiodecoder
-                        IPin pinOut = DsFindPin.ByDirection(sourceFilter, PinDirection.Output, 0);
-                        IPin pinIn = DsFindPin.ByDirection(audioDecoder, PinDirection.Input, 0);
-                        Marshal.ThrowExceptionForHR(this.graphBuilder.Connect(pinOut, pinIn));
-                        DirectShowUtil.ReleaseComObject(pinOut, 2000);
-                        DirectShowUtil.ReleaseComObject(pinIn, 2000);
-
-                        //Connect audiodecoder with audioswitcher
-                        pinOut = DsFindPin.ByDirection(audioDecoder, PinDirection.Output, 0);
-                        pinIn = DsFindPin.ByDirection(this._audioSwitcher, PinDirection.Input, i);
-                        Marshal.ThrowExceptionForHR(this.graphBuilder.Connect(pinOut, pinIn));
-                        DirectShowUtil.ReleaseComObject(pinOut, 2000);
-                        DirectShowUtil.ReleaseComObject(pinIn, 2000);
-
-                        DirectShowUtil.ReleaseComObject(audioDecoder);
+                        if (sourceFilter != null)
+                            DirectShowUtil.ReleaseComObject(sourceFilter);
                     }
-                    DirectShowUtil.ReleaseComObject(sourceFilter);
                 }
 
                 //Connect audioswitcher with renderer
@@ -1547,76 +1632,116 @@ namespace OnlineVideos.MediaPortal1.Player
 
                 this.FStreams.DeleteAllStreams();
 
-                string strFilterName;
-                IBaseFilter[] foundfilter = new IBaseFilter[2];
-                this.graphBuilder.EnumFilters(out IEnumFilters enumFilters);
-                if (enumFilters != null)
+                string strSourceFilterName = GetSourceFilterName(this.m_strCurrentFile);
+
+                for (int i = 0; i <= this._MixedUrl.AudioTracks.Length; i++)
                 {
-                    string[] sourceFilters = (string[])FilterHelper.GetFilterSource().ToArray(typeof(string));
+                    string strFilterName = strSourceFilterName + (i > 0 ? " " + i.ToString("0000") : null);
+                    this.graphBuilder.FindFilterByName(strFilterName, out IBaseFilter sourceFilter);
 
-                    enumFilters.Reset();
-                    while (enumFilters.Next(1, foundfilter, out int iFetched) == 0)
+                    if (sourceFilter is IAMStreamSelect pStrm)
                     {
-                        if (foundfilter[0] != null && iFetched == 1)
+                        pStrm.Count(out int cStreams);
+
+                        //GET STREAMS
+                        for (int istream = 0; istream < cStreams; istream++)
                         {
-                            if (foundfilter[0] is IAMStreamSelect pStrm)
+                            //STREAM INFO
+                            pStrm.Info(istream, out AMMediaType sType, out AMStreamSelectInfoFlags sFlag, out int sPLCid,
+                                       out int sPDWGroup, out string sName, out _, out _);
+
+                            FilterStreamInfos fsInfos = new FilterStreamInfos
                             {
-                                foundfilter[0].QueryFilterInfo(out FilterInfo foundfilterinfos);
-                                strFilterName = foundfilterinfos.achName;
-                                DirectShowUtil.ReleaseComObject(foundfilterinfos.pGraph);
-                                pStrm.Count(out int cStreams);
-                                if (!sourceFilters.Any(f => strFilterName.StartsWith(f)))
-                                    continue; //take source splitter only
+                                Current = false,
+                                Filter = strFilterName,
+                                Name = sName,
+                                LCID = sPLCid,
+                                Id = istream,
+                                Type = StreamType.Unknown,
+                                sFlag = sFlag
+                            };
 
-                                //GET STREAMS
-                                for (int istream = 0; istream < cStreams; istream++)
-                                {
-                                    //STREAM INFO
-                                    pStrm.Info(istream, out AMMediaType sType, out AMStreamSelectInfoFlags sFlag, out int sPLCid,
-                                               out int sPDWGroup, out string sName, out _, out _);
-
-                                    FilterStreamInfos fsInfos = new FilterStreamInfos
-                                    {
-                                        Current = false,
-                                        Filter = strFilterName,
-                                        Name = sName,
-                                        LCID = sPLCid,
-                                        Id = istream,
-                                        Type = StreamType.Unknown,
-                                        sFlag = sFlag
-                                    };
-
-                                    if (sPDWGroup == 0)
-                                    {
-                                        fsInfos.Type = StreamType.Video;
-                                    }
-                                    else if (sPDWGroup == 1)
-                                    {
-                                        fsInfos.Type = StreamType.Audio;
-                                        //fsInfos.Filter = MEDIAPORTAL_AUDIOSWITCHER_FILTER;
-                                    }
-                                    else
-                                        continue;
-
-                                    Log.Instance.Debug("AnalyseStreams: FoundStreams: Type={0}; Name={1}, Filter={2}, Id={3}, PDWGroup={4}, LCID={5}",
-                                              fsInfos.Type.ToString(), fsInfos.Name, fsInfos.Filter, fsInfos.Id.ToString(),
-                                              sPDWGroup.ToString(), sPLCid.ToString());
-
-                                    this.FStreams.AddStreamInfos(fsInfos);
-                                }
+                            if (sPDWGroup == 0)
+                            {
+                                fsInfos.Type = StreamType.Video;
                             }
-                            DirectShowUtil.ReleaseComObject(foundfilter[0]);
+                            else if (sPDWGroup == 1)
+                            {
+                                fsInfos.Type = StreamType.Audio;
+                            }
+                            else if (sPDWGroup == 2 && sName.LastIndexOf("off", StringComparison.Ordinal) == -1 && sName.LastIndexOf("Hide ", StringComparison.Ordinal) == -1 &&
+                                sName.LastIndexOf("No ", StringComparison.Ordinal) == -1 && sName.LastIndexOf("Miscellaneous ", StringComparison.Ordinal) == -1)
+                            {
+                                fsInfos.Type = StreamType.Subtitle;
+                            }
+                            else
+                                continue;
+
+                            Log.Instance.Debug("AnalyseStreams: FoundStreams: Type={0}; Name={1}, Filter={2}, Id={3}, PDWGroup={4}, LCID={5}",
+                                      fsInfos.Type.ToString(), fsInfos.Name, fsInfos.Filter, fsInfos.Id.ToString(),
+                                      sPDWGroup.ToString(), sPLCid.ToString());
+
+                            this.FStreams.AddStreamInfos(fsInfos);
                         }
                     }
-
-                    DirectShowUtil.ReleaseComObject(enumFilters);
+                    DirectShowUtil.ReleaseComObject(sourceFilter);
                 }
             }
             catch { }
             return true;
         }
 
+        private int getNumberOfAudioStreams(IBaseFilter filterSource)
+        {
+            int iResult = 0;
+            if (filterSource is IAMStreamSelect pStrm)
+            {
+                pStrm.Count(out int iStreams);
 
+                for (int i = 0; i < iStreams; i++)
+                {
+                    //STREAM INFO
+                    pStrm.Info(i, out _, out _, out _, out int iPDWGroup, out _, out _, out _);
+
+                    if (iPDWGroup == 1) //Audio
+                        iResult++;
+                }
+            }
+            Log.Instance.Debug("[getNumberOfAudioStreams] Number of audio streams in source filter: {0}", iResult);
+            return iResult;
+        }
+
+        private bool tryConnect(IBaseFilter filterSource, IPin pinTarget)
+        {
+            bool bResult = false;
+            int iHr = filterSource.EnumPins(out IEnumPins pinEnum);
+            DsError.ThrowExceptionForHR(iHr);
+            if (iHr == 0 && pinEnum != null)
+            {
+                pinEnum.Reset();
+                IPin[] pins = new IPin[1];
+                while (!bResult && pinEnum.Next(1, pins, out int iFetchedd) == 0 && iFetchedd > 0)
+                {
+                    pins[0].QueryDirection(out PinDirection pinDir);
+                    if (pinDir == PinDirection.Output)
+                        bResult = this.graphBuilder.Connect(pins[0], pinTarget) == 0;
+                }
+                DirectShowUtil.ReleaseComObject(pins[0]);
+            }
+            DirectShowUtil.ReleaseComObject(pinEnum);
+
+            return bResult;
+        }
+
+        private void connectAudioToSwitcher(IBaseFilter audioDecoder, ref int iInpuPinIIdx)
+        {
+            //Connect audiodecoder with audioswitcher
+            IPin pinOut = DsFindPin.ByDirection(audioDecoder, PinDirection.Output, 0);
+            IPin pinIn = DsFindPin.ByDirection(this._audioSwitcher, PinDirection.Input, iInpuPinIIdx++);
+            Marshal.ThrowExceptionForHR(this.graphBuilder.Connect(pinOut, pinIn));
+            DirectShowUtil.ReleaseComObject(pinOut, 2000);
+            DirectShowUtil.ReleaseComObject(pinIn, 2000);
+        }
 
 
         const bool LAV_ALWAYS_PREBUFFER = false; //set to true if we wants to always prebuffer at start or after seek

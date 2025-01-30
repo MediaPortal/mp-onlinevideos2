@@ -123,7 +123,7 @@ namespace OnlineVideos
             public int Bitrate;
             public bool Is3D;
             public bool IsHDR;
-            public bool IsVideoOnly;
+            public bool IncludeExternalAudio;
             public VideoCodec Codec;
             public Container Container;
 
@@ -315,22 +315,22 @@ namespace OnlineVideos
         /// <param name="iHeight">Video height resolution</param>
         public void AddVideoQuality(string strUrl, int iWidth, int iHeight)
         {
-            this.AddVideoQuality(strUrl, false, null, null, iWidth, iHeight, 0, false, false);
+            this.AddVideoQuality(strUrl, true, null, null, iWidth, iHeight, 0, false, false);
         }
 
         /// <summary>
         /// Add video quality to the list.
         /// </summary>
         /// <param name="strUrl">URL link</param>
-        /// <param name="bIsVideoOnly">True if video has no audio</param>
+        /// <param name="bIncludeExtAudio">True to include external audio quality for this video quality.</param>
         /// <param name="strType">Container type like MP4, MKV, WEBM, etc.</param>
         /// <param name="strCodec">Codec type like H264, HEVC, etc.</param>
         /// <param name="iWidth">Video width resolution</param>
         /// <param name="iHeight">Video height resolution</param>
-        /// <param name="iBitrate">Video bitrete</param>
+        /// <param name="iBitrate">Video bitrate</param>
         /// <param name="bIs3D">True if the video is 3D</param>
-        /// <param name="bIsHDR">Truhe if the video is HDR</param>
-        public void AddVideoQuality(string strUrl, bool bIsVideoOnly, string strType, string strCodec, int iWidth, int iHeight, int iBitrate, bool bIs3D, bool bIsHDR)
+        /// <param name="bIsHDR">True if the video is HDR</param>
+        public void AddVideoQuality(string strUrl, bool bIncludeExtAudio, string strType, string strCodec, int iWidth, int iHeight, int iBitrate, bool bIs3D, bool bIsHDR)
         {
             if (this._VideoResolutions == null)
                 this._VideoResolutions = new Dictionary<VideoResolution, VideoResolutionGroup>();
@@ -360,7 +360,7 @@ namespace OnlineVideos
 
             VideoQuality vq = new VideoQuality(strUrl, iWidth, iHeight)
             {
-                IsVideoOnly = bIsVideoOnly,
+                IncludeExternalAudio = bIncludeExtAudio,
                 Container = parseContainer(strType),
                 Codec = parseVideoCodec(strCodec),
                 Bitrate = iBitrate,
@@ -531,7 +531,7 @@ namespace OnlineVideos
 
                             //Add option to the playback list
                             result.Add(sb.ToString(),
-                                !videoQ.IsVideoOnly ? videoQ.Url : (audioTracks != null ? new MixedUrl(videoQ.Url, audioTracks).ToString() : videoQ.Url));
+                                videoQ.IncludeExternalAudio && audioTracks != null ? new MixedUrl(videoQ.Url, audioTracks).ToString() : videoQ.Url);
 
                             //Preselection
                             if (iPreselection < 0 || (int)sorted[i].Key <= (selection.VideoResolution - VideoSelection.SD))
@@ -568,10 +568,7 @@ namespace OnlineVideos
                                 break;
                         }
 
-                        if (videoQ.IsVideoOnly)
-                            result.Add(string.Empty, audioTracks != null ? new MixedUrl(videoQ.Url, audioTracks).ToString() : videoQ.Url);
-                        else
-                            result.Add(string.Empty, videoQ.Url);
+                        result.Add(string.Empty, videoQ.IncludeExternalAudio && audioTracks != null ? new MixedUrl(videoQ.Url, audioTracks).ToString() : videoQ.Url);
 
                         Log.Debug("[GetPlaybackOptions] Option:{0} Width:{1} Height:{2} Container:{3} Codec:{4} 3D:{5} HDR:{6} Bitrate:{7}",
                              selection.VideoResolution, videoQ.Width, videoQ.Height, videoQ.Container, videoQ.Codec, videoQ.Is3D, videoQ.IsHDR, videoQ.Bitrate);

@@ -34,7 +34,7 @@ namespace OnlineVideos
                 this.VideoUrl = args.Get("videoUrl");
 
                 if (!int.TryParse(args.Get("audioDefault"), out int iDefault))
-                    iDefault = 0;
+                    iDefault = -1;
 
                 this.DefaultAudio = iDefault;
 
