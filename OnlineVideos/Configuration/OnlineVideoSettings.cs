@@ -30,7 +30,21 @@ namespace OnlineVideos
         public bool UseAgeConfirmation = true; // enable pin by default -> child protection
         public bool AgeConfirmed = false;
         public int CacheTimeout = 30; // minutes
-        public int UtilTimeout = 15;  // seconds
+
+        [RuntimeConfig("Timeouts", "Webrequests [s]")]
+        public int UtilTimeout
+        {
+            get { return this._UtilTimeout; }
+            set 
+            {
+                if (value < 1)
+                    this._UtilTimeout = 1;
+                else
+                    this._UtilTimeout = value;
+            }
+
+        }private int _UtilTimeout = 15;  // seconds
+
         public int DynamicCategoryTimeout = 300; // minutes
         public CultureInfo Locale;
         public BindingList<SiteSettings> SiteSettingsList { get; protected set; }
@@ -83,6 +97,39 @@ namespace OnlineVideos
             Allow3D = false,
             AllowHDR = false
         };
+
+
+
+
+        [RuntimeConfig("Video", "Automatic Selection")]
+        public bool RuntimeConfigVideoAutomaticSelection
+        {
+            get => this.VideoQualitySelectionOptions.AutomaticVideoSelection;
+            set => this.VideoQualitySelectionOptions.AutomaticVideoSelection = value;
+        }
+
+        [RuntimeConfig("Video", "Preferred Resolution")]
+        public PlaybackOptionsBuilder.VideoSelection RuntimeConfigVideoPreferredQuality
+        {
+            get => this.VideoQualitySelectionOptions.VideoResolution;
+            set => this.VideoQualitySelectionOptions.VideoResolution = value;
+        }
+
+        [RuntimeConfig("Video", "Allow 3D")]
+        public bool RuntimeConfigVideoAllow3D
+        {
+            get => this.VideoQualitySelectionOptions.Allow3D;
+            set => this.VideoQualitySelectionOptions.Allow3D = value;
+        }
+
+        [RuntimeConfig("Video", "Allow HDR")]
+        public bool RuntimeConfigVideoAllowHDR
+        {
+            get => this.VideoQualitySelectionOptions.AllowHDR;
+            set => this.VideoQualitySelectionOptions.AllowHDR = value;
+        }
+
+
 
         private OnlineVideoSettings()
         {

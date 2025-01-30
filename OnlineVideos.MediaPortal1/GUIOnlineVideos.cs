@@ -340,15 +340,46 @@ namespace OnlineVideos.MediaPortal1
 
             if (CurrentState == State.sites && GetFocusControlId() == GUI_facadeView.GetID)
             {
-                // handle a site's context menu
-                OnlineVideosGuiListItem selectedItem = GUI_facadeView.SelectedListItem as OnlineVideosGuiListItem;
-                if (selectedItem == null || selectedItem.Item == null) return; // only context menu for items with an object backing them
+                GUIDialogMenu dlgSel = (GUIDialogMenu)GUIWindowManager.GetWindow((int)GUIWindow.Window.WINDOW_DIALOG_MENU);
+                if (dlgSel == null)
+                    return;
 
-                Sites.SiteUtilBase aSite = selectedItem.Item as Sites.SiteUtilBase;
-                if (aSite != null)
+                GUIRuntimeConfigurator cfg = null;
+                int iDialogSelIdx = 1;
+
+                while (true)
                 {
-                    selectedSite = SiteUserSettingsDialog.ShowDialog(aSite);
-                    selectedItem.Item = selectedSite;
+                    dlgSel.Reset();
+                    dlgSel.SetHeading("Menu");
+                    dlgSel.Add("OnlineVideos: Configuration");
+                    
+                    OnlineVideosGuiListItem selectedItem = GUI_facadeView.SelectedListItem as OnlineVideosGuiListItem;
+                    if (selectedItem?.Item is SiteUtilBase aSite)  // only context menu for items with an object backing them
+                        dlgSel.Add("Site: " + aSite.Settings.Name);
+                    else
+                        aSite = null;
+                    
+                    dlgSel.selectOption(iDialogSelIdx.ToString());
+                    dlgSel.DoModal(GUIWindowManager.ActiveWindow);
+                    switch (iDialogSelIdx = dlgSel.SelectedId)
+                    {
+                        case 1:
+                            //Show OV configuration
+                            if (cfg == null)
+                                cfg = new GUIRuntimeConfigurator(OnlineVideoSettings.Instance);
+                            
+                            cfg.ShowDialog(dlgSel.SelectedLabelText, dlgSel);
+                            break;
+
+                        case 2:
+                            // handle a site's context menu
+                            selectedSite = SiteUserSettingsDialog.ShowDialog(aSite);
+                            selectedItem.Item = selectedSite;
+                            break;
+
+                        default:
+                            return;
+                    }
                 }
             }
             else if (CurrentState == State.categories && GetFocusControlId() == GUI_facadeView.GetID)

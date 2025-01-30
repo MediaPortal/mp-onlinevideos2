@@ -269,6 +269,7 @@
     <Compile Include="FavoritesDatabase.cs" />
     <Compile Include="Gui2UtilConnector.cs" />
     <Compile Include="GUIOnlineVideos.cs" />
+    <Compile Include="GUIRuntimeConfigurator.cs" />
     <Compile Include="GUISiteUpdater.cs" />
     <Compile Include="Initialization.cs">
       <DependentUpon>GUIOnlineVideos.cs</DependentUpon>
