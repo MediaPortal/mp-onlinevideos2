@@ -42,7 +42,7 @@ namespace OnlineVideos.MediaPortal1.Player
         private int _CurrentAudioStream = 0;
         private int _InternalAudioStreams = 0;
 
-        void AdaptRefreshRateFromCacheFile()
+        void AdaptRefreshRateFromCacheFile(bool bDetectFpsOnly)
         {
             if (!string.IsNullOrEmpty(cacheFile))
             {
@@ -56,6 +56,10 @@ namespace OnlineVideos.MediaPortal1.Player
                     {
                         this._VideoSampleDuration = 1d / framerate;
                         Log.Instance.Info("OnlineVideosPlayer got {0} FPS from MediaInfo", framerate);
+
+                        if (bDetectFpsOnly)
+                            return;
+
                         double matchedFps = RefreshRateHelper.MatchConfiguredFPS(framerate);
                         if (matchedFps != default(double))
                         {
@@ -163,6 +167,9 @@ namespace OnlineVideos.MediaPortal1.Player
                                                     break;
                                             }
                                         }
+
+                                        if (bDetectFpsOnly)
+                                            return;
 
                                         double dMatchedFps = RefreshRateHelper.MatchConfiguredFPS(dFps);
                                         if (dMatchedFps != default)
@@ -1034,8 +1041,7 @@ namespace OnlineVideos.MediaPortal1.Player
             string protocol = uri.Scheme.Substring(0, Math.Min(uri.Scheme.Length, 4));
             if (protocol == "file") cacheFile = m_strCurrentFile;
 
-            if (PluginConfiguration.Instance.AllowRefreshRateChange)
-                AdaptRefreshRateFromCacheFile();
+            AdaptRefreshRateFromCacheFile(!PluginConfiguration.Instance.AllowRefreshRateChange);
 
             ISubEngine engine = SubEngine.GetInstance(true);
             if (!engine.LoadSubtitles(graphBuilder, string.IsNullOrEmpty(SubtitleFile) ? m_strCurrentFile : SubtitleFile))
