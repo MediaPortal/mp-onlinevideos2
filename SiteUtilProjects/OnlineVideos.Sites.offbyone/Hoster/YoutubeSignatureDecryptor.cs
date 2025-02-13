@@ -43,7 +43,7 @@ namespace OnlineVideos.Hoster
         };
         private static readonly Regex[] _RegexPlayerRemove = new[]
         {
-            new Regex(@"if\(typeof [a-zA-Z0-9$]+===\""undefined\""\)return [a-zA-Z0-9$]+;", RegexOptions.Compiled)
+            new Regex(@"if\(typeof\s+[a-zA-Z0-9_$]+===\""undefined\""\)return\s+[a-zA-Z0-9_$]+;", RegexOptions.Compiled)
         };
         private static readonly Regex _RegexPlayerJsSigFunction = new(@"(?<fname>[a-zA-Z0-9$]+)=function\([a-zA-Z0-9$]+\){[a-zA-Z0-9$]+=[a-zA-Z0-9$]+\.split\(""""\);(?<fnamesub>[a-zA-Z0-9$]+)\.(?s:.)+?return\s+[a-zA-Z0-9$]+\.join\(""""\)};", RegexOptions.Compiled);
         private const string _JS_SUB_FUNCTION_REGEX = "var {0}={{(?s:.)+?}};";
