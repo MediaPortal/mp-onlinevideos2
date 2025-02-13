@@ -24,7 +24,15 @@ namespace OnlineVideos.Helpers
                 if (_Instance == null)
                 {
                     if (AppDomain.CurrentDomain.FriendlyName == "OnlineVideosSiteUtilDlls")
+                    {
                         _Instance = (WebViewHelper)AppDomain.CurrentDomain.GetData(typeof(WebViewHelper).FullName);
+                        if (_Instance == null)
+                        {
+                            WebViewHelperInitializer init = (WebViewHelperInitializer)AppDomain.CurrentDomain.GetData(typeof(WebViewHelperInitializer).FullName);
+                            AppDomain.CurrentDomain.DoCallBack(new CrossAppDomainDelegate(init.Execute));
+                            _Instance = (WebViewHelper)AppDomain.CurrentDomain.GetData(typeof(WebViewHelper).FullName);
+                        }
+                    }
                     else
                         _Instance = new WebViewHelper();
                 }

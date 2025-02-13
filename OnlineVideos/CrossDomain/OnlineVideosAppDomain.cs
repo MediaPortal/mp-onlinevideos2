@@ -49,7 +49,7 @@ namespace OnlineVideos.CrossDomain
                     AppDomain.CurrentDomain.AssemblyResolve -= AssemblyResolve;
 
                     _domain.SetData(typeof(PluginLoader).FullName, _pluginLoader);
-                    _domain.SetData(typeof(Helpers.WebViewHelper).FullName, Helpers.WebViewHelper.Instance);
+                    _domain.SetData(typeof(Helpers.WebViewHelperInitializer).FullName, Helpers.WebViewHelperInitializer.Instance);
                 }
                 else
                 {

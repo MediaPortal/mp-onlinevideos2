@@ -310,6 +310,7 @@
     <Compile Include="Helpers\TimeUtils.cs" />
     <Compile Include="Helpers\UriUtils.cs" />
     <Compile Include="Helpers\WebviewHelper.cs" />
+    <Compile Include="Helpers\WebViewHelperInitializer.cs" />
     <Compile Include="Hoster\Base\HosterBase.cs" />
     <Compile Include="Hoster\Base\HosterFactory.cs" />
     <Compile Include="Hoster\Base\ISubtitle.cs" />
