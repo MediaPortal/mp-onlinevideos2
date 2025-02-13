@@ -12,7 +12,7 @@ namespace OnlineVideos.Hoster
     public class YoutubeSignatureDecryptor
     {
         //Current version of the Decryptor structure
-        private const int _DECRYPTOR_VERSION_CURRENT = 3;
+        private const int _DECRYPTOR_VERSION_CURRENT = 4;
 
         private class Decryptor
         {
