@@ -286,19 +286,8 @@ namespace OnlineVideos.MediaPortal1
                 preventDialogOnLoad = (lastActiveModuleSetting && (lastActiveModule == GetID));
             }
 
-            WebViewHelper wvh = null;
-            try
-            {
-                wvh = WebViewHelper.Instance;
-                if (wvh == null)
-                    Log.Instance.Error("Error initializing WebViewHelper");
-                else
-                    Log.Instance.Debug("WebViewHelper created successfully");
-            }
-            catch (Exception e)
-            {
-                Log.Instance.Error("Error initializing WebViewHelper: " + e.Message);
-            }
+            WebViewHelperInitializer.Instance = new WebViewHelperInitializer(GUIGraphicsContext.form);
+
             StartBackgroundInitialization();
 
             return result;
