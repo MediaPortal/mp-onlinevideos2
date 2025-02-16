@@ -1611,14 +1611,13 @@ public class Script
       <Major>2</Major>
       <Minor>8</Minor>
       <Build>0</Build>
-      <Revision>0</Revision>
+      <Revision>1</Revision>
     </Version>
     <ExtensionDescription>Allows watching videos from various websites, using their RSS feeds, parsing html pages, coding against provided APIs or directly adding urls of live streams. Supported sites include: YouTube and many more.</ExtensionDescription>
-    <VersionDescription>- Fixed hanging mediaportal on startup
-- Add support for external audiofiles for files with audio and video</VersionDescription>
+    <VersionDescription>- Fixed version info</VersionDescription>
     <DevelopmentStatus>Stable</DevelopmentStatus>
     <OnlineLocation>https://www.team-mediaportal.com/index.php?option=com_mtree&amp;task=att_download&amp;link_id=366&amp;cf_id=24</OnlineLocation>
-    <ReleaseDate>2025-02-14T15:00:00</ReleaseDate>
+    <ReleaseDate>2025-02-16T15:00:00</ReleaseDate>
     <Tags>online,videos,youtube,netflix</Tags>
     <PlatformCompatibility>AnyCPU</PlatformCompatibility>
     <Location>..\MPEI\[Name][Version].mpe1</Location>
@@ -2626,7 +2625,7 @@ public class Script
         <Param1 />
         <UpdateOption>OverwriteIfOlder</UpdateOption>
         <LocalFileName>..\OnlineVideos.MediaPortal1\OnlineVideos.png</LocalFileName>
-        <ZipFileName>Installer{CopyFile}\{1bddf690-e9ca-42fe-b3db-e656ec2b5cea}-OnlineVideos.png</ZipFileName>
+        <ZipFileName>Installer{CopyFile}\{bd2e857c-de7f-4b0e-8346-39e1a0ae5e22}-OnlineVideos.png</ZipFileName>
         <DestinationFilename />
       </FileItem>
     </Items>
