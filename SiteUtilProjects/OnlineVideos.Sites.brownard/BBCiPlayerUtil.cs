@@ -99,6 +99,9 @@ namespace OnlineVideos.Sites
                 return null;
             }
 
+            return getHLSVideoUrls(video, vpid, proxyObj, DEFAULT_MEDIA_SET);
+
+            /*
             XmlDocument doc = GetWebData<XmlDocument>(MEDIA_SELECTOR_URL + vpid, proxy: proxyObj); //uk only
             XmlNamespaceManager nsmRequest = new XmlNamespaceManager(doc.NameTable);
             nsmRequest.AddNamespace("ns1", "http://bbc.co.uk/2008/mp/mediaselection");
@@ -201,6 +204,7 @@ namespace OnlineVideos.Sites
             if (errorNodes.Count > 0)
                 throw new OnlineVideosException(string.Format("BBC says: {0}", ((XmlElement)errorNodes[0]).GetAttribute("id")));
             return null;
+            */
         }
 
         bool TryParseVpid(string html, out string vpid)
