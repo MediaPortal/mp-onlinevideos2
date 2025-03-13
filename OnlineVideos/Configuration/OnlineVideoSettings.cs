@@ -101,6 +101,16 @@ namespace OnlineVideos
         /// </summary>
         public static void Reload()
         {
+            //Call deinitialize to each siteutil
+            foreach (KeyValuePair<string, SiteUtilBase> site in Instance.SiteUtilsList)
+            {
+                try { site.Value.DeInitialize(); }
+                catch (Exception ex)
+                {
+                    Log.Error("[OnlineVideoSettings][Reload] Error while deinitializing site '{0}': {1}", site.Key, ex.Message);
+                }
+            }
+
             // remember settings
             IUserStore userStore = Instance.UserStore;
             IFavoritesDatabase favDb = Instance.FavDB;

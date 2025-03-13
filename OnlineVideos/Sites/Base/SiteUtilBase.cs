@@ -105,6 +105,13 @@ namespace OnlineVideos.Sites
         }
 
         /// <summary>
+        /// Called before destroying this site util.
+        /// </summary>
+        public virtual void DeInitialize()
+        { }
+
+
+        /// <summary>
         /// This is the only function a subclass has to implement. It's called when a user selects a category in the GUI.<br/>
         /// It should return a list of videos for that category, reset the paging indexes, remember this category, whatever is needed to hold state,
         /// because a call to <see cref="HasNextPage"/> and <see cref="GetNextPageVideos"/> will not give any parameter.

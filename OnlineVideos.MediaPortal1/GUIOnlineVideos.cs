@@ -300,6 +300,17 @@ namespace OnlineVideos.MediaPortal1
         {
             // Make sure all runtime changeable properties are persisted
             PluginConfiguration.Instance.Save(true);
+
+            //Call deinitialize to each siteutil
+            foreach (KeyValuePair<string, SiteUtilBase> site in OnlineVideoSettings.Instance.SiteUtilsList)
+            {
+                try { site.Value.DeInitialize(); }
+                catch (Exception ex)
+                {
+                    Log.Instance.Error("[DeInit] Error while deinitializing site '{0}': {1}", site.Key, ex.Message);
+                }
+            }
+
         }
 
         protected override void OnPageLoad()
