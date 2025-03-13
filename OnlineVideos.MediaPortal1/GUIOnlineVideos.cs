@@ -642,6 +642,13 @@ namespace OnlineVideos.MediaPortal1
                         if (success && result is Sites.ContextMenuExecutionResult)
                         {
                             var cmer = result as Sites.ContextMenuExecutionResult;
+
+                            if (cmer.SubMenu != null && cmer.SubMenu.SubEntries.Count > 0)
+                            {
+                                this.HandleCustomContextMenuEntry(cmer.SubMenu, aCategory, aVideo);
+                                return;
+                            }
+
                             if (!string.IsNullOrEmpty(cmer.ExecutionResultMessage))
                             {
                                 GUIDialogNotify dlg_notify = (GUIDialogNotify)GUIWindowManager.GetWindow((int)GUIWindow.Window.WINDOW_DIALOG_NOTIFY);

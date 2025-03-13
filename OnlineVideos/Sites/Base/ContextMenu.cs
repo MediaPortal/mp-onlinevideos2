@@ -74,5 +74,10 @@ namespace OnlineVideos.Sites
         /// If you execution results in a list of videos or categories, set them to this property and they will be displayed in the GUI.
         /// </summary>
         public List<SearchResultItem> ResultItems { get; set; }
+
+        /// <summary>
+        /// Setting this property will will show another context menu after executing <see cref="ContextMenuEntry"/>.
+        /// </summary>
+        public ContextMenuEntry SubMenu { get; set; }
     }
 }
