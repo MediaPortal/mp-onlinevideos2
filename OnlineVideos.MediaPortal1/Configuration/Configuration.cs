@@ -37,8 +37,8 @@ namespace OnlineVideos.MediaPortal1
                 return PluginConfiguration.GetLanguageInUserLocale(o as string);
             };
 
-            propertyGridUserConfig.BrowsableAttributes = new AttributeCollection(new CategoryAttribute("OnlineVideosUserConfiguration"));
-            propertyGridHoster.BrowsableAttributes = new AttributeCollection(new CategoryAttribute("OnlineVideosUserConfiguration"));
+            propertyGridUserConfig.BrowsableAttributes = new AttributeCollection(new CategoryAttribute("OnlineVideosUserConfiguration"), new BrowsableAttribute(true));
+            propertyGridHoster.BrowsableAttributes = new AttributeCollection(new CategoryAttribute("OnlineVideosUserConfiguration"), new BrowsableAttribute(true));
         }
 
         public void Configuration_Load(object sender, EventArgs e)

@@ -51,6 +51,8 @@ namespace OnlineVideos.Reflection
 
         public string Namespace { get { return FieldPropertyDescriptor.PropertyType.Namespace; } }
 
+        public bool IsBrowsable { get { return FieldPropertyDescriptor.IsBrowsable; } }
+
         public string[] GetEnumValues()
         {
             if (FieldPropertyDescriptor.PropertyType.IsEnum)

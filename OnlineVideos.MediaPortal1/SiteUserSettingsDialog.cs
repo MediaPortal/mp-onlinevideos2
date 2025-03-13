@@ -15,7 +15,7 @@ namespace OnlineVideos.MediaPortal1
             List<OnlineVideos.Reflection.FieldPropertyDescriptorByRef> actualProps = selectedSite.GetUserConfigurationProperties();
 
             // limit to what the UI can show
-            actualProps = actualProps.Where(prop => (prop.IsEnum || prop.Namespace == "System")).ToList();
+            actualProps = actualProps.Where(prop => prop.IsBrowsable && (prop.IsEnum || prop.Namespace == "System")).ToList();
 
             if (actualProps.Count > 0)
             {
