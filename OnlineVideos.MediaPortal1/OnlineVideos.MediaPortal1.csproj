@@ -393,6 +393,7 @@
     <Compile Include="SmsT9Filter.cs" />
     <Compile Include="Trakt\TraktPluginHelper.cs" />
     <Compile Include="Translator.cs" />
+    <Compile Include="WatchersDatabase.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Configuration\CreateEditSite.resx">
