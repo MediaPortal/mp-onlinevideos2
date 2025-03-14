@@ -219,13 +219,14 @@ namespace OnlineVideos.MediaPortal1
                 // reset the LoadParameterInfo
                 loadParamInfo = null;
 
-                string loadParam = null;
+                string loadParam = this._loadParameterObject is MediaPortal.Services.NotifyMessageServiceEventArgs args ? args.Message.PluginArguments : this._loadParameter;
+
                 // check if running version of mediaportal supports loading with parameter and handle _loadParameter
-                System.Reflection.FieldInfo fi = typeof(GUIWindow).GetField("_loadParameter", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                if (fi != null)
-                {
-                    loadParam = (string)fi.GetValue(this);
-                }
+                //System.Reflection.FieldInfo fi = typeof(GUIWindow).GetField("_loadParameter", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                //if (fi != null)
+                //{
+                //    loadParam = (string)fi.GetValue(this);
+                //}
                 // check for LoadParameters by GUIproperties if nothing was set by the _loadParameter
                 if (string.IsNullOrEmpty(loadParam)) loadParam = LoadParameterInfo.FromGuiProperties();
 
@@ -251,6 +252,9 @@ namespace OnlineVideos.MediaPortal1
                         SelectedSite = OnlineVideoSettings.Instance.SiteUtilsList[loadParamInfo.Site];
                         CurrentState = State.categories;
                         selectedCategory = null;
+
+                        if (!string.IsNullOrWhiteSpace(loadParamInfo.Video))
+                            this._PreselectVideoInfo = loadParamInfo.Video;
                     }
                     if (SelectedSite != null && SelectedSite.CanSearch && !string.IsNullOrEmpty(loadParamInfo.Search))
                     {

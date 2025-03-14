@@ -214,6 +214,7 @@ namespace OnlineVideos.MediaPortal1
         SmsT9Filter currentFilter = new SmsT9Filter();
         string videosVKfilter = string.Empty; // used for searching in large lists of videos
         LoadParameterInfo loadParamInfo;
+        string _PreselectVideoInfo = null;
 
         bool GroupsEnabled
         {
@@ -2073,7 +2074,13 @@ namespace OnlineVideos.MediaPortal1
 
                 if (listItem.Item == selectedVideo) GUI_facadeView.SelectedListItemIndex = GUI_facadeView.Count - 1;
                 if (!string.IsNullOrEmpty(videoInfo.Thumb)) imageHash[videoInfo.Thumb] = true;
+
+                if (this._PreselectVideoInfo != null && videoInfo.Title == this._PreselectVideoInfo)
+                    indextoSelect = this.currentFacadeItems.Count - 1;
             }
+
+            this._PreselectVideoInfo = null;
+
             // fall back to list view if there are no items with thumbs or more than one item and all have the same thumb
             suggestedView = null;
             if ((GUI_facadeView.Count > 1 && imageHash.Count == 0) || (GUI_facadeView.Count > 2 && imageHash.Count == 1)) suggestedView = GUIFacadeControl.Layout.List;
