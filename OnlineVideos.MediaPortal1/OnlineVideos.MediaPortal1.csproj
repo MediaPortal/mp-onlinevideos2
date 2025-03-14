@@ -266,6 +266,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Configuration\UserStore.cs" />
+    <Compile Include="Database.cs" />
     <Compile Include="FavoritesDatabase.cs" />
     <Compile Include="Gui2UtilConnector.cs" />
     <Compile Include="GUIOnlineVideos.cs" />

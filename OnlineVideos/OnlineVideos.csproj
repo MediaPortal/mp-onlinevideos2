@@ -343,6 +343,7 @@
     <Compile Include="3rdParty\HtmlAgilityPack\MixedCodeDocumentTextFragment.cs" />
     <Compile Include="3rdParty\HtmlAgilityPack\NameValuePair.cs" />
     <Compile Include="3rdParty\HtmlAgilityPack\NameValuePairList.cs" />
+    <Compile Include="IWatchersDatabase.cs" />
     <Compile Include="LocalizableDisplayNameAttribute.cs" />
     <Compile Include="ILog.cs" />
     <Compile Include="MixedUrl.cs" />
@@ -891,9 +892,11 @@
     <Compile Include="Sites\Base\SiteUtilFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Sites\Interfaces\IInputStreamSite.cs" />
+    <Compile Include="Sites\Interfaces\ILastCategoryVideos.cs" />
     <Compile Include="Sites\Interfaces\IWebViewSiteUtil.cs" />
     <Compile Include="Sites\Updater.cs" />
     <Compile Include="Helpers\SubtitleUtils.cs" />
+    <Compile Include="Sites\WatcherUtil.cs" />
     <Compile Include="SubtitleHandler.cs" />
     <Compile Include="SubtitleList.cs" />
     <Compile Include="Translation.cs" />
