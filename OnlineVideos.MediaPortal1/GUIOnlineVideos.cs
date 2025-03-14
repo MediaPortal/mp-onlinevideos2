@@ -1638,7 +1638,7 @@ namespace OnlineVideos.MediaPortal1
             UpdateViewState();
 
             // automatically browse up or down if only showing a single category and parameter was set
-            if (categories.Count == 1 && diveDownOrUpIfSingle != null && SelectedSite.AllowDiveDownOrUpIfSingle)
+            if (categories.Count == 1 && diveDownOrUpIfSingle != null && SelectedSite.AllowDiveDownOrUpIfSingle && (selectedCategory == null || selectedCategory.AllowDiveDownOrUpIfSingle))
             {
                 if (diveDownOrUpIfSingle.Value)
                     OnClicked(GUI_facadeView.GetID, GUI_facadeView, Action.ActionType.ACTION_SELECT_ITEM);

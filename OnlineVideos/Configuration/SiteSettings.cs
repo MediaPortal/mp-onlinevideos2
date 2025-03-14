@@ -369,6 +369,11 @@ namespace OnlineVideos
         /// path is used instead(default). Used by Watcher util.
         /// </summary>
         public string TagLink { get; set; }
+
+        /// <summary>
+        /// Overrides site's AllowDiveDownOrUpIfSingle property for this category.
+        /// </summary>
+        public bool AllowDiveDownOrUpIfSingle { get; set; } = true;
     }
 
     [DataContract]
