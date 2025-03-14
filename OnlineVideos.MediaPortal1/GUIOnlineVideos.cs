@@ -358,6 +358,7 @@ namespace OnlineVideos.MediaPortal1
                 if (selectedItem == null || selectedItem.Item == null) return; // only context menu for items with an object backing them
 
                 Category aCategory = selectedItem.Item as Category;
+                string strCatRecursiveName = aCategory.RecursiveName("|");
                 if (aCategory != null && !(aCategory is NextPageCategory))
                 {
                     GUIDialogMenu dlgCat = (GUIDialogMenu)GUIWindowManager.GetWindow((int)GUIWindow.Window.WINDOW_DIALOG_MENU);
@@ -365,7 +366,7 @@ namespace OnlineVideos.MediaPortal1
                     dlgCat.Reset();
                     dlgCat.SetHeading(Translation.Instance.Actions);
                     List<KeyValuePair<string, Sites.ContextMenuEntry>> dialogOptions = new List<KeyValuePair<string, Sites.ContextMenuEntry>>();
-                    if (!(SelectedSite is Sites.FavoriteUtil))
+                    if (!(SelectedSite is Sites.FavoriteUtil) && !(SelectedSite is Sites.WatcherUtil))
                     {
                         if (selectedItem.IsPlayed)
                         {
@@ -377,7 +378,24 @@ namespace OnlineVideos.MediaPortal1
                             dlgCat.Add(Translation.Instance.AddToFavourites);
                             dialogOptions.Add(new KeyValuePair<string, Sites.ContextMenuEntry>(Translation.Instance.AddToFavourites, null));
                         }
+
+                        if (OnlineVideoSettings.Instance.WatchDB.CategoryExists(SelectedSite.Settings.Name, strCatRecursiveName))
+                        {
+                            dlgCat.Add(Translation.Instance.RemoveFromWatchers);
+                            dialogOptions.Add(new KeyValuePair<string, Sites.ContextMenuEntry>(Translation.Instance.RemoveFromWatchers, null));
+                        }
+                        else if (!aCategory.HasSubCategories && SelectedSite is ILastCategoryVideos ifc && aCategory.IsWatchable)
+                        {
+                            dlgCat.Add(Translation.Instance.AddToWatchers);
+                            dialogOptions.Add(new KeyValuePair<string, Sites.ContextMenuEntry>(Translation.Instance.AddToWatchers, null));
+                        }
                     }
+                    else if (SelectedSite is Sites.WatcherUtil)
+                    {
+                        dlgCat.Add(Translation.Instance.WatcherPeriod + ": " + ((WatcherUtil.WatcherCategory)aCategory).WatcherDbCategory.RefreshPeriod / 60 + " hours");
+                        dialogOptions.Add(new KeyValuePair<string, Sites.ContextMenuEntry>(Translation.Instance.WatcherPeriod, null));
+                    }
+
                     foreach (var entry in SelectedSite.GetContextMenuEntries(aCategory, null))
                     {
                         dlgCat.Add(entry.DisplayText);
@@ -409,6 +427,42 @@ namespace OnlineVideos.MediaPortal1
                                     selectedItem.IsPlayed = false;
                                     selectedItem.PinImage = "";
                                     selectedItem.RefreshCoverArt();
+                                }
+                            }
+                            else if (dlgCat.SelectedLabelText == Translation.Instance.AddToWatchers)
+                            {
+                                if (selectedSite is ILastCategoryVideos lv)
+                                {
+                                    List<VideoInfo> videos = !string.IsNullOrWhiteSpace(aCategory.TagLink) ?
+                                        lv.GetLatestVideos(DateTime.MinValue, null, aCategory.TagLink) : lv.GetLatestVideos(DateTime.MinValue, null, aCategory);
+
+                                    if (videos != null)
+                                    {
+                                        OnlineVideoSettings.Instance.WatchDB.AddCategory(aCategory, SelectedSite.Settings.Name, 24 * 60, DateTime.Now,
+                                            videos.Count > 0 ? videos[0].VideoUrl : null);
+                                    }
+                                }
+                            }
+                            else if (dlgCat.SelectedLabelText == Translation.Instance.RemoveFromWatchers)
+                            {
+                                bool result = OnlineVideoSettings.Instance.WatchDB.RemoveCategory(SelectedSite.Settings.Name, strCatRecursiveName);
+                                if (result)
+                                {
+                                }
+                            }
+                            else if (dlgCat.SelectedLabelText.StartsWith(Translation.Instance.WatcherPeriod))
+                            {
+                                WatcherDbCategory catW = ((WatcherUtil.WatcherCategory)aCategory).WatcherDbCategory;
+                                string strValue = (catW.RefreshPeriod / 60).ToString();
+                                if (GetUserInputString(ref strValue, false, true))
+                                {
+                                    int iPeriog = int.Parse(strValue);
+                                    if (iPeriog < 1)
+                                        iPeriog = 60;
+                                    else
+                                        iPeriog *= 60;
+                                    OnlineVideoSettings.Instance.WatchDB.UpdateCategory(catW.Id, iPeriog, catW.LastRefresh, catW.LastVideo);
+                                    OnlineVideoSettings.Instance.WatchDB.Refresh();
                                 }
                             }
                         }
@@ -985,6 +1039,10 @@ namespace OnlineVideos.MediaPortal1
                                     },
                                     Translation.Instance.GettingDynamicCategories, true);
                                 }
+                                else if (categoryToDisplay is Sites.WatcherUtil.WatcherCategory)
+                                {
+
+                                }
                                 else if (categoryToDisplay.HasSubCategories)
                                 {
                                     if (SelectedSite is Sites.FavoriteUtil && categoryToDisplay.ParentCategory == null)
@@ -1298,6 +1356,14 @@ namespace OnlineVideos.MediaPortal1
                 if (selectedSitesGroup != null && selectedSitesGroup.Label == listItem.Label) GUI_facadeView.SelectedListItemIndex = GUI_facadeView.Count - 1;
             }
             if (OnlineVideoSettings.Instance.SiteUtilsList.TryGetValue(Translation.Instance.DownloadedVideos, out aSite))
+            {
+                OnlineVideosGuiListItem listItem = new OnlineVideosGuiListItem(aSite);
+                listItem.OnItemSelected += OnItemSelected;
+                listItem.ItemId = GUI_facadeView.Count;
+                GUI_facadeView.Add(listItem);
+                if (selectedSitesGroup != null && selectedSitesGroup.Label == listItem.Label) GUI_facadeView.SelectedListItemIndex = GUI_facadeView.Count - 1;
+            }
+           if (OnlineVideoSettings.Instance.SiteUtilsList.TryGetValue(Translation.Instance.Watchers, out aSite))
             {
                 OnlineVideosGuiListItem listItem = new OnlineVideosGuiListItem(aSite);
                 listItem.OnItemSelected += OnItemSelected;
@@ -3481,6 +3547,19 @@ namespace OnlineVideos.MediaPortal1
             currentPlaylist = null;
             currentPlayingItem = null;
             CurrentState = State.groups;
+        }
+
+        private void OnVideoWindowChanged()
+        {
+            if (GUIGraphicsContext.IsFullScreenVideo)
+            {
+                if (!g_Player.IsTV)
+                    OnlineVideoSettings.Instance.WatchDB.Stop();
+            }
+            else
+            {
+                OnlineVideoSettings.Instance.WatchDB.Start();
+            }
         }
 
         #endregion

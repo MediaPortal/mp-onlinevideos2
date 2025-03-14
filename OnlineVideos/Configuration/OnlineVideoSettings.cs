@@ -19,6 +19,7 @@ namespace OnlineVideos
 
         public IUserStore UserStore;
         public IFavoritesDatabase FavDB;
+        public IWatchersDatabase WatchDB;
         public ILog Logger;
         public ImageDownloader.ResizeOptions ThumbsResizeOptions { get; set; }
         public string ConfigDir;
@@ -114,6 +115,7 @@ namespace OnlineVideos
             // remember settings
             IUserStore userStore = Instance.UserStore;
             IFavoritesDatabase favDb = Instance.FavDB;
+            IWatchersDatabase watchDb = Instance.WatchDB;
             ILog logger = Instance.Logger;
             ImageDownloader.ResizeOptions thumbsResizeOptions = Instance.ThumbsResizeOptions;
             string configDir = Instance.ConfigDir;
@@ -137,6 +139,7 @@ namespace OnlineVideos
             // set remembered settings
             newInstance.UserStore = userStore;
             newInstance.FavDB = favDb;
+            newInstance.WatchDB = watchDb;
             newInstance.Logger = logger;
             newInstance.ThumbsResizeOptions = thumbsResizeOptions;
             newInstance.ConfigDir = configDir;
@@ -197,6 +200,7 @@ namespace OnlineVideos
             {
                 AddFavoritesSite();
                 AddDownloadsSite();
+                AddWatcherSite();
             }
 
             foreach (SiteSettings siteSettings in SiteSettingsList)
@@ -214,6 +218,7 @@ namespace OnlineVideos
             {
                 AddFavoritesSite();
                 AddDownloadsSite();
+                AddWatcherSite();
             }
 
             SiteUtilsWereBuilt = true;
@@ -249,6 +254,21 @@ namespace OnlineVideos
                 {
                     Name = Translation.Instance.DownloadedVideos,
                     UtilName = "DownloadedVideo",
+                    IsEnabled = true
+                };
+                SiteUtilsList.Add(aSite.Name, SiteUtilFactory.CreateFromShortName(aSite.UtilName, aSite));
+            }
+        }
+
+        void AddWatcherSite()
+        {
+            if (WatchDB != null)
+            {
+                //create a watcher site
+                SiteSettings aSite = new SiteSettings
+                {
+                    Name = Translation.Instance.Watchers,
+                    UtilName = "Watcher",
                     IsEnabled = true
                 };
                 SiteUtilsList.Add(aSite.Name, SiteUtilFactory.CreateFromShortName(aSite.UtilName, aSite));

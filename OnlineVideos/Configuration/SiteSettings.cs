@@ -358,6 +358,17 @@ namespace OnlineVideos
         }
 
         #endregion
+
+        /// <summary>
+        /// True, if te category can be watched for latest videos.
+        /// </summary>
+        public bool IsWatchable { get; set; } = false;
+
+        /// <summary>
+        /// Category information for direct url access. If not specified, then recursive
+        /// path is used instead(default). Used by Watcher util.
+        /// </summary>
+        public string TagLink { get; set; }
     }
 
     [DataContract]

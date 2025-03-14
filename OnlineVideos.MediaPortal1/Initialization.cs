@@ -64,6 +64,9 @@ namespace OnlineVideos.MediaPortal1
 
                 LatestVideosManager = new LatestVideosManager();
                 LatestVideosManager.Start();
+
+                GUIGraphicsContext.OnVideoWindowChanged += this.OnVideoWindowChanged;
+                OnlineVideoSettings.Instance.WatchDB.Start();
             }
             catch (Exception ex)
             {

@@ -8,7 +8,7 @@ namespace OnlineVideos.MediaPortal1
 {
     public class FavoritesDatabase : MarshalByRefObject, IFavoritesDatabase
     {
-        private SQLiteClient m_db;
+        private readonly SQLiteClient m_db;
 
         private static FavoritesDatabase _Instance;
 
@@ -25,8 +25,7 @@ namespace OnlineVideos.MediaPortal1
         {
             try
             {
-                m_db = new SQLiteClient(Config.GetFile(Config.Dir.Database, "OnlineVideoDatabase.db3"));
-                DatabaseUtility.SetPragmas(m_db);
+                m_db = Database.Instance.Client;
                 DatabaseUtility.AddTable(m_db, "FAVORITE_VIDEOS", "CREATE TABLE FAVORITE_VIDEOS(VDO_ID integer primary key autoincrement,VDO_NM text,VDO_URL text,VDO_DESC text,VDO_TAGS text,VDO_LENGTH text,VDO_OTHER_NFO text,VDO_IMG_URL text,VDO_SITE_ID text)\n");
                 DatabaseUtility.AddTable(m_db, "FAVORITE_Categories", "CREATE TABLE FAVORITE_Categories(CAT_ID integer primary key autoincrement,CAT_Name text,CAT_Desc text,CAT_ThumbUrl text,CAT_Hierarchy text,CAT_SITE_ID text, CAT_IS_SEARCH boolean, SEARCH_CAT_HASSUBS boolean)\n");
                 DatabaseUtility.AddTable(m_db, "PREFERRED_LAYOUT", "CREATE TABLE PREFERRED_LAYOUT(Site_Name text, Category_Hierarchy text, Layout integer, PRIMARY KEY (Site_Name, Category_Hierarchy) ON CONFLICT REPLACE)\n");
@@ -39,16 +38,6 @@ namespace OnlineVideos.MediaPortal1
             catch (SQLiteException ex)
             {
                 Log.Instance.Error("database exception err:{0} stack:{1}", ex.Message, ex.StackTrace);
-            }
-        }
-
-        public void Dispose()
-        {
-            if (m_db != null)
-            {
-                m_db.Close();
-                m_db.Dispose();
-                m_db = null;
             }
         }
 

@@ -189,6 +189,7 @@ namespace OnlineVideos.MediaPortal1
 
             ovsconf.UserStore = new UserStore();
             ovsconf.FavDB = FavoritesDatabase.Instance;
+            ovsconf.WatchDB = WatchersDatabase.Instance;
             ovsconf.Logger = Log.Instance;
             ovsconf.ThumbsDir = Config.GetFolder(Config.Dir.Thumbs) + @"\OnlineVideos\";
             ovsconf.ConfigDir = Config.GetFolder(Config.Dir.Config);

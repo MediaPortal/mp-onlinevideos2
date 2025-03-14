@@ -78,6 +78,8 @@ namespace OnlineVideos
         public string AddToPlaylist = "Add to Playlist ...";
         public string AddToMySites = "Add to my sites";
         public string AddToFavourites = "Add to favourites";
+        public string AddToWatchers = "Add to watchers";
+        public string AddNewChannel = "Add new channel";
         public string AutomaticUpdate = "Automatic Update";
         public string AutomaticUpdateDisabled = "Automatic Update disabled.";
 
@@ -148,10 +150,12 @@ namespace OnlineVideos
         public string Groups = "Groups";
 
         // H
+        public string Hours = "hours";
 
         // I
 
         // L
+        public string LastRefresh = "Last refresh";
         public string LatestVersionRequired = "Latest version ({0}) required!";
         public string Language = "Language";
         public string LayoutList = "Layout: List";
@@ -161,6 +165,8 @@ namespace OnlineVideos
         // M
         public string ManageSites = "Manage Sites";
         public string MaxResults = "Max Results";
+        public string MoveToCategory = "Move to category";
+        public string MoveToExistingCategory = "Move to existing category";
 
         // N
         public string Name = "Name";
@@ -201,12 +207,17 @@ namespace OnlineVideos
         public string RemoveFromPlaylist = "Remove from Playlist";
         public string RemovingFromFavorites = "removing from favorites";
         public string Refresh = "Refresh";
+        public string RefreshPeriod = "Refresh period";
+        public string RelatedVideos = "Related Videos";
         public string ReportBroken = "Report Broken";
         public string Reported = "Reported";
         public string Reports = "Reports";
         public string Runtime = "Runtime";
         public string RemoveFromMySites = "Remove from my sites";
         public string RemoveAllFromMySites = "Remove all from my sites";
+        public string RemoveFromWatchers = "Remove from watchers";
+        public string RemoveChannel = "Remove channel";
+        public string RemoveFromCategory = "Remove from category";
         public string RestartMediaPortal = "Restart MediaPortal!";
         public string RetrievingRemoteDlls = "Retrieving remote dlls ...";
         public string RetrievingRemoteSites = "Retrieving remote sites ...";
@@ -251,6 +262,8 @@ namespace OnlineVideos
         public string VideoQuality = "Video Quality";
 
         // W
+        public string WatcherPeriod = "Watcher refresh period";
+        public string Watchers = "Watchers";
         public string Working = "Working";
         public string Writers = "Writers";
 
