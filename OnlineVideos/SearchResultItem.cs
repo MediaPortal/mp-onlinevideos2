@@ -60,6 +60,18 @@ namespace OnlineVideos
             }
         }
 
+        /// <summary>
+        /// Overrides GUIListItem's Label2 text if not null.
+        /// </summary>
+        [XmlIgnore]
+        public virtual string Label2 { get; set; }
+
+        /// <summary>
+        /// Overrides GUIListItem's Label2 text if not null.
+        /// </summary>
+        [XmlIgnore]
+        public virtual string Label3 { get; set; }
+
         void OnOtherPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             NotifyPropertyChanged("Other");

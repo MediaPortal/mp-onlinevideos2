@@ -50,8 +50,9 @@ namespace OnlineVideos.MediaPortal1
 
         public OnlineVideosGuiListItem(Category item) : base(item.Name)
         {
-            Label2 = item is RssLink && (item as RssLink).EstimatedVideoCount > 0 ? (item as RssLink).EstimatedVideoCount.ToString() : 
-                item is Group && (item as Group).Channels.Count > 0 ? (item as Group).Channels.Count.ToString() : Label2;
+            Label2 = !string.IsNullOrWhiteSpace(item.Label2) ? item.Label2 : (item is RssLink && (item as RssLink).EstimatedVideoCount > 0 ? (item as RssLink).EstimatedVideoCount.ToString() : 
+                item is Group && (item as Group).Channels.Count > 0 ? (item as Group).Channels.Count.ToString() : Label2);
+            //Label3 = !string.IsNullOrWhiteSpace(item.Label3) ? item.Label3 : string.Empty;
             IsFolder = true;
             Item = item;
             MediaPortal.Util.Utils.SetDefaultIcons(this);
@@ -60,7 +61,8 @@ namespace OnlineVideos.MediaPortal1
         public OnlineVideosGuiListItem(VideoInfo item)
         {
             Label = item.Title;
-            Label2 = !string.IsNullOrEmpty(item.Length) ? Helpers.TimeUtils.TimeFromSeconds(item.Length) : item.Airdate;
+            Label2 = !string.IsNullOrWhiteSpace(item.Label2) ? item.Label2 : (!string.IsNullOrEmpty(item.Length) ? Helpers.TimeUtils.TimeFromSeconds(item.Length) : item.Airdate);
+            //Label3 = !string.IsNullOrWhiteSpace(item.Label3) ? item.Label3 : (Label2 != item.Airdate ? item.Airdate : string.Empty);
             Item = item;
             IconImage = "defaultVideo.png";
             IconImageBig = "defaultVideoBig.png";

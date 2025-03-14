@@ -1619,6 +1619,7 @@ namespace OnlineVideos.MediaPortal1
                         }
                         if (!string.IsNullOrEmpty(loCat.Thumb)) imageHash[loCat.Thumb] = true;
                         loListItem.OnItemSelected += OnItemSelected;
+                        loListItem.Label2 = loCat.Label2;
                         if (loCat == selectedCategory) categoryIndexToSelect = GUI_facadeView.Count; // select the category that was previously selected
                         GUI_facadeView.Add(loListItem);
                         currentFacadeItems.Add(loListItem);
