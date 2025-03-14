@@ -374,6 +374,16 @@ namespace OnlineVideos.Sites
             return null;
         }
 
+        /// <summary>
+        /// Checks, if the site util can handle playback url.
+        /// </summary>
+        /// <param name="strUrl">Url link to handle.</param>
+        /// <returns>True, if the site util can provide final playback link from the given strUrl argument.</returns>
+        public virtual bool CanHandleUrl(string strUrl)
+        {
+            return false;
+        }
+
         public override string ToString()
         {
             return Settings == null ? base.ToString() : Settings.Name;

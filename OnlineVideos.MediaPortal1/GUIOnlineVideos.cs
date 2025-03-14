@@ -18,7 +18,7 @@ using Action = MediaPortal.GUI.Library.Action;
 namespace OnlineVideos.MediaPortal1
 {
     [PluginIcons("OnlineVideos.MediaPortal1.OnlineVideos.png", "OnlineVideos.MediaPortal1.OnlineVideosDisabled.png")]
-    public partial class GUIOnlineVideos : GUIWindow, ISetupForm, IShowPlugin
+    public partial class GUIOnlineVideos : GUIWindow, ISetupForm, IShowPlugin, IPlayerService
     {
         public const int WindowId = 4755;
 
@@ -3569,6 +3569,78 @@ namespace OnlineVideos.MediaPortal1
             }
         }
 
+        #endregion
+
+        #region IPlayerService
+
+        public PlayerServiceResultEnum GetPlaybackLink(string strLink, out object result)
+        {
+            result = null;
+
+            foreach (KeyValuePair<string, SiteUtilBase> site in OnlineVideoSettings.Instance.SiteUtilsList)
+            {
+                if (site.Value.CanHandleUrl(strLink))
+                {
+                    VideoInfo vi = new VideoInfo()
+                    {
+                        VideoUrl = strLink,
+                        Title = site.Value.Settings.Name
+                    };
+
+                    GUIWaitCursor.Init();
+                    GUIWaitCursor.Show();
+                    List<string> pl = null;
+                    System.Threading.Thread t = new System.Threading.Thread(delegate ()
+                    {
+                        //Call site util to get final url
+                        try { pl = site.Value.GetMultipleVideoUrls(vi); }
+                        catch { }
+                    });
+                    t.Start();
+                    DateTime dtStart = DateTime.Now;
+                    while (t.IsAlive)
+                    {
+                        if ((DateTime.Now - dtStart).TotalSeconds > OnlineVideoSettings.Instance.UtilTimeout)
+                            t.Abort();
+                        else
+                        {
+                            System.Threading.Thread.Sleep(20);
+                            GUIWindowManager.Process();
+                        }
+                    }
+                    GUIWaitCursor.Hide();
+                    if (pl?.Count > 0)
+                    {
+                        string strResult = pl[0];
+
+                        //Show quality selection menu
+                        if (this.DisplayPlaybackOptions(vi, ref strResult, false))
+                        {
+                            strResult = vi.PlaybackOptions[strResult];
+
+                            if (vi.SubtitleTexts != null &&
+                                this.SaveSubtitles(vi, Path.Combine(Path.GetTempPath(), "OnlineVideoSubtitlesFolder"), "OnlineVideoSubtitles", true))
+                            {
+                                string strSubFile = Path.Combine(Path.GetTempPath(), "OnlineVideoSubtitlesFolder", "OnlineVideoSubtitles.mp4");
+
+                                if (strResult.StartsWith(OnlinePlayerUrl.URL_SCHEME))
+                                    strResult += "&subtitleFile=" + System.Web.HttpUtility.UrlEncode(strSubFile);
+                                else
+                                    strResult = new OnlinePlayerUrl(strResult, null, null, strSubFile).ToString();
+                            }
+
+                            result = strResult;
+                            return PlayerServiceResultEnum.UrlLink;
+                        }
+                    }
+
+                    //result = string.Format("site:{0}|play:{1}|return:Return", site.Value.Settings.Name, System.Web.HttpUtility.UrlEncode(strLink));
+                    //return PlayerServiceResultEnum.PluginPlayback;
+                }
+            }
+
+            return PlayerServiceResultEnum.Unsupported;
+        }
         #endregion
     }
 }
