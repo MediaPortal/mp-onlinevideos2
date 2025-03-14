@@ -3,6 +3,7 @@ using Google.Apis.Json;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using Google.Apis.YouTube.v3;
+using Google.Apis.YouTube.v3.Data;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -14,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace OnlineVideos.Sites
 {
-    public class YouTubeV3Util : SiteUtilBase, IFilter
+    public class YouTubeV3Util : SiteUtilBase, IFilter, ILastCategoryVideos
     {
         #region Helper classes
 
@@ -78,6 +79,33 @@ namespace OnlineVideos.Sites
             internal bool IsMine { get; set; }
         }
 
+        private class YoutubeChannel
+        {
+            public string Title;
+            public string ChannelID;
+            public string Description;
+            public string ThumbUrl;
+            public string Category;
+        }
+
+        private class YoutubeDetail
+        {
+            public Category Parent;
+            public Func<YoutubeDetail, List<Category>> GetCategories;
+            public Func<YoutubeDetail, List<VideoInfo>> GetVideos;
+            public YoutubeChannel Channel;
+            public string QueryType;
+            public  SearchResource.ListRequest.EventTypeEnum? QueryEventType = null;
+            public SearchResource.ListRequest.OrderEnum QueryOrder = SearchResource.ListRequest.OrderEnum.Relevance;
+            public string QueryPageToken;
+            public object Tag;
+        }
+
+        private class SiteData// : SiteDataBase
+        {
+            public List<YoutubeChannel> ChannelList = new List<YoutubeChannel>();
+        };
+
         #endregion
 
         public enum VideoQuality { Low, Medium, High, HD, FullHD, Highest };
@@ -95,6 +123,9 @@ namespace OnlineVideos.Sites
         [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Enable Login"), Description("Will popup a browser on first use to select your YouTube account.")]
         bool enableLogin = false;
 
+        [Category("OnlineVideosUserConfiguration"), Browsable(false)]
+        private string _Config = string.Empty;
+
         string hl = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
         string regionCode = RegionInfo.CurrentRegion.TwoLetterISORegionName;
         YouTubeService service;
@@ -102,6 +133,10 @@ namespace OnlineVideos.Sites
         SearchResource.ListRequest.OrderEnum currentSearchOrder = SearchResource.ListRequest.OrderEnum.Relevance;
         string currentVideosTitle;
         string userFavoritesPlaylistId;
+
+        private SiteData _SiteData = null;
+        private Category _ChannelsRootCategory = null;
+        private SearchListResponse _SearchResult;
 
         private const string USER_UPLOADS_FEED = "http(?:s)?://gdata.youtube.com/feeds/api/users/(?<user>[^/]+)/uploads";
 
@@ -118,6 +153,7 @@ namespace OnlineVideos.Sites
                 var videoCategory = new Category() { Name = "Video Categories", HasSubCategories = true };
                 videoCategory.Other = (Func<List<Category>>)(() => QueryVideoCategories(videoCategory));
                 Settings.Categories.Add(videoCategory);
+
                 if (enableLogin)
                 {
                     try
@@ -128,6 +164,13 @@ namespace OnlineVideos.Sites
                     {
                         throw new OnlineVideosException(ex.Message);
                     }
+                }
+                else
+                {
+                    //Channels for users without YT account
+                    this._ChannelsRootCategory = new Category() { Name = "Channels", HasSubCategories = true, AllowDiveDownOrUpIfSingle = false };
+                    this._ChannelsRootCategory.Other = (Func<List<Category>>)(() => ChannelsGetRootItems(this._ChannelsRootCategory));
+                    Settings.Categories.Add(this._ChannelsRootCategory);
                 }
 
                 Settings.DynamicCategoriesDiscovered = true;
@@ -154,6 +197,12 @@ namespace OnlineVideos.Sites
                 parentCategory.SubCategoriesDiscovered = true;
                 return parentCategory.SubCategories.Count;
             }
+            else if (parentCategory.Other is YoutubeDetail detail)
+            {
+                parentCategory.SubCategories = detail.GetCategories.Invoke(detail);
+                return parentCategory.SubCategories.Count;
+            }
+
             return 0;
         }
 
@@ -167,6 +216,14 @@ namespace OnlineVideos.Sites
                 category.ParentCategory.SubCategories.AddRange(newCategories);
                 return newCategories.Count;
             }
+            else if (category.Other is YoutubeDetail detail)
+            {
+                var newCategories = detail.GetCategories(detail);
+                category.ParentCategory.SubCategories.Remove(category);
+                category.ParentCategory.SubCategories.AddRange(newCategories);
+                return newCategories.Count;
+            }
+
             return 0;
         }
 
@@ -211,6 +268,10 @@ namespace OnlineVideos.Sites
             {
                 return method.Invoke();
             }
+            else if (category.Other is YoutubeDetail detail)
+            {
+                return detail.GetVideos(detail);
+            }
             return new List<VideoInfo>();
         }
 
@@ -227,6 +288,47 @@ namespace OnlineVideos.Sites
                 
             }
             return null; // no playback options
+        }
+
+        public override void Initialize(SiteSettings siteSettings)
+        {
+            base.Initialize(siteSettings);
+
+            //Try to load channel list from custom settings
+            try
+            {
+                this._SiteData = Newtonsoft.Json.JsonConvert.DeserializeObject<SiteData>(this._Config);
+            }
+            catch { }
+
+            if (this._SiteData == null)
+                this._SiteData = new SiteData();
+
+            if (this._SiteData.ChannelList.Count == 0)
+            {
+                //Default Youtube channel
+                this._SiteData.ChannelList.Add(new YoutubeChannel()
+                {
+                    Title = "YouTube",
+                    ChannelID = "UCBR8-60-B28hp2BmDPdntcQ",
+                    Description = "YouTube's Official Channel helps you discover what's new & trending globally. Watch must-see videos, from music to culture to Internet phenomena",
+                    ThumbUrl = "https://yt3.ggpht.com/Bg5wS82KGryRmcsn1YbPThtbXoTmj2XJ9_7LmuE2RF6wbKJBkovfRypbSz6UD3gEu_nHiwGZtQ=s800-c-k-c0x00ffffff-no-rj"
+                });
+            }
+
+            //if (this._SiteData.ChannelList.Count < 2)
+            //    this.allowDiveDownOrUpIfSingle = false;
+        }
+
+        public override void DeInitialize()
+        {
+            this.SetConfigValueFromString(this.GetUserConfigurationProperties().First(p => p.DisplayName == "_Config"), Newtonsoft.Json.JsonConvert.SerializeObject(this._SiteData));
+            base.DeInitialize();
+        }
+
+        public override bool CanHandleUrl(string strUrl)
+        {
+            return strUrl?.StartsWith("https://www.youtube.com/watch?v=", StringComparison.OrdinalIgnoreCase) ?? false;
         }
 
         #region Search
@@ -340,6 +442,82 @@ namespace OnlineVideos.Sites
                     result.Add(plCtx);
                 }
             }
+
+            if (!enableLogin)
+            {
+                YoutubeChannel ch = selectedCategory.Other is YoutubeDetail detail ? detail.Channel : null;
+                if (selectedCategory.ParentCategory == this._ChannelsRootCategory)
+                {
+                    //Add new channel
+                    result.Add(new ContextMenuEntry()
+                    {
+                        DisplayText = Translation.Instance.AddNewChannel,
+                        Action = ContextMenuEntry.UIAction.GetText,
+                    });
+
+                    //Remove selected channel
+                    if (ch != null)
+                    {
+                        if (ch != this._SiteData.ChannelList[0])
+                        {
+                            result.Add(new ContextMenuEntry()
+                            {
+                                DisplayText = Translation.Instance.RemoveChannel,
+                                Action = ContextMenuEntry.UIAction.Execute,
+                            });
+                        }
+
+                        //Add to category
+                        if (string.IsNullOrWhiteSpace(ch.Category))
+                        {
+                            result.Add(new ContextMenuEntry()
+                            {
+                                DisplayText = Translation.Instance.MoveToCategory,
+                                Action = ContextMenuEntry.UIAction.GetText,
+                            });
+
+                            //Existing category
+                            IEnumerable<IGrouping<string, YoutubeChannel>> cats = this._SiteData.ChannelList.Where(c => c.Category != null).GroupBy(c => c.Category);
+                            if (cats.Count() > 0)
+                            {
+                                ContextMenuEntry menu = new ContextMenuEntry()
+                                {
+                                    DisplayText = Translation.Instance.MoveToExistingCategory,
+                                    Action = ContextMenuEntry.UIAction.ShowList,
+                                };
+
+                                foreach (IGrouping<string, YoutubeChannel> cat in cats)
+                                    menu.SubEntries.Add(new ContextMenuEntry() { DisplayText = cat.Key, Action = ContextMenuEntry.UIAction.Execute });
+
+                                result.Add(menu);
+                            }
+                        }
+                    }
+                }
+                else if (ch != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(ch.Category))
+                    {
+                        //Remove from category
+                        result.Add(new ContextMenuEntry()
+                        {
+                            DisplayText = Translation.Instance.RemoveFromCategory,
+                            Action = ContextMenuEntry.UIAction.Execute,
+                        });
+                    }
+                }
+
+                if (ch != null)
+                {
+                    //Refresh metadata
+                    result.Add(new ContextMenuEntry()
+                    {
+                        DisplayText = "Refresh metadata",
+                        Action = ContextMenuEntry.UIAction.Execute,
+                    });
+                }
+            }
+
             return result;
         }
 
@@ -435,7 +613,118 @@ namespace OnlineVideos.Sites
                     var playlistsCategory = Settings.Categories.FirstOrDefault(c => (c is YouTubeCategory) && (c as YouTubeCategory).IsMine && c.Name.EndsWith(Translation.Instance.Playlists));
                     if (playlistsCategory != null) playlistsCategory.SubCategoriesDiscovered = false;
                 }
+                else if (!enableLogin)
+                {
+                    if (choice.Other is string strChannelId)
+                    {
+                       if (this._SiteData.ChannelList.Exists(c => c.ChannelID == strChannelId))
+                            return new ContextMenuExecutionResult() { ExecutionResultMessage = "Channel already exists." };
 
+                        SearchResultSnippet snippet = this._SearchResult.Items.First(p => p.Snippet.ChannelId == strChannelId).Snippet;
+                        YoutubeChannel ch = new YoutubeChannel()
+                        {
+                            ChannelID = snippet.ChannelId,
+                            Title = snippet.Title,
+                            Description = snippet.Description,
+                            ThumbUrl = this.getThumbnailUrl(snippet.Thumbnails),
+                        };
+
+                        this._SiteData.ChannelList.Add(ch);
+                        this._ChannelsRootCategory.SubCategories.Add(new Category()
+                        {
+                            Other = new YoutubeDetail() { Parent = this._ChannelsRootCategory, Channel = ch, GetCategories = this.ChannelsGetChannelRootItems },
+                            Name = ch.Title,
+                            Description = ch.Description,
+                            Thumb = ch.ThumbUrl,
+                            HasSubCategories = true,
+                            ParentCategory = selectedCategory.ParentCategory
+                        });
+
+                        return new ContextMenuExecutionResult()
+                        { ExecutionResultMessage = "Channel \'" + ch.Title + "\' created.", RefreshCurrentItems = true };
+                    }
+
+                    if (choice.ParentEntry != null && choice.ParentEntry.DisplayText == Translation.Instance.MoveToExistingCategory)
+                    {
+                        ((YoutubeDetail)selectedCategory.Other).Channel.Category = choice.DisplayText;
+                        this.Settings.DynamicCategoriesDiscovered = false;
+                        return new ContextMenuExecutionResult() { RefreshCurrentItems = true };
+                    }
+
+                    if (choice.DisplayText == Translation.Instance.AddNewChannel)
+                    {
+                        if (string.IsNullOrWhiteSpace(choice.UserInputText))
+                            return new ContextMenuExecutionResult() { ExecutionResultMessage = "Invalid name." };
+
+                        SearchResource.ListRequest rq = Service.Search.List("snippet");
+                        rq.Q = choice.UserInputText.Trim();
+                        rq.MaxResults = 20;
+                        rq.Type = "channel";
+
+                        this._SearchResult = rq.Execute();
+
+                        if (this._SearchResult.Items.Count == 0)
+                            return new ContextMenuExecutionResult() { ExecutionResultMessage = "Channel not found." };
+
+                        ContextMenuEntry entry = new ContextMenuEntry
+                        {
+                            DisplayText = "Select Channel to add",
+                            Action = ContextMenuEntry.UIAction.ShowList,
+                        };
+                        foreach (SearchResult item in this._SearchResult.Items)
+                        {
+                            entry.SubEntries.Add(new ContextMenuEntry()
+                            {
+                                DisplayText = item.Snippet.Title,
+                                Action = ContextMenuEntry.UIAction.Execute,
+                                Other = item.Snippet.ChannelId
+                            });
+                        }
+                        return new ContextMenuExecutionResult() { SubMenu = entry };
+                    }
+                    else if (choice.DisplayText == Translation.Instance.RemoveChannel)
+                    {
+                        this.Settings.Categories.Remove(selectedCategory);
+                        this._SiteData.ChannelList.Remove(((YoutubeDetail)selectedCategory.Other).Channel);
+                        this.Settings.DynamicCategoriesDiscovered = false;
+                        if (selectedCategory.ParentCategory != null)
+                            selectedCategory.ParentCategory.SubCategoriesDiscovered = false;
+                        return new ContextMenuExecutionResult()
+                        { ExecutionResultMessage = "Channel \'" + selectedCategory.Name + "\' removed.", RefreshCurrentItems = true };
+                    }
+                    else if (choice.DisplayText == Translation.Instance.MoveToCategory)
+                    {
+                        string strName = choice.UserInputText.Trim();
+
+                        if (string.IsNullOrWhiteSpace(strName))
+                            return new ContextMenuExecutionResult() { ExecutionResultMessage = "Invalid name." };
+
+                        ((YoutubeDetail)selectedCategory.Other).Channel.Category = strName;
+                        selectedCategory.ParentCategory.SubCategoriesDiscovered = false;
+                        return new ContextMenuExecutionResult() { RefreshCurrentItems = true };
+                    }
+                    else if (choice.DisplayText == Translation.Instance.RemoveFromCategory)
+                    {
+                        ((YoutubeDetail)selectedCategory.Other).Channel.Category = null;
+                        selectedCategory.ParentCategory.SubCategoriesDiscovered = false;
+                        return new ContextMenuExecutionResult() { RefreshCurrentItems = true };
+                    }
+                    else if (choice.DisplayText == "Refresh metadata")
+                    {
+                        YoutubeChannel ch = ((YoutubeDetail)selectedCategory.Other).Channel;
+
+                        ChannelsResource.ListRequest rq = Service.Channels.List("snippet");
+                        rq.Id = ch.ChannelID;
+                        ChannelListResponse resp = rq.Execute();
+                        if (resp.Items.Count > 0)
+                        {
+                            ch.ThumbUrl = this.getThumbnailUrl(resp.Items[0].Snippet.Thumbnails);
+                            ch.Description = resp.Items[0].Snippet.Description;
+                            selectedCategory.Thumb = ch.ThumbUrl;
+                            return new ContextMenuExecutionResult() { RefreshCurrentItems = true };
+                        }
+                    }
+                }
             }
             catch (Google.GoogleApiException apiEx)
             {
@@ -631,7 +920,9 @@ namespace OnlineVideos.Sites
                     ParentCategory = parentCategory,
                     Kind = YouTubeCategory.CategoryKind.Channel,
                     Id = channelId,
-                    Other = (Func<List<VideoInfo>>)(() => QuerySearchVideos(null, "videos", parentCategory.Id, null, true, null))
+                    Other = (Func<List<VideoInfo>>)(() => QuerySearchVideos(null, "videos", parentCategory.Id, null, true, null)),
+                    IsWatchable = true,
+                    TagLink = "type=video&id=" + parentCategory.Id
                 });
             }
             foreach (var item in response.Items)
@@ -647,7 +938,9 @@ namespace OnlineVideos.Sites
                         Kind = YouTubeCategory.CategoryKind.Playlist,
                         Id = item.Id,
                         IsMine = parentCategory.IsMine,
-                        Other = (Func<List<VideoInfo>>)(() => QueryPlaylistVideos(item.Id))
+                        Other = (Func<List<VideoInfo>>)(() => QueryPlaylistVideos(item.Id)),
+                        IsWatchable = true,
+                        TagLink = "type=playlist&id=" + item.Id
                     });
             }
             if (!string.IsNullOrEmpty(response.NextPageToken))
@@ -683,7 +976,9 @@ namespace OnlineVideos.Sites
                 Thumb = parentCategory.Thumb,
                 ParentCategory = parentCategory,
                 Kind = YouTubeCategory.CategoryKind.Other,
-                Other = (Func<List<VideoInfo>>)(() => QueryNewestSubscriptionVideos())
+                Other = (Func<List<VideoInfo>>)(() => QueryNewestSubscriptionVideos()),
+                IsWatchable = true,
+                TagLink = "type=subscr&id=none"
             });
 
             foreach (var item in response.Items)
@@ -825,7 +1120,7 @@ namespace OnlineVideos.Sites
             {
                 Title = i.Snippet.Title,
                 Description = i.Snippet.Description,
-                Thumb = i.Snippet.Thumbnails != null ? i.Snippet.Thumbnails.High.Url : null,
+                Thumb = i.Snippet.Thumbnails != null ? this.getThumbnailUrl(i.Snippet.Thumbnails) : null,
                 Airdate = i.Snippet.PublishedAt != null ? i.Snippet.PublishedAt.Value.ToString("g", OnlineVideoSettings.Instance.Locale) : i.Snippet.PublishedAtRaw,
                 VideoUrl = i.Snippet.ResourceId.VideoId,
                 ChannelId = i.Snippet.ChannelId,
@@ -843,7 +1138,8 @@ namespace OnlineVideos.Sites
         /// <summary>Returns a list of videos for the given search string.</summary>
         /// <param name="queryString">The search string to use as as filter in the query.</param>
         /// <param name="channelId">The channel id to use as filter in the query.</param>
-        List<VideoInfo> QuerySearchVideos(string queryString, string searchType, string channelId, string categoryId, bool sortbyDate = false, string pageToken = null)
+        List<VideoInfo> QuerySearchVideos(string queryString, string searchType, string channelId, string categoryId, bool sortbyDate = false, string pageToken = null,
+            SearchResource.ListRequest.EventTypeEnum? eventType = null)
         {
             var query = Service.Search.List("snippet");
             if (!string.IsNullOrEmpty(channelId))
@@ -865,6 +1161,7 @@ namespace OnlineVideos.Sites
             query.Type = searchType;
             query.MaxResults = pageSize;
             query.PageToken = pageToken;
+            query.EventType = eventType;
 
             var response = query.Execute();
 
@@ -895,7 +1192,7 @@ namespace OnlineVideos.Sites
                 VideoUrl = i.Id.VideoId,
                 ChannelId = i.Snippet.ChannelId,
                 ChannelTitle = i.Snippet.ChannelTitle,
-                Length = videoDurations.FirstOrDefault(x => x.Key == i.Id.VideoId).Value
+                Length = videoDurations.FirstOrDefault(x => x.Key == i.Id.VideoId).Value,
             }).ToList<VideoInfo>();
             if (!string.IsNullOrEmpty(response.NextPageToken))
             {
@@ -942,6 +1239,203 @@ namespace OnlineVideos.Sites
             }
 
             return videoDurations;
+        }
+        #endregion
+
+        #region Non Account Channels
+        private List<Category> ChannelsGetRootItems(Category parentCategory)
+        {
+            List<Category> result = new List<Category>();
+            Category category;
+
+            //Build list of categories
+            foreach (YoutubeChannel channel in this._SiteData.ChannelList.Where(ch => !string.IsNullOrWhiteSpace(ch.Category)))
+            {
+                if (result.FirstOrDefault(cat => cat.Name == channel.Category) == null)
+                {
+                    result.Add(category = new Category()
+                    {
+                        Name = channel.Category,
+                        HasSubCategories = true,
+                        SubCategories = new List<Category>(),
+                        SubCategoriesDiscovered = false,
+                        ParentCategory = parentCategory
+                    });
+                    category.Other = new YoutubeDetail() { Parent = category, GetCategories = this.ChannelsGetCategoryChannels };
+                }
+            }
+
+            //Add each non category YT channel to the list
+            this._SiteData.ChannelList.ForEach(ch =>
+            {
+                if (string.IsNullOrWhiteSpace(ch.Category))
+                {
+                    result.Add(category = new Category()
+                    {
+                        Name = ch.Title,
+                        Description = ch.Description,
+                        Thumb = ch.ThumbUrl,
+                        HasSubCategories = true,
+                        ParentCategory = parentCategory
+                    });
+                    category.Other = new YoutubeDetail() { Parent = category, Channel = ch, GetCategories = this.ChannelsGetChannelRootItems };
+                }
+            });
+
+            return result;
+        }
+
+        private List<Category> ChannelsGetCategoryChannels(YoutubeDetail detail)
+        {
+            List<Category> result = new List<Category>();
+            this._SiteData.ChannelList.ForEach(ch =>
+            {
+                if (ch.Category == detail.Parent.Name)
+                {
+                    Category cat;
+                    result.Add(cat = new Category()
+                    {
+                        Name = ch.Title,
+                        Description = ch.Description,
+                        Thumb = ch.ThumbUrl,
+                        HasSubCategories = true,
+                        ParentCategory = detail.Parent
+                    });
+                    cat.Other = new YoutubeDetail() { Parent = cat, Channel = ch, GetCategories = this.ChannelsGetChannelRootItems };
+                }
+            });
+
+            detail.Parent.SubCategoriesDiscovered = true;
+
+            return result;
+        }
+
+        private List<Category> ChannelsGetChannelRootItems(YoutubeDetail detail)
+        {
+            Category category;
+            List<Category> result = new List<Category>();
+
+            //Videos
+            result.Add(category = new Category()
+            {
+                Name = "Videos",
+                HasSubCategories = false,
+                ParentCategory = detail.Parent,
+                IsWatchable = true,
+                TagLink = "type=video&id=" + detail.Channel.ChannelID
+            });
+            category.Other = new YoutubeDetail() { Parent = category, Channel = detail.Channel, GetVideos = this.ChannelsGetVideos, QueryType = "video" };
+
+            //Live
+            result.Add(category = new Category()
+            {
+                Name = "Live",
+                HasSubCategories = false,
+                ParentCategory = detail.Parent
+            });
+            category.Other = new YoutubeDetail() { Parent = category, Channel = detail.Channel, GetVideos = this.ChannelsGetVideos, QueryType = "video", QueryEventType = SearchResource.ListRequest.EventTypeEnum.Live };
+
+            //Playlists
+            result.Add(category = new Category()
+            {
+                Name = "Playlists",
+                HasSubCategories = true,
+                ParentCategory = detail.Parent
+            });
+            category.Other = new YoutubeDetail() { Parent = category, Channel = detail.Channel, GetCategories = this.ChannelsGetPlaylists, QueryType = "playlist" };
+
+            detail.Parent.SubCategoriesDiscovered = true;
+
+            return result;
+        }
+
+        private List<VideoInfo> ChannelsGetVideos(YoutubeDetail detail)
+        {
+            return this.QuerySearchVideos(null, detail.QueryType, detail.Channel.ChannelID, null, true, null, detail.QueryEventType);
+        }
+
+        private List<Category> ChannelsGetPlaylists(YoutubeDetail detail)
+        {
+            PlaylistsResource.ListRequest rq = Service.Playlists.List("snippet"); //snippet,id
+            rq.ChannelId = detail.Channel.ChannelID;
+            rq.PageToken = detail.QueryPageToken;
+            rq.MaxResults = this.pageSize;
+
+            PlaylistListResponse response = rq.Execute();
+
+            List<Category> result = new List<Category>();
+
+            for (int i = 0; i < response.Items.Count; i++)
+            {
+                Playlist item = response.Items[i];
+                result.Add(new Category()
+                {
+                    Name = item.Snippet.Localized.Title,
+                    Description = item.Snippet.Localized.Description,
+                    Thumb = getThumbnailUrl(item.Snippet.Thumbnails),
+                    ParentCategory = detail.Parent,
+                    Other = (Func<List<VideoInfo>>)(() => QueryPlaylistVideos(item.Id)),
+                    IsWatchable = true,
+                    TagLink = "type=playlist&id=" + item.Id
+                });
+            }
+
+            if (!string.IsNullOrEmpty(response.NextPageToken))
+            {
+                detail.QueryPageToken = response.NextPageToken;
+                result.Add(new NextPageCategory()
+                {
+                    ParentCategory = detail.Parent,
+                    Other = new YoutubeDetail()
+                    {
+                        Channel = detail.Channel,
+                        GetCategories = this.ChannelsGetPlaylists,
+                        Parent = detail.Parent
+                    }
+                });
+            }
+
+            detail.Parent.SubCategoriesDiscovered = true;
+
+            return result;
+        }
+
+        #endregion
+
+        #region ILastCategoryVideos
+        public List<VideoInfo> GetLatestVideos(DateTime dtLastCheck, string strLastVideoUrl, Category category)
+        {
+            throw new NotImplementedException();
+        }
+
+        public List<VideoInfo> GetLatestVideos(DateTime dtLastCheck, string strLastVideoUrl, string strCategoryLink)
+        {
+            List<VideoInfo> result;
+            System.Collections.Specialized.NameValueCollection args = System.Web.HttpUtility.ParseQueryString(strCategoryLink);
+            string strId = args["id"];
+            switch (args["type"])
+            {
+                case "video":
+                    result = this.QuerySearchVideos(null, "video", strId, null, true, null);
+                    break;
+
+                case "playlist":
+                    result = this.QueryPlaylistVideos(strId);
+                    break;
+
+                case "subscr":
+                    result = this.QueryNewestSubscriptionVideos();
+                    break;
+
+                default:
+                    result = null;
+                    break;
+            }
+
+            if (result?.Count > 0)
+                result.ForEach(vi => vi.VideoUrl = "https://www.youtube.com/watch?v=" + vi.VideoUrl);
+
+            return result;
         }
         #endregion
     }
