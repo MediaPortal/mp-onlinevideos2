@@ -335,19 +335,20 @@ namespace OnlineVideos
 
         public string RecursiveName(string divider = " / ")
         {
-            string result = "";
+            StringBuilder result = new StringBuilder(256);
             Category c = this;
             while (c != null)
             {
-                if (c is SearchCategory && this is RssLink)
-                {
-                    result = ((RssLink)this).Url;
-                    break;
-                }
-                result = c.Name + (result == "" ? "" : divider) + result;
+                if (c is SearchCategory && this is RssLink rss)
+                    return rss.Url;
+
+                if (result.Length > 0)
+                    result.Insert(0, divider);
+
+                result.Insert(0, c.Name);
                 c = c.ParentCategory;
             }
-            return result;
+            return result.ToString();
         }
 
         #region IComparable<Category> Member
