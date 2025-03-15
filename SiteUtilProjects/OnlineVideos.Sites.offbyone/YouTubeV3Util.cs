@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -1039,23 +1040,17 @@ namespace OnlineVideos.Sites
             var response = query.Execute();
 
             // Collect video IDs from response for duration lookup
-            string videoIDs = "";
-
-            foreach (var item in response.Items)
+            StringBuilder sbVideoIDs = new StringBuilder(256);
+            for (int i = 0; i < response.Items.Count; i++)
             {
+                if (sbVideoIDs.Length > 0)
+                    sbVideoIDs.Append(',');
 
-                if (string.IsNullOrEmpty(videoIDs))
-                {
-                    videoIDs = item.Id.VideoId;
-                }
-                else
-                {
-                    videoIDs = videoIDs + "," + item.Id.VideoId;
-                }
+                sbVideoIDs.Append(response.Items[i].Id.VideoId);
             }
 
             // Retrieve Video durations
-            Dictionary<string, string> videoDurations = QueryVideoInfoDuration(videoIDs);
+            Dictionary<string, string> videoDurations = QueryVideoInfoDuration(sbVideoIDs.ToString());
 
             var results = response.Items.Select(i => new YouTubeVideo()
             {
@@ -1166,22 +1161,17 @@ namespace OnlineVideos.Sites
             var response = query.Execute();
 
             // Collect video IDs from response for duration lookup
-            string videoIDs = "";
-
-            foreach (var item in response.Items)
+            StringBuilder sbVideoIDs = new StringBuilder(256);
+            for (int i = 0; i < response.Items.Count; i++)
             {
-                if (string.IsNullOrEmpty(videoIDs))
-                {
-                    videoIDs = item.Id.VideoId;
-                }
-                else
-                {
-                    videoIDs = videoIDs + "," + item.Id.VideoId;
-                }
+                if (sbVideoIDs.Length > 0)
+                    sbVideoIDs.Append(',');
+
+                sbVideoIDs.Append(response.Items[i].Id.VideoId);
             }
 
             // Retrieve Video durations
-            Dictionary<string, string> videoDurations = QueryVideoInfoDuration(videoIDs);
+            Dictionary<string, string> videoDurations = QueryVideoInfoDuration(sbVideoIDs.ToString());
 
             var results = response.Items.Where(i => !String.IsNullOrEmpty(i.Id.VideoId)).Select(i => new YouTubeVideo()
             {
