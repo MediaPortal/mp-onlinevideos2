@@ -374,8 +374,7 @@ namespace OnlineVideos.MediaPortal1
                         catch (Exception ex)
                         {
                             Log.Instance.Error("[WatchersDatabase][watchersRefresh] Error getting videos: {0}", ex.Message);
-                            catWatcher.ErrorCounter++;
-                            continue;
+                            videos = null;
                         }
 
                         if (videos != null)
@@ -469,6 +468,9 @@ namespace OnlineVideos.MediaPortal1
 
                 if (dtTarget < dtTargetRefresh)
                     dtTargetRefresh = dtTarget;
+
+                //Wait a little before proceeding to next item
+                System.Threading.Thread.Sleep(1000);
             }
 
             this._WatchersTimer.Interval = Math.Max(60000, (dtTargetRefresh - DateTime.Now).TotalMilliseconds);
