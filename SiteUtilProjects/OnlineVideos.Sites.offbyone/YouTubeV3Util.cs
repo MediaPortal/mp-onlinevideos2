@@ -1134,7 +1134,7 @@ namespace OnlineVideos.Sites
         /// <param name="queryString">The search string to use as as filter in the query.</param>
         /// <param name="channelId">The channel id to use as filter in the query.</param>
         List<VideoInfo> QuerySearchVideos(string queryString, string searchType, string channelId, string categoryId, bool sortbyDate = false, string pageToken = null,
-            SearchResource.ListRequest.EventTypeEnum? eventType = null)
+            SearchResource.ListRequest.EventTypeEnum? eventType = null, bool bQueryDurations = true)
         {
             var query = Service.Search.List("snippet");
             if (!string.IsNullOrEmpty(channelId))
@@ -1160,18 +1160,22 @@ namespace OnlineVideos.Sites
 
             var response = query.Execute();
 
-            // Collect video IDs from response for duration lookup
-            StringBuilder sbVideoIDs = new StringBuilder(256);
-            for (int i = 0; i < response.Items.Count; i++)
+            Dictionary<string, string> videoDurations = null;
+            if (bQueryDurations)
             {
-                if (sbVideoIDs.Length > 0)
-                    sbVideoIDs.Append(',');
+                // Collect video IDs from response for duration lookup
+                StringBuilder sbVideoIDs = new StringBuilder(256);
+                for (int i = 0; i < response.Items.Count; i++)
+                {
+                    if (sbVideoIDs.Length > 0)
+                        sbVideoIDs.Append(',');
 
-                sbVideoIDs.Append(response.Items[i].Id.VideoId);
+                    sbVideoIDs.Append(response.Items[i].Id.VideoId);
+                }
+
+                // Retrieve Video durations
+                videoDurations = QueryVideoInfoDuration(sbVideoIDs.ToString());
             }
-
-            // Retrieve Video durations
-            Dictionary<string, string> videoDurations = QueryVideoInfoDuration(sbVideoIDs.ToString());
 
             var results = response.Items.Where(i => !String.IsNullOrEmpty(i.Id.VideoId)).Select(i => new YouTubeVideo()
             {
@@ -1182,7 +1186,7 @@ namespace OnlineVideos.Sites
                 VideoUrl = i.Id.VideoId,
                 ChannelId = i.Snippet.ChannelId,
                 ChannelTitle = i.Snippet.ChannelTitle,
-                Length = videoDurations.FirstOrDefault(x => x.Key == i.Id.VideoId).Value,
+                Length = videoDurations?.FirstOrDefault(x => x.Key == i.Id.VideoId).Value,
             }).ToList<VideoInfo>();
             if (!string.IsNullOrEmpty(response.NextPageToken))
             {
@@ -1404,7 +1408,7 @@ namespace OnlineVideos.Sites
             switch (args["type"])
             {
                 case "video":
-                    result = this.QuerySearchVideos(null, "video", strId, null, true, null);
+                    result = this.QuerySearchVideos(null, "video", strId, null, true, null, null, false);
                     break;
 
                 case "playlist":
