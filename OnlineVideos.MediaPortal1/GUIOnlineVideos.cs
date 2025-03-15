@@ -434,13 +434,27 @@ namespace OnlineVideos.MediaPortal1
                             {
                                 if (selectedSite is ILastCategoryVideos lv)
                                 {
-                                    List<VideoInfo> videos = !string.IsNullOrWhiteSpace(aCategory.TagLink) ?
-                                        lv.GetLatestVideos(DateTime.MinValue, null, aCategory.TagLink) : lv.GetLatestVideos(DateTime.MinValue, null, aCategory);
-
-                                    if (videos != null)
+                                    try
                                     {
-                                        OnlineVideoSettings.Instance.WatchDB.AddCategory(aCategory, SelectedSite.Settings.Name, 24 * 60, DateTime.Now,
-                                            videos.Count > 0 ? videos[0].VideoUrl : null);
+                                        List<VideoInfo> videos = lv.GetLatestVideos(DateTime.MinValue, null, aCategory);
+
+                                        if (videos != null)
+                                        {
+                                            OnlineVideoSettings.Instance.WatchDB.AddCategory(aCategory, SelectedSite.Settings.Name, 24 * 60, DateTime.Now,
+                                                videos.Count > 0 ? videos[0].VideoUrl : null);
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        GUIDialogNotify dlg_error = (GUIDialogNotify)GUIWindowManager.GetWindow((int)Window.WINDOW_DIALOG_NOTIFY);
+                                        if (dlg_error != null)
+                                        {
+                                            dlg_error.Reset();
+                                            dlg_error.SetImage(SiteImageExistenceCache.GetImageForSite("OnlineVideos", type: "Icon"));
+                                            dlg_error.SetHeading(PluginConfiguration.Instance.BasicHomeScreenName);
+                                            dlg_error.SetText(string.Format("{0}: {1}", Translation.Instance.Error, "Failed to get list of last videos."));
+                                            dlg_error.DoModal(GUIWindowManager.ActiveWindow);
+                                        }
                                     }
                                 }
                             }

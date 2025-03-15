@@ -1405,13 +1405,11 @@ namespace OnlineVideos.Sites
         #region ILastCategoryVideos
         public List<VideoInfo> GetLatestVideos(DateTime dtLastCheck, string strLastVideoUrl, Category category)
         {
-            throw new NotImplementedException();
-        }
+            if (string.IsNullOrWhiteSpace(category.TagLink))
+                throw new NotImplementedException();
 
-        public List<VideoInfo> GetLatestVideos(DateTime dtLastCheck, string strLastVideoUrl, string strCategoryLink)
-        {
             List<VideoInfo> result;
-            System.Collections.Specialized.NameValueCollection args = System.Web.HttpUtility.ParseQueryString(strCategoryLink);
+            System.Collections.Specialized.NameValueCollection args = System.Web.HttpUtility.ParseQueryString(category.TagLink);
             string strId = args["id"];
             switch (args["type"])
             {

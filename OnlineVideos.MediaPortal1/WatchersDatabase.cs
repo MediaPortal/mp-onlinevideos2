@@ -364,7 +364,7 @@ namespace OnlineVideos.MediaPortal1
                             if (catWatcher.Site is Sites.ILastCategoryVideos)
                             {
                                 if (!string.IsNullOrWhiteSpace(catWatcher.TagLink)) //we have direct link; do not use recursive path to get category
-                                    videos = ((Sites.ILastCategoryVideos)catWatcher.Site).GetLatestVideos(catWatcher.LastRefresh, catWatcher.LastVideo, catWatcher.TagLink);
+                                    videos = ((Sites.ILastCategoryVideos)catWatcher.Site).GetLatestVideos(catWatcher.LastRefresh, catWatcher.LastVideo, catWatcher);
                                 else if ((cat = catWatcher.SiteCategory) != null)
                                     videos = ((Sites.ILastCategoryVideos)catWatcher.Site).GetLatestVideos(catWatcher.LastRefresh, catWatcher.LastVideo, cat);
                             }
