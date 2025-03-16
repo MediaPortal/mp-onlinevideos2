@@ -297,6 +297,20 @@
               <ZipFileName>Installer{CopyFile}\{00e13a0e-e125-46c6-b630-a484028a02db}-Twitch.png</ZipFileName>
               <DestinationFilename>%Thumbs%\OnlineVideos\Icons\Twitch.png</DestinationFilename>
             </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\SiteImages\Banners\Watcher.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{61c909f6-7313-4851-87c0-7fcd7d89f17b}-Watcher.png</ZipFileName>
+              <DestinationFilename>%Thumbs%\OnlineVideos\Banners\Watcher.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\SiteImages\Icons\Watcher.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{1e9a183d-c912-4156-bd0f-af3b62e965de}-Watcher.png</ZipFileName>
+              <DestinationFilename>%Thumbs%\OnlineVideos\Icons\Watcher.png</DestinationFilename>
+            </FileItem>
           </Items>
         </Files>
       </GroupItem>
@@ -1941,6 +1955,20 @@ public class Script
         <LocalFileName>..\SiteImages\Icons\Twitch.png</LocalFileName>
         <ZipFileName>Installer{CopyFile}\{00e13a0e-e125-46c6-b630-a484028a02db}-Twitch.png</ZipFileName>
         <DestinationFilename>%Thumbs%\OnlineVideos\Icons\Twitch.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\SiteImages\Banners\Watcher.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{61c909f6-7313-4851-87c0-7fcd7d89f17b}-Watcher.png</ZipFileName>
+        <DestinationFilename>%Thumbs%\OnlineVideos\Banners\Watcher.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\SiteImages\Icons\Watcher.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{1e9a183d-c912-4156-bd0f-af3b62e965de}-Watcher.png</ZipFileName>
+        <DestinationFilename>%Thumbs%\OnlineVideos\Icons\Watcher.png</DestinationFilename>
       </FileItem>
       <FileItem InstallType="CopyFile" SystemFile="false" Modified="true" Condition="None">
         <Param1 />
