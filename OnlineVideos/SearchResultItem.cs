@@ -24,10 +24,6 @@ namespace OnlineVideos
         [XmlAttribute("desc")]
         public string Description { get; set; }
 
-        /// <summary>This property is set by the <see cref="Downloading.ImageDownloader"/> 
-        /// to the path of the image file after downloading from <see cref="Thumb"/>.</summary>
-        [XmlIgnore]
-        public string ThumbnailImage { get { return _thumbnailImage; } set { _thumbnailImage = value; NotifyPropertyChanged("ThumbnailImage"); } }
 
         /// <summary>This property is used by the <see cref="Downloading.ImageDownloader"/> 
         /// to resize the thumbnail after downloading from <see cref="Thumb"/> to a given aspect ratio (width/height).</summary>

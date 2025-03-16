@@ -21,7 +21,6 @@ namespace OnlineVideos
         public IFavoritesDatabase FavDB;
         public IWatchersDatabase WatchDB;
         public ILog Logger;
-        public ImageDownloader.ResizeOptions ThumbsResizeOptions { get; set; }
         public string ConfigDir;
         public string ThumbsDir;
         public string DownloadDir;
@@ -93,7 +92,6 @@ namespace OnlineVideos
             SiteUtilsList = new Dictionary<string, SiteUtilBase>();
             LatestVideosSiteUtilsList = new List<LatestVideosSiteUtilBase>();
             VideoExtensions = new SortedList<string, bool>();
-            ThumbsResizeOptions = ImageDownloader.ResizeOptions.Default;
         }
 
         /// <summary>
@@ -117,7 +115,6 @@ namespace OnlineVideos
             IFavoritesDatabase favDb = Instance.FavDB;
             IWatchersDatabase watchDb = Instance.WatchDB;
             ILog logger = Instance.Logger;
-            ImageDownloader.ResizeOptions thumbsResizeOptions = Instance.ThumbsResizeOptions;
             string configDir = Instance.ConfigDir;
             string thumbsDir = Instance.ThumbsDir;
             string downloadDir = Instance.DownloadDir;
@@ -141,7 +138,6 @@ namespace OnlineVideos
             newInstance.FavDB = favDb;
             newInstance.WatchDB = watchDb;
             newInstance.Logger = logger;
-            newInstance.ThumbsResizeOptions = thumbsResizeOptions;
             newInstance.ConfigDir = configDir;
             newInstance.ThumbsDir = thumbsDir;
             newInstance.DownloadDir = downloadDir;

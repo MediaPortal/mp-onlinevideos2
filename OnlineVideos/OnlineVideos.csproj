@@ -297,7 +297,6 @@
     <Compile Include="3rdParty\DotNetZip\ZlibStream.cs" />
     <Compile Include="Downloading\DownloadInfo.cs" />
     <Compile Include="Downloading\HTTPDownloader.cs" />
-    <Compile Include="Downloading\ImageDownloader.cs" />
     <Compile Include="Downloading\MMSDownloader.cs" />
     <Compile Include="Helpers\CollectionUtils.cs" />
     <Compile Include="Helpers\DotNetFrameworkHelper.cs" />

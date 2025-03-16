@@ -1074,7 +1074,6 @@ namespace OnlineVideos.MediaPortal1
                             }
                             break;
                         case State.videos:
-                            ImageDownloader.StopDownload = true;
                             if (GUI_facadeView.SelectedListItem.Label == "..")
                             {
                                 ShowPreviousMenu();
@@ -1121,8 +1120,6 @@ namespace OnlineVideos.MediaPortal1
                     VideoInfo videoPressedPlayOn = (GUI_facadeView.SelectedListItem as OnlineVideosGuiListItem).Item as VideoInfo;
                     if (videoPressedPlayOn != null)
                     {
-                        ImageDownloader.StopDownload = true;
-
                         currentFilter.Clear();
                         GUIPropertyManager.SetProperty("#OnlineVideos.filter", string.Empty);
 
@@ -1149,7 +1146,6 @@ namespace OnlineVideos.MediaPortal1
             else if (control == GUI_infoList && CurrentState == State.details &&
                 (actionType == Action.ActionType.ACTION_SELECT_ITEM || actionType == Action.ActionType.ACTION_MUSIC_PLAY || actionType == Action.ActionType.ACTION_PLAY))
             {
-                ImageDownloader.StopDownload = true;
                 if (GUI_infoList.SelectedListItemIndex == 0)
                 {
                     ShowPreviousMenu();
@@ -1641,7 +1637,6 @@ namespace OnlineVideos.MediaPortal1
                     }
                 }
 
-                if (imageHash.Count > 0) ImageDownloader.GetImages<Category>(categories);
                 if ((GUI_facadeView.Count > 1 && imageHash.Count == 0) || (GUI_facadeView.Count > 2 && imageHash.Count == 1)) suggestedView = GUIFacadeControl.Layout.List;
                 // only set selected index when not doing an automatic dive up (MediaPortal would set the old selected index asynchroneously)
                 if (!(categories.Count == 1 && diveDownOrUpIfSingle == false)) GUI_facadeView.SelectedListItemIndex = categoryIndexToSelect;
@@ -1711,7 +1706,6 @@ namespace OnlineVideos.MediaPortal1
                     if (!string.IsNullOrEmpty(video.Thumb)) imageHash[video.Thumb] = true;
                 }
             }
-            if (imageHash.Count > 0) ImageDownloader.GetImages<DetailVideoInfo>(currentTrailerList);
 
             if (videos.Count > 0)
             {
@@ -2116,8 +2110,6 @@ namespace OnlineVideos.MediaPortal1
 
             if (indextoSelect > -1 && indextoSelect < GUI_facadeView.Count) GUI_facadeView.SelectedListItemIndex = indextoSelect;
 
-            if (imageHash.Count > 0) ImageDownloader.GetImages<VideoInfo>(currentVideoList);
-
             string filterstring = currentFilter.ToString();
             if (!string.IsNullOrEmpty(filterstring) && !string.IsNullOrEmpty(videosVKfilter)) filterstring += " & ";
             filterstring += videosVKfilter;
@@ -2132,8 +2124,6 @@ namespace OnlineVideos.MediaPortal1
 
         private void ShowPreviousMenu()
         {
-            ImageDownloader.StopDownload = true;
-
             if (CurrentState == State.sites)
             {
                 if (GroupsEnabled)
@@ -2894,7 +2884,6 @@ namespace OnlineVideos.MediaPortal1
             }
 
             saveItems.CurrentItem.LocalFile = Helpers.FileUtils.GetNextFileName(saveItems.CurrentItem.LocalFile);
-            saveItems.CurrentItem.ThumbFile = string.IsNullOrEmpty(saveItems.CurrentItem.VideoInfo.ThumbnailImage) ? saveItems.CurrentItem.VideoInfo.Thumb : saveItems.CurrentItem.VideoInfo.ThumbnailImage;
 
             // make sure the target dir exists
             if (!(Directory.Exists(Path.GetDirectoryName(saveItems.CurrentItem.LocalFile))))
@@ -3010,22 +2999,6 @@ namespace OnlineVideos.MediaPortal1
             {
                 try
                 {
-                    // if the image given was an url -> check if thumb exists otherwise download
-                    if (saveItems.CurrentItem.ThumbFile.ToLower().StartsWith("http"))
-                    {
-                        string thumbFile = Helpers.FileUtils.GetThumbFile(saveItems.CurrentItem.ThumbFile);
-                        if (File.Exists(thumbFile)) saveItems.CurrentItem.ThumbFile = thumbFile;
-                        else if (ImageDownloader.DownloadAndCheckImage(saveItems.CurrentItem.ThumbFile, thumbFile)) saveItems.CurrentItem.ThumbFile = thumbFile;
-                    }
-                    // save thumb for this video as well if it exists
-                    if (!saveItems.CurrentItem.ThumbFile.ToLower().StartsWith("http") && File.Exists(saveItems.CurrentItem.ThumbFile))
-                    {
-                        string localImageName = Path.Combine(
-                            Path.GetDirectoryName(saveItems.CurrentItem.LocalFile),
-                            Path.GetFileNameWithoutExtension(saveItems.CurrentItem.LocalFile))
-                            + Path.GetExtension(saveItems.CurrentItem.ThumbFile);
-                        File.Copy(saveItems.CurrentItem.ThumbFile, localImageName, true);
-                    }
                     // save subtitles
                     SaveSubtitles(saveItems.CurrentItem.VideoInfo, Path.GetDirectoryName(saveItems.CurrentItem.LocalFile), Path.GetFileNameWithoutExtension(saveItems.CurrentItem.LocalFile), false);
                     // save matroska tag
@@ -3460,7 +3433,7 @@ namespace OnlineVideos.MediaPortal1
 
                     if (!string.IsNullOrEmpty(titleToShow)) GUIPropertyManager.SetProperty("#Play.Current.Title", titleToShow);
                     if (!string.IsNullOrEmpty(video.Description)) GUIPropertyManager.SetProperty("#Play.Current.Plot", video.Description);
-                    if (!string.IsNullOrEmpty(video.ThumbnailImage)) GUIPropertyManager.SetProperty("#Play.Current.Thumb", video.ThumbnailImage);
+                    if (!string.IsNullOrEmpty(video.Thumb)) GUIPropertyManager.SetProperty("#Play.Current.Thumb", video.Thumb);
                     if (!string.IsNullOrEmpty(video.Airdate)) GUIPropertyManager.SetProperty("#Play.Current.Year", video.Airdate);
                     else if (!string.IsNullOrEmpty(video.Length)) GUIPropertyManager.SetProperty("#Play.Current.Year", Helpers.TimeUtils.TimeFromSeconds(video.Length));
 

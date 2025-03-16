@@ -29,7 +29,6 @@ namespace OnlineVideos.Downloading
 
         public string Url { get; set; }
         public string Title { get; set; }
-        public string ThumbFile { get; set; }
         public string LocalFile { get; set; }
         public DateTime Start { get; set; }
         public int PercentComplete { get; private set; }

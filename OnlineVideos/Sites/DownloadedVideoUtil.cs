@@ -203,7 +203,7 @@ namespace OnlineVideos.Sites
                     {
                         VideoInfo loVideoInfo = new VideoInfo();
                         loVideoInfo.Title = string.IsNullOrEmpty(di.Title) ? di.VideoInfo.Title : di.Title;
-                        loVideoInfo.Thumb = string.IsNullOrEmpty(di.ThumbFile) ? (string.IsNullOrEmpty(di.VideoInfo.ThumbnailImage) ? di.VideoInfo.Thumb : di.VideoInfo.ThumbnailImage) : di.ThumbFile;
+                        loVideoInfo.Thumb = di.VideoInfo.Thumb;
                         loVideoInfo.Airdate = di.Start.ToString("HH:mm:ss");
                         loVideoInfo.Length = di.ProgressInfo;
                         loVideoInfo.Description = string.Format("{0}\n{1}", di.Url, di.LocalFile);

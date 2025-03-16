@@ -50,12 +50,19 @@ namespace OnlineVideos.MediaPortal1
 
         public OnlineVideosGuiListItem(Category item) : base(item.Name)
         {
-            Label2 = !string.IsNullOrWhiteSpace(item.Label2) ? item.Label2 : (item is RssLink && (item as RssLink).EstimatedVideoCount > 0 ? (item as RssLink).EstimatedVideoCount.ToString() : 
+            Label2 = !string.IsNullOrWhiteSpace(item.Label2) ? item.Label2 : (item is RssLink && (item as RssLink).EstimatedVideoCount > 0 ? (item as RssLink).EstimatedVideoCount.ToString() :
                 item is Group && (item as Group).Channels.Count > 0 ? (item as Group).Channels.Count.ToString() : Label2);
             //Label3 = !string.IsNullOrWhiteSpace(item.Label3) ? item.Label3 : string.Empty;
             IsFolder = true;
             Item = item;
-            MediaPortal.Util.Utils.SetDefaultIcons(this);
+            if (!string.IsNullOrWhiteSpace(item.Thumb))
+            {
+                ThumbnailImage = item.Thumb;
+                IconImage = item.Thumb;
+                IconImageBig = item.Thumb;
+            }
+            else
+                MediaPortal.Util.Utils.SetDefaultIcons(this);
         }
 
         public OnlineVideosGuiListItem(VideoInfo item)
@@ -64,8 +71,17 @@ namespace OnlineVideos.MediaPortal1
             Label2 = !string.IsNullOrWhiteSpace(item.Label2) ? item.Label2 : (!string.IsNullOrEmpty(item.Length) ? Helpers.TimeUtils.TimeFromSeconds(item.Length) : item.Airdate);
             //Label3 = !string.IsNullOrWhiteSpace(item.Label3) ? item.Label3 : (Label2 != item.Airdate ? item.Airdate : string.Empty);
             Item = item;
-            IconImage = "defaultVideo.png";
-            IconImageBig = "defaultVideoBig.png";
+            if (!string.IsNullOrWhiteSpace(item.Thumb))
+            {
+                ThumbnailImage = item.Thumb;
+                IconImage = item.Thumb;
+                IconImageBig = item.Thumb;
+            }
+            else
+            {
+                IconImage = "defaultVideo.png";
+                IconImageBig = "defaultVideoBig.png";
+            }
         }
 
         public OnlineVideosGuiListItem(DetailVideoInfo item) : this((VideoInfo)item)
@@ -91,9 +107,7 @@ namespace OnlineVideos.MediaPortal1
 					eventDelegator = OnlineVideosAppDomain.Domain.CreateInstanceAndUnwrap(typeof(PropertyChangedDelegator).Assembly.FullName, typeof(PropertyChangedDelegator).FullName) as PropertyChangedDelegator;
 					eventDelegator.InvokeTarget = new PropertyChangedExecutor() { InvokeHandler = (s, e) =>
 					{
-						if (s is VideoInfo && e.PropertyName == "ThumbnailImage") SetImageToGui((s as VideoInfo).ThumbnailImage);
-						else if (s is Category && e.PropertyName == "ThumbnailImage") SetImageToGui((s as Category).ThumbnailImage);
-						else if (s is VideoInfo && e.PropertyName == "Length") Label2 = (s as VideoInfo).Length;
+						if (s is VideoInfo && e.PropertyName == "Length") Label2 = (s as VideoInfo).Length;
 					} };
 					notifier.PropertyChanged += eventDelegator.EventDelegate;
 				}

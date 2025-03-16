@@ -65,7 +65,6 @@ namespace OnlineVideos.MediaPortal1
 						if (latestVideos.Count > 0)
 						{
 							if (PluginConfiguration.Instance.LatestVideosRandomize) latestVideos.Randomize();
-							ImageDownloader.DownloadImages<VideoInfo>(latestVideos.Select(v => v.Value).ToList());
 						}
 					}
 					if (latestVideos.Count > 0 && (!setOnce || latestVideos.Count > PluginConfiguration.Instance.LatestVideosMaxItems)) // only needed ONCE if there are no more latestVideos than amount to be shown
@@ -133,7 +132,7 @@ namespace OnlineVideos.MediaPortal1
 			GUIPropertyManager.SetProperty(string.Format("#OnlineVideos.LatestVideo{0}.Title", index), video.Value.Title);
 			GUIPropertyManager.SetProperty(string.Format("#OnlineVideos.LatestVideo{0}.Aired", index), video.Value.Airdate);
 			GUIPropertyManager.SetProperty(string.Format("#OnlineVideos.LatestVideo{0}.Duration", index), video.Value.Length);
-			GUIPropertyManager.SetProperty(string.Format("#OnlineVideos.LatestVideo{0}.Thumb", index), video.Value.ThumbnailImage);
+			GUIPropertyManager.SetProperty(string.Format("#OnlineVideos.LatestVideo{0}.Thumb", index), video.Value.Thumb);
 			GUIPropertyManager.SetProperty(string.Format("#OnlineVideos.LatestVideo{0}.Description", index), video.Value.Description);
 		}
 

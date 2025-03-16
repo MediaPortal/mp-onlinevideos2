@@ -19,7 +19,6 @@
         {
             Description = video.Description;
             Thumb = video.Thumb;
-            ThumbnailImage = video.ThumbnailImage;
             ImageForcedAspectRatio = video.ImageForcedAspectRatio;
             Other = video.Other;
 

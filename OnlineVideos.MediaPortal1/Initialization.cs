@@ -54,7 +54,19 @@ namespace OnlineVideos.MediaPortal1
                     OnlineVideos.Sites.Updater.VersionCompatible)
                 {
                     OnlineVideos.Sites.Updater.UpdateSites();
-                    ImageDownloader.DeleteOldThumbs(PluginConfiguration.Instance.ThumbsAge, r => { return true; });
+
+                    //Clear old cache
+                    try
+                    {
+                        System.IO.FileInfo[] files = new System.IO.DirectoryInfo(System.IO.Path.Combine(OnlineVideoSettings.Instance.ThumbsDir, @"Cache\")).GetFiles();
+                        for (int i = 0; i < files.Length; i++)
+                            files[i].Delete();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Instance.Error("Error while clearing cache during initialization: {0}", ex.ToString());
+                    }
+                    
                     PluginConfiguration.Instance.lastFirstRun = DateTime.Now;
                 }
 
@@ -170,11 +182,6 @@ namespace OnlineVideos.MediaPortal1
                                 dlgPrgrs.SetLine(1, Translation.Instance.DeletingOldThumbs);
                                 dlgPrgrs.Percentage = 0;
                             }
-                            ImageDownloader.DeleteOldThumbs(PluginConfiguration.Instance.ThumbsAge, r =>
-                            {
-                                if (dlgPrgrs != null) dlgPrgrs.Percentage = r;
-                                return dlgPrgrs != null ? dlgPrgrs.ShouldRenderLayer() : true;
-                            });
                         }
                         if (dlgPrgrs != null) { dlgPrgrs.Percentage = 100; dlgPrgrs.SetLine(1, Translation.Instance.Done); dlgPrgrs.Close(); }
                         else GUIWaitCursor.Hide();

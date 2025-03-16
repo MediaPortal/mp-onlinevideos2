@@ -217,13 +217,6 @@ namespace OnlineVideos.MediaPortal1
                 Log.Instance.Error(ex);
             }
 
-            ovsconf.ThumbsResizeOptions = new OnlineVideos.Downloading.ImageDownloader.ResizeOptions()
-            {
-                MaxSize = (int)Thumbs.ThumbLargeResolution,
-                Compositing = Thumbs.Compositing,
-                Interpolation = Thumbs.Interpolation,
-                Smoothing = Thumbs.Smoothing
-            };
             try
             {
                 ovsconf.Locale = CultureInfo.CreateSpecificCulture(GUILocalizeStrings.GetCultureName(GUILocalizeStrings.CurrentLanguage()));
