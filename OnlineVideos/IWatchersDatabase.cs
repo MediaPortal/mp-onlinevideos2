@@ -25,8 +25,11 @@ namespace OnlineVideos
         /// <summary>Adds a category to the watchers of the given site.</summary>
         /// <param name="category">The category object to use for storing data.</param>
         /// <param name="strSiteId">The name of the site this category belongs to.</param>
+        /// <param name="iPeriod">Refresh period in minutes.</param>
+        /// <param name="strLastVideo">URL of last video.</param>
+        /// <param name="strTag">User's tag saved to the database after each refresh.</param>
         /// <returns>true when the category was successfully added</returns>
-        int AddCategory(Category category, string strSiteId, int iPeriod, System.DateTime dtLastRefresh, string strLastVideo);
+        int AddCategory(Category category, string strSiteId, int iPeriod, System.DateTime dtLastRefresh, string strLastVideo, string strTag);
 
         /// <summary>Remove the category from watchers.</summary>
         /// <param name="category">The category to remove.</param>
@@ -41,7 +44,7 @@ namespace OnlineVideos
 
         WatcherDbCategory GetCategory(int iId);
 
-        bool UpdateCategory(int iId, int iPeriod, System.DateTime dtLastRefresh, string strLastVideo);
+        bool UpdateCategory(int iId, int iPeriod, System.DateTime dtLastRefresh, string strLastVideo, string strTag);
 
         bool CategoryExists(string strSiteName, string strCategoryName);
 

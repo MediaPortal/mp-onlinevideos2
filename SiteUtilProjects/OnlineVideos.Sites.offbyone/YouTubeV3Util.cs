@@ -1397,10 +1397,13 @@ namespace OnlineVideos.Sites
         #endregion
 
         #region ILastCategoryVideos
-        public List<VideoInfo> GetLatestVideos(DateTime dtLastCheck, string strLastVideoUrl, Category category)
+        public List<VideoInfo> GetLatestVideos(DateTime dtLastCheck, string strLastVideoUrl, Category category, ref string strTag)
         {
             if (string.IsNullOrWhiteSpace(category.TagLink))
                 throw new NotImplementedException();
+
+            if (!DateTime.TryParse(strTag, out DateTime dtLastPublish))
+                dtLastPublish = DateTime.MinValue;
 
             List<VideoInfo> result;
             System.Collections.Specialized.NameValueCollection args = System.Web.HttpUtility.ParseQueryString(category.TagLink);
@@ -1408,7 +1411,7 @@ namespace OnlineVideos.Sites
             switch (args["type"])
             {
                 case "video":
-                    result = this.QuerySearchVideos(null, "video", strId, null, true, null, null, false);
+                    result = this.QuerySearchVideos(null, "video", strId, null, true, null, null, false); //costs too much (100)
                     break;
 
                 case "playlist":
@@ -1425,7 +1428,11 @@ namespace OnlineVideos.Sites
             }
 
             if (result?.Count > 0)
+            {
                 result.ForEach(vi => vi.VideoUrl = "https://www.youtube.com/watch?v=" + vi.VideoUrl);
+                if (DateTime.TryParse(result[0].Airdate, out DateTime dt))
+                    strTag = dt.ToString();
+            }
 
             return result;
         }

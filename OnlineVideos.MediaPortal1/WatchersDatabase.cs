@@ -33,7 +33,7 @@ namespace OnlineVideos.MediaPortal1
             try
             {
                 this._SqlClient = Database.Instance.Client;
-                DatabaseUtility.AddTable(this._SqlClient, "WATCHER_Categories", "CREATE TABLE WATCHER_Categories(CAT_ID integer primary key autoincrement,CAT_Name text,CAT_Desc text,CAT_ThumbUrl text,CAT_Hierarchy text,CAT_SITE_ID text, CAT_IS_SEARCH boolean, SEARCH_CAT_HASSUBS boolean, CAT_PERIOD integer, CAT_LAST_REFRESH text, CAT_LAST_VDO text, CAT_LINK text)\n");
+                DatabaseUtility.AddTable(this._SqlClient, "WATCHER_Categories", "CREATE TABLE WATCHER_Categories(CAT_ID integer primary key autoincrement,CAT_Name text,CAT_Desc text,CAT_ThumbUrl text,CAT_Hierarchy text,CAT_SITE_ID text, CAT_IS_SEARCH boolean, SEARCH_CAT_HASSUBS boolean, CAT_PERIOD integer, CAT_LAST_REFRESH text, CAT_LAST_VDO text, CAT_LINK text, CAT_TAG text)\n");
                 this._CachedWatchers.AddRange(this.GetCategories(null));
 
                 this._WatchersTimer = new System.Timers.Timer
@@ -63,7 +63,7 @@ namespace OnlineVideos.MediaPortal1
             }
         }
 
-        public int AddCategory(Category cat, string strSiteName, int iPeriod, DateTime dtLastRefresh, string strLastVideo)
+        public int AddCategory(Category cat, string strSiteName, int iPeriod, DateTime dtLastRefresh, string strLastVideo, string strTag)
         {
             lock (this._CachedWatchers)
             {
@@ -83,8 +83,8 @@ namespace OnlineVideos.MediaPortal1
 
                 string strSQL =
                     string.Format(
-                        "insert into WATCHER_Categories(CAT_Name,CAT_Desc,CAT_ThumbUrl,CAT_Hierarchy,CAT_SITE_ID,CAT_IS_SEARCH,SEARCH_CAT_HASSUBS,CAT_PERIOD,CAT_LAST_REFRESH,CAT_LAST_VDO,CAT_LINK) " +
-                        "VALUES('{0}','{1}','{2}','{3}','{4}',{5},{6},{7},'{8}','{9}','{10}')",
+                        "insert into WATCHER_Categories(CAT_Name,CAT_Desc,CAT_ThumbUrl,CAT_Hierarchy,CAT_SITE_ID,CAT_IS_SEARCH,SEARCH_CAT_HASSUBS,CAT_PERIOD,CAT_LAST_REFRESH,CAT_LAST_VDO,CAT_LINK,CAT_TAG) " +
+                        "VALUES('{0}','{1}','{2}','{3}','{4}',{5},{6},{7},'{8}','{9}','{10}','{11}')",
                         DatabaseUtility.RemoveInvalidChars(cat.Name),
                         cat.Description == null ? "" : DatabaseUtility.RemoveInvalidChars(cat.Description),
                         cat.Thumb,
@@ -95,7 +95,8 @@ namespace OnlineVideos.MediaPortal1
                         iPeriod,
                         dtLastRefresh.ToUniversalTime(),
                         DatabaseUtility.RemoveInvalidChars(strLastVideo),
-                        !string.IsNullOrWhiteSpace(cat.TagLink) ? DatabaseUtility.RemoveInvalidChars(cat.TagLink) : string.Empty
+                        !string.IsNullOrWhiteSpace(cat.TagLink) ? DatabaseUtility.RemoveInvalidChars(cat.TagLink) : string.Empty,
+                        !string.IsNullOrWhiteSpace(strTag) ? DatabaseUtility.RemoveInvalidChars(strTag) : string.Empty
                         );
                 this._SqlClient.Execute(strSQL);
                 if (this._SqlClient.ChangedRows() > 0)
@@ -177,12 +178,13 @@ namespace OnlineVideos.MediaPortal1
             return results;
         }
 
-        public bool UpdateCategory(int iId, int iPeriod, DateTime dtLastRefresh, string strLastVideo)
+        public bool UpdateCategory(int iId, int iPeriod, DateTime dtLastRefresh, string strLastVideo, string strTag)
         {
             lock (this._CachedWatchers)
             {
-                this._SqlClient.Execute(string.Format("UPDATE WATCHER_Categories SET CAT_LAST_REFRESH='{1}', CAT_LAST_VDO='{2}', CAT_PERIOD={3} WHERE CAT_ID = '{0}'",
-                    iId, dtLastRefresh.ToUniversalTime(), DatabaseUtility.RemoveInvalidChars(strLastVideo), iPeriod));
+                this._SqlClient.Execute(string.Format("UPDATE WATCHER_Categories SET CAT_LAST_REFRESH='{1}', CAT_LAST_VDO='{2}', CAT_PERIOD={3}, CAT_TAG='{4}' WHERE CAT_ID = '{0}'",
+                    iId, dtLastRefresh.ToUniversalTime(), DatabaseUtility.RemoveInvalidChars(strLastVideo), iPeriod,
+                    !string.IsNullOrWhiteSpace(strTag) ? DatabaseUtility.RemoveInvalidChars(strTag) : string.Empty));
 
                 if (this._SqlClient.ChangedRows() > 0)
                 {
@@ -352,7 +354,7 @@ namespace OnlineVideos.MediaPortal1
                     try
                     {
                         Category cat;
-
+                        string strTag = null;
                         string strRecursiveName = catWatcher.RecursiveName.Replace('|', '/');
 
                         Log.Instance.Debug("[WatchersDatabase][watchersRefresh] Refreshing: '{0} / {1}'  LastVideo: {2}",
@@ -363,10 +365,12 @@ namespace OnlineVideos.MediaPortal1
                         {
                             if (catWatcher.Site is Sites.ILastCategoryVideos)
                             {
+                                strTag = catWatcher.TagWatcher;
+
                                 if (!string.IsNullOrWhiteSpace(catWatcher.TagLink)) //we have direct link; do not use recursive path to get category
-                                    videos = ((Sites.ILastCategoryVideos)catWatcher.Site).GetLatestVideos(catWatcher.LastRefresh, catWatcher.LastVideo, catWatcher);
+                                    videos = ((Sites.ILastCategoryVideos)catWatcher.Site).GetLatestVideos(catWatcher.LastRefresh, catWatcher.LastVideo, catWatcher, ref strTag);
                                 else if ((cat = catWatcher.SiteCategory) != null)
-                                    videos = ((Sites.ILastCategoryVideos)catWatcher.Site).GetLatestVideos(catWatcher.LastRefresh, catWatcher.LastVideo, cat);
+                                    videos = ((Sites.ILastCategoryVideos)catWatcher.Site).GetLatestVideos(catWatcher.LastRefresh, catWatcher.LastVideo, cat, ref strTag);
                             }
                             else if ((cat = catWatcher.SiteCategory) != null)
                                 videos = catWatcher.Site.GetVideos(cat);
@@ -450,7 +454,7 @@ namespace OnlineVideos.MediaPortal1
                                 catWatcher.LastVideo = strLastVideo;
 
                             catWatcher.LastRefresh = DateTime.Now;
-                            this.UpdateCategory(catWatcher.Id, catWatcher.RefreshPeriod, catWatcher.LastRefresh, catWatcher.LastVideo);
+                            this.UpdateCategory(catWatcher.Id, catWatcher.RefreshPeriod, catWatcher.LastRefresh, catWatcher.LastVideo, strTag);
 
                             catWatcher.ErrorCounter = 0;
                         }
@@ -470,7 +474,7 @@ namespace OnlineVideos.MediaPortal1
                     dtTargetRefresh = dtTarget;
 
                 //Wait a little before proceeding to next item
-                System.Threading.Thread.Sleep(1000);
+                System.Threading.Thread.Sleep(5000);
             }
 
             this._WatchersTimer.Interval = Math.Max(60000, (dtTargetRefresh - DateTime.Now).TotalMilliseconds);
@@ -496,6 +500,7 @@ namespace OnlineVideos.MediaPortal1
                 LastVideo = DatabaseUtility.Get(sqlResult, iIdx, "CAT_LAST_VDO"),
                 SiteId = DatabaseUtility.Get(sqlResult, iIdx, "CAT_SITE_ID"),
                 TagLink = DatabaseUtility.Get(sqlResult, iIdx, "CAT_LINK"),
+                TagWatcher = DatabaseUtility.Get(sqlResult, iIdx, "CAT_TAG"),
             };
         }
     }

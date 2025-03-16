@@ -375,6 +375,11 @@ namespace OnlineVideos
         /// Overrides site's AllowDiveDownOrUpIfSingle property for this category.
         /// </summary>
         public bool AllowDiveDownOrUpIfSingle { get; set; } = true;
+
+        /// <summary>
+        /// User's tag saved to the watcher database after each refresh.
+        /// </summary>
+        public string TagWatcher { get; set; }
     }
 
     [DataContract]

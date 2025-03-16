@@ -436,12 +436,13 @@ namespace OnlineVideos.MediaPortal1
                                 {
                                     try
                                     {
-                                        List<VideoInfo> videos = lv.GetLatestVideos(DateTime.MinValue, null, aCategory);
+                                        string strTag = null;
+                                        List<VideoInfo> videos = lv.GetLatestVideos(DateTime.MinValue, null, aCategory, ref strTag);
 
                                         if (videos != null)
                                         {
                                             OnlineVideoSettings.Instance.WatchDB.AddCategory(aCategory, SelectedSite.Settings.Name, 24 * 60, DateTime.Now,
-                                                videos.Count > 0 ? videos[0].VideoUrl : null);
+                                                videos.Count > 0 ? videos[0].VideoUrl : null, strTag);
                                         }
                                     }
                                     catch
@@ -476,7 +477,7 @@ namespace OnlineVideos.MediaPortal1
                                         iPeriog = 60;
                                     else
                                         iPeriog *= 60;
-                                    OnlineVideoSettings.Instance.WatchDB.UpdateCategory(catW.Id, iPeriog, catW.LastRefresh, catW.LastVideo);
+                                    OnlineVideoSettings.Instance.WatchDB.UpdateCategory(catW.Id, iPeriog, catW.LastRefresh, catW.LastVideo, catW.TagWatcher);
                                     OnlineVideoSettings.Instance.WatchDB.Refresh();
                                 }
                             }
