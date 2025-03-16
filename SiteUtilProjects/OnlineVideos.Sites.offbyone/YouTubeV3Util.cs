@@ -1411,7 +1411,8 @@ namespace OnlineVideos.Sites
             switch (args["type"])
             {
                 case "video":
-                    result = this.QuerySearchVideos(null, "video", strId, null, true, null, null, false); //costs too much (100)
+                    //result = this.QuerySearchVideos(null, "video", strId, null, true, null, null, false); //costs too much (100)
+                    result = this.QueryPlaylistVideos("UU" + strId.Substring(2));
                     break;
 
                 case "playlist":
