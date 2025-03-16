@@ -1040,7 +1040,7 @@ namespace OnlineVideos.Sites
             var response = query.Execute();
 
             // Collect video IDs from response for duration lookup
-            StringBuilder sbVideoIDs = new StringBuilder(256);
+            StringBuilder sbVideoIDs = new StringBuilder(512);
             for (int i = 0; i < response.Items.Count; i++)
             {
                 if (sbVideoIDs.Length > 0)
@@ -1164,7 +1164,7 @@ namespace OnlineVideos.Sites
             if (bQueryDurations)
             {
                 // Collect video IDs from response for duration lookup
-                StringBuilder sbVideoIDs = new StringBuilder(256);
+                StringBuilder sbVideoIDs = new StringBuilder(512);
                 for (int i = 0; i < response.Items.Count; i++)
                 {
                     if (sbVideoIDs.Length > 0)
