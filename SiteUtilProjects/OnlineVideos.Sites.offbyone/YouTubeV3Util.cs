@@ -1,4 +1,7 @@
-﻿using Google.Apis.Auth.OAuth2;
+﻿#define CHANNELS_SEARCH_USE_WEB_API
+//#define VIDEOS_SEARCH_USE_WEB_API
+
+using Google.Apis.Auth.OAuth2;
 using Google.Apis.Json;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
@@ -6,6 +9,7 @@ using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
@@ -13,6 +17,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace OnlineVideos.Sites
 {
@@ -137,7 +142,11 @@ namespace OnlineVideos.Sites
 
         private SiteData _SiteData = null;
         private Category _ChannelsRootCategory = null;
+#if CHANNELS_SEARCH_USE_WEB_API
+        private List<YoutubeChannel> _SearchResult = null;
+#else
         private SearchListResponse _SearchResult;
+#endif
 
         private const string USER_UPLOADS_FEED = "http(?:s)?://gdata.youtube.com/feeds/api/users/(?<user>[^/]+)/uploads";
 
@@ -348,7 +357,12 @@ namespace OnlineVideos.Sites
         {
             base.HasNextPage = false;
             nextPageVideosQuery = null;
+
+#if VIDEOS_SEARCH_USE_WEB_API
+            return QueryWebSearchYoutubeVideos(query, null).ConvertAll(v => (SearchResultItem)v);
+#else
             return QuerySearchVideos(query, "videos", null, category).ConvertAll(v => (SearchResultItem)v);
+#endif
         }
 
         #endregion
@@ -384,7 +398,12 @@ namespace OnlineVideos.Sites
         public List<VideoInfo> FilterSearchResults(string query, string category, int maxResults, string orderBy, string timeFrame)
         {
             Enum.TryParse<SearchResource.ListRequest.OrderEnum>(orderBy, out currentSearchOrder);
+
+#if VIDEOS_SEARCH_USE_WEB_API
+            return QueryWebSearchYoutubeVideos(query, null, currentSearchOrder);
+#else
             return QuerySearchVideos(query, "videos", null, category);
+#endif
         }
 
         public List<int> GetResultSteps() { return new List<int>() { 10, 20, 30, 40, 50 }; }
@@ -621,6 +640,9 @@ namespace OnlineVideos.Sites
                        if (this._SiteData.ChannelList.Exists(c => c.ChannelID == strChannelId))
                             return new ContextMenuExecutionResult() { ExecutionResultMessage = "Channel already exists." };
 
+#if CHANNELS_SEARCH_USE_WEB_API
+                        YoutubeChannel ch = this._SearchResult.Find(c => c.ChannelID == (string)choice.Other);
+#else
                         SearchResultSnippet snippet = this._SearchResult.Items.First(p => p.Snippet.ChannelId == strChannelId).Snippet;
                         YoutubeChannel ch = new YoutubeChannel()
                         {
@@ -629,6 +651,7 @@ namespace OnlineVideos.Sites
                             Description = snippet.Description,
                             ThumbUrl = this.getThumbnailUrl(snippet.Thumbnails),
                         };
+#endif
 
                         this._SiteData.ChannelList.Add(ch);
                         this._ChannelsRootCategory.SubCategories.Add(new Category()
@@ -657,6 +680,9 @@ namespace OnlineVideos.Sites
                         if (string.IsNullOrWhiteSpace(choice.UserInputText))
                             return new ContextMenuExecutionResult() { ExecutionResultMessage = "Invalid name." };
 
+#if CHANNELS_SEARCH_USE_WEB_API
+                        this._SearchResult = this.QueryWebSearchYoutubeChannels(choice.UserInputText.Trim(), 20);
+#else
                         SearchResource.ListRequest rq = Service.Search.List("snippet");
                         rq.Q = choice.UserInputText.Trim();
                         rq.MaxResults = 20;
@@ -681,6 +707,18 @@ namespace OnlineVideos.Sites
                                 Other = item.Snippet.ChannelId
                             });
                         }
+#endif
+
+                        if (this._SearchResult == null || this._SearchResult.Count == 0)
+                            return new ContextMenuExecutionResult() { ExecutionResultMessage = "Channel not found." };
+
+                        ContextMenuEntry entry = new ContextMenuEntry
+                        {
+                            DisplayText = "Select Channel to add",
+                            Action = ContextMenuEntry.UIAction.ShowList,
+                        };
+                        this._SearchResult.ForEach(r => entry.SubEntries.Add(new ContextMenuEntry() { DisplayText = r.Title, Action = ContextMenuEntry.UIAction.Execute, Other = r.ChannelID }));
+
                         return new ContextMenuExecutionResult() { SubMenu = entry };
                     }
                     else if (choice.DisplayText == Translation.Instance.RemoveChannel)
@@ -1236,6 +1274,282 @@ namespace OnlineVideos.Sites
         }
         #endregion
 
+        #region Youtube WEB service wrapper methods
+
+        private const string WEB_API_URL_BASE = "https://www.youtube.com";
+        private const string WEB_API_URL_BROWSE = WEB_API_URL_BASE + "/youtubei/v1/browse";
+        private const string WEB_API_URL_SEARCH = WEB_API_URL_BASE + "/youtubei/v1/search";
+        private const string WEB_API_CLIENT_NAME = "WEB";
+        private const string WEB_API_CLIENT_VERSION = "2.20240614.01.00";
+        private const string WEB_API_SEARCH_PARAM_CHANNELS = "EgIQAg%3D%3D";
+
+        private JToken WebServiceHttpPostRequest(string post, string strUrl = WEB_API_URL_BROWSE)
+        {
+            try
+            {
+                //Get data
+                NameValueCollection headers = new NameValueCollection
+                        {
+                            { "Content-Type", "application/json" },
+                            { "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.15 Safari/537.36" },
+                            { "Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7" },
+                            { "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
+                            { "Accept-Encoding", "gzip, deflate" },
+                            { "Accept-Language",  this.hl + ";q=0.8,en-US;q=0.5,en;q=0.3" }
+                        };
+
+                JToken jData = WebCache.Instance.GetWebData<JObject>(strUrl, postData: post, headers: headers, cache: false);
+                if (jData == null)
+                {
+                    Log.Error("[WebServiceHttpPostRequest] Error getting json data");
+                    return null;
+                }
+
+                return jData;
+            }
+            catch (Exception ex)
+            {
+                Log.Error("[WebServiceHttpPostRequest] Exception: {0} {1} {2}", ex.Message, ex.Source, ex.StackTrace);
+            }
+
+            return null;
+        }
+
+        private static string WebServiceHtppBuildPostData(string strBrowseID, string strParams, string strContinuation, string strQuery = null)
+        {
+            StringBuilder sb = new StringBuilder(2048);
+            sb.Append('{');
+            if (strContinuation != null)
+            {
+                sb.Append("\"continuation\": \"");
+                sb.Append(strContinuation);
+                sb.Append("\",");
+                strParams = null;
+            }
+            else if (strBrowseID != null)
+            {
+                sb.Append("\"browseId\": \"");
+                sb.Append(strBrowseID);
+                sb.Append("\",");
+            }
+
+            sb.Append("\"context\": {\"client\": {\"clientName\": \"");
+            sb.Append(WEB_API_CLIENT_NAME);
+            sb.Append("\", \"clientVersion\": \"");
+            sb.Append(WEB_API_CLIENT_VERSION);
+            sb.Append('\"');
+
+            int iIdx;
+            string strLng = CultureInfo.CurrentUICulture.Name;
+            if ((iIdx = strLng.IndexOf('-')) > 0)
+            {
+                sb.Append(", \"gl\": \"");
+                sb.Append(strLng, iIdx + 1, strLng.Length - (iIdx + 1));
+                sb.Append("\", \"hl\": \"");
+                sb.Append(strLng, 0, iIdx);
+                sb.Append('\"');
+            }
+            else
+            {
+                sb.Append("\", \"hl\": \"");
+                sb.Append(strLng);
+                sb.Append('\"');
+            }
+
+            sb.Append(", \"timeZone\": \"UTC\"");
+            sb.Append(", \"utcOffsetMinutes\": ");
+            sb.Append((int)TimeZone.CurrentTimeZone.GetUtcOffset(DateTime.Now).TotalMinutes);
+
+            sb.Append("}}");
+
+            if (strContinuation == null)
+            {
+                if (strParams != null)
+                {
+                    sb.Append(",\"params\": \"");
+                    sb.Append(strParams);
+                    sb.Append('\"');
+                }
+                if (strQuery != null)
+                {
+                    sb.Append(",\"query\": \"");
+                    sb.Append(strQuery.Replace("\"", "\\\""));
+                    sb.Append('\"');
+                }
+            }
+            sb.Append('}');
+
+            return sb.ToString();
+        }
+
+        private static VideoInfo WebServiceParseVideoItem(JToken jVideo)
+        {
+            VideoInfo video = new VideoInfo();
+
+            video.Title = (string)jVideo.SelectToken("title.runs.[0].text");
+            if (video.Title == null)
+                video.Title = (string)jVideo.SelectToken("title.simpleText");
+            if (video.Title == null)
+                video.Title = (string)jVideo.SelectToken("headline.simpleText");
+
+            video.VideoUrl = (string)jVideo["videoId"];
+
+            JToken jInfo = jVideo["videoInfo"]?["runs"];
+            if (jInfo is JArray)
+            {
+                StringBuilder sb = new StringBuilder(64);
+                foreach (JToken j in jInfo)
+                {
+                    string str = (string)j["text"];
+                    if (str == " • ")
+                        sb.Append(" *** ");
+                    else
+                        sb.Append(str);
+                }
+
+                video.Description = sb.ToString();
+            }
+
+            video.Thumb = jVideo["thumbnail"]?["thumbnails"]?.Last()["url"].ToString();
+            video.Length = (string)jVideo.SelectToken("lengthText.simpleText");
+            video.Airdate = (string)jVideo.SelectToken("publishedTimeText.simpleText");
+
+            //OV doesn't suppoer WebP
+            //int iIdx = video.Thumb.IndexOf('?');
+            //if (iIdx > 0)
+            //    video.Thumb = video.Thumb.Substring(0, iIdx);
+
+            return video;
+        }
+
+        private List<VideoInfo> QueryWebSearchYoutubeVideos(string strQuery, string strPageToken = null, SearchResource.ListRequest.OrderEnum order = SearchResource.ListRequest.OrderEnum.Relevance, int iLimit = -1)
+        {
+            try
+            {
+                /*
+                Relevance   = CAASAhAB
+                Upload Date = CAISAhAB
+                View Count  = CAMSAhAB
+                Rating      = CAESAhAB
+                */
+                string strParams = null;
+                switch(order)
+                {
+                    case SearchResource.ListRequest.OrderEnum.Date:
+                        strParams = "CAI%3D";//  "CAISAA%3D%3D";
+                        break;
+
+                    case SearchResource.ListRequest.OrderEnum.Rating:
+                        strParams = "CAESAhAB";
+                        break;
+
+                    case SearchResource.ListRequest.OrderEnum.ViewCount:
+                        strParams = "CAMSAhAB";
+                        break;
+                }
+
+                //Get data
+                JToken jData = this.WebServiceHttpPostRequest(WebServiceHtppBuildPostData(null, strParams, strPageToken, strQuery), WEB_API_URL_SEARCH);
+
+                if (jData == null)
+                    return null;
+
+                List<VideoInfo> result = new List<VideoInfo>();
+
+                foreach (JToken jItem in jData.SelectToken(strPageToken != null ? "onResponseReceivedCommands.[0].appendContinuationItemsAction.continuationItems" :
+                    "contents.twoColumnSearchResultsRenderer.primaryContents.sectionListRenderer.contents"))
+                {
+                    string strName = ((JProperty)jItem.First).Name;
+
+                    if (strName == "continuationItemRenderer")
+                    {
+                        if (result.Count > 0)
+                        {
+                            string strNextPageToken = (string)jItem.SelectToken("continuationItemRenderer.continuationEndpoint.continuationCommand.token");
+                            base.HasNextPage = true;
+                            this.nextPageVideosQuery = () => this.QueryWebSearchYoutubeVideos(strQuery, strNextPageToken, order);
+                        }
+                        break;
+                    }
+                    else if (strName == "itemSectionRenderer")
+                    {
+                        foreach (JToken jCh in jItem.SelectToken("itemSectionRenderer.contents"))
+                        {
+                            JToken jVideo = jCh["videoRenderer"];
+                            if (jVideo != null)
+                                result.Add(WebServiceParseVideoItem(jVideo));
+                        }
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Log.Error("[QueryWebSearchYoutubeVideos] Exception: {0} {1} {2}", ex.Message, ex.Source, ex.StackTrace);
+            }
+
+            return null;
+        }
+
+        private List<YoutubeChannel> QueryWebSearchYoutubeChannels(string strQuery, int iLimit = -1)
+        {
+            try
+            {
+                //Get data
+                JToken jData = this.WebServiceHttpPostRequest(WebServiceHtppBuildPostData(null, WEB_API_SEARCH_PARAM_CHANNELS, null, strQuery), WEB_API_URL_SEARCH);
+
+                if (jData == null)
+                    return null;
+
+                List<YoutubeChannel> result = new List<YoutubeChannel>();
+
+                foreach (JToken jItem in jData.SelectToken("contents.twoColumnSearchResultsRenderer.primaryContents.sectionListRenderer.contents"))
+                {
+                    string strName = ((JProperty)jItem.First).Name;
+
+                    if (strName == "continuationItemRenderer")
+                    {
+                        break;
+                    }
+                    else if (strName == "itemSectionRenderer")
+                    {
+                        foreach (JToken jCh in jItem.SelectToken("itemSectionRenderer.contents"))
+                        {
+                            JToken jChannel = jCh["channelRenderer"];
+                            if (jChannel != null)
+                            {
+                                YoutubeChannel ch = new YoutubeChannel()
+                                {
+                                    Title = (string)jChannel["title"]["simpleText"],
+                                    ChannelID = (string)jChannel["channelId"],
+                                    Description = (string)jChannel.SelectToken("descriptionSnippet.runs.[0].text"),
+                                    ThumbUrl = jChannel["thumbnail"]?["thumbnails"]?.Last()["url"].ToString()
+                                };
+
+                                if (ch.ThumbUrl != null && ch.ThumbUrl.StartsWith("//"))
+                                    ch.ThumbUrl = "https:" + ch.ThumbUrl;
+
+                                result.Add(ch);
+
+                                if (result.Count == iLimit)
+                                    return result;
+                            }
+                        }
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                Log.Error("[QueryWebSearchYoutubeChannels] Exception: {0} {1} {2}", ex.Message, ex.Source, ex.StackTrace);
+            }
+
+            return null;
+        }
+        #endregion
+
         #region Non Account Channels
         private List<Category> ChannelsGetRootItems(Category parentCategory)
         {
@@ -1316,18 +1630,29 @@ namespace OnlineVideos.Sites
                 HasSubCategories = false,
                 ParentCategory = detail.Parent,
                 IsWatchable = true,
-                TagLink = "type=video&id=" + detail.Channel.ChannelID
+                TagLink = "type=playlist&id=UU" + detail.Channel.ChannelID.Substring(2)
             });
-            category.Other = new YoutubeDetail() { Parent = category, Channel = detail.Channel, GetVideos = this.ChannelsGetVideos, QueryType = "video" };
+            category.Other = new YoutubeDetail() { Parent = category, Channel = detail.Channel, GetVideos = this.ChannelsGetVideos, QueryType = "UU" };
 
             //Live
             result.Add(category = new Category()
             {
                 Name = "Live",
                 HasSubCategories = false,
-                ParentCategory = detail.Parent
+                ParentCategory = detail.Parent,
+                TagLink = "type=playlist&id=UULV" + detail.Channel.ChannelID.Substring(2)
             });
-            category.Other = new YoutubeDetail() { Parent = category, Channel = detail.Channel, GetVideos = this.ChannelsGetVideos, QueryType = "video", QueryEventType = SearchResource.ListRequest.EventTypeEnum.Live };
+            category.Other = new YoutubeDetail() { Parent = category, Channel = detail.Channel, GetVideos = this.ChannelsGetVideos, QueryType = "UULV" };
+
+            //Shorts
+            result.Add(category = new Category()
+            {
+                Name = "Shorts",
+                HasSubCategories = false,
+                ParentCategory = detail.Parent,
+                TagLink = "type=playlist&id=UUSH" + detail.Channel.ChannelID.Substring(2)
+            });
+            category.Other = new YoutubeDetail() { Parent = category, Channel = detail.Channel, GetVideos = this.ChannelsGetVideos, QueryType = "UUSH" };
 
             //Playlists
             result.Add(category = new Category()
@@ -1345,7 +1670,43 @@ namespace OnlineVideos.Sites
 
         private List<VideoInfo> ChannelsGetVideos(YoutubeDetail detail)
         {
-            return this.QuerySearchVideos(null, detail.QueryType, detail.Channel.ChannelID, null, true, null, detail.QueryEventType);
+            /*
+            https://wiki.archiveteam.org/index.php/YouTube/Technical_details
+            UU   - all public uploads (videos +shorts + live streams)
+            PU   - Contains both videos and shorts, sorted by most popular descending
+            FL   - Favorites of a channel
+            LL   - 
+            EL   - 
+            UULF - all public videos
+            UULV - all live streams
+            UUPV - popular live streams
+            UUSH - all shorts
+            UUPS - popular shorts
+            UULP - popular videos
+            UUMO - all member videos(alternative UUMF)
+            UUMF - Members-only videos
+            UUMV - member live streams
+            UUMS - member shorts
+            */
+
+            List<VideoInfo> result = this.QueryPlaylistVideos(detail.QueryType + detail.Channel.ChannelID.Substring(2));
+
+            // Collect video IDs from response for duration lookup
+            StringBuilder sbVideoIDs = new StringBuilder(512);
+            for (int i = 0; i < result.Count; i++)
+            {
+                if (sbVideoIDs.Length > 0)
+                    sbVideoIDs.Append(',');
+
+                sbVideoIDs.Append(((YouTubeVideo)result[i]).VideoUrl);
+            }
+
+            // Retrieve Video durations
+            Dictionary<string, string> videoDurations = QueryVideoInfoDuration(sbVideoIDs.ToString());
+            for (int i = 0; i < result.Count; i++)
+                result[i].Length = videoDurations.FirstOrDefault(x => x.Key == ((YouTubeVideo)result[i]).VideoUrl).Value;
+
+            return result;
         }
 
         private List<Category> ChannelsGetPlaylists(YoutubeDetail detail)
@@ -1406,13 +1767,12 @@ namespace OnlineVideos.Sites
                 dtLastPublish = DateTime.MinValue;
 
             List<VideoInfo> result;
-            System.Collections.Specialized.NameValueCollection args = System.Web.HttpUtility.ParseQueryString(category.TagLink);
+            NameValueCollection args = System.Web.HttpUtility.ParseQueryString(category.TagLink);
             string strId = args["id"];
             switch (args["type"])
             {
                 case "video":
-                    //result = this.QuerySearchVideos(null, "video", strId, null, true, null, null, false); //costs too much (100)
-                    result = this.QueryPlaylistVideos("UU" + strId.Substring(2));
+                    result = this.QuerySearchVideos(null, "video", strId, null, true, null, null, false); //costs too much (100)
                     break;
 
                 case "playlist":
