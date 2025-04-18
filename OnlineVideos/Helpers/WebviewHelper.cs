@@ -74,7 +74,7 @@ namespace OnlineVideos.Helpers
                 webView.Name = "OV_Webview";
                 webView.CoreWebView2InitializationCompleted += WebView_CoreWebView2InitializationCompleted;
                 String cacheFolder = Path.Combine(Path.GetTempPath(), "WebViewplayer");
-                webView.CreationProperties = new CoreWebView2CreationProperties() { UserDataFolder = cacheFolder };
+                webView.CreationProperties = new CoreWebView2CreationProperties() { UserDataFolder = cacheFolder, AdditionalBrowserArguments = "--disable-features=msSmartScreenProtection" };
                 waitForTaskCompleted(webView.EnsureCoreWebView2Async());
             }
         }
