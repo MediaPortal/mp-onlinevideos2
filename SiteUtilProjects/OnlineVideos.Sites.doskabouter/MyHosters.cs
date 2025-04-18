@@ -280,9 +280,8 @@ namespace OnlineVideos.Hoster
 
         public override string GetVideoUrl(string url)
         {
-            UriBuilder ub = new UriBuilder(url.Replace("/d/", "/e/"));
-            ub.Host = "ds2play.com";
-            url = ub.Uri.ToString();
+            url = WebCache.Instance.GetRedirectedUrl(url);
+            url = url.Replace("/d/", "/e/");
             var data = webViewHelper.GetHtml(url);
             var m = Regex.Match(data, @"\$\.get\('(?<url>/pass[^']*)'");
             if (m.Success)
