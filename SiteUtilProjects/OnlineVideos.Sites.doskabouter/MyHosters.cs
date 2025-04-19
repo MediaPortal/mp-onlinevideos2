@@ -1777,36 +1777,6 @@ namespace OnlineVideos.Hoster
         }
     }
 
-    public class Voe : HosterBase
-    {
-        public override string GetHosterUrl()
-        {
-            return "voe.sx";
-        }
-
-        public override string GetVideoUrl(string url)
-        {
-            var data = GetWebData(url);
-            Match m = Regex.Match(data, @"window\.location\.href\s=\s'(?<url>[^']*)'");
-            if (m.Success)
-                data = GetWebData(m.Groups["url"].Value);
-            Match m2 = Regex.Match(data, @"'hls':\s*'(?<url>[^']*)',\s*'video_height':\s*(?<qualiry>[^,]*),");
-            if (m2.Success)
-            {
-                url = m2.Groups["url"].Value;
-                if (!url.StartsWith("http"))
-                    url = Encoding.ASCII.GetString(Convert.FromBase64String(url));
-                data = GetWebData(url);
-                var res = Helpers.HlsPlaylistParser.GetPlaybackOptions(data, url);
-                return res.FirstOrDefault().Value;
-            }
-            m2 = Regex.Match(data, @"<title>(?<message>[^<]*)</title>");
-            if (m2.Success)
-                throw new OnlineVideosException(m2.Groups["message"].Value);
-            return null;
-        }
-    }
-
     public class Vshare : MyHosterBase
     {
         public override string GetHosterUrl()
