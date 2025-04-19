@@ -15,7 +15,7 @@ namespace OnlineVideos.Sites
         [Category("OnlineVideosConfiguration"), Description("Url of your m3u8")]
         protected string m3u8url = "";
 
-        private static readonly Regex extinfReg = new Regex(@"\#EXTINF[^\s]*\s(?=.*(tvg-name=""(?<tvgname>[^""]*)""))(?=.*(tvg-logo=""(?<tvglogo>[^""]*)""))(?=.*(group-title=""(?<grouptitle>[^""]*)""))", RegexOptions.IgnoreCase);
+        private static readonly Regex extinfReg = new Regex(@"\#EXTINF[^\s]*\s(?:(?=.*(tvg-name=""(?<tvgname>[^""]*)"")))?(?:(?=.*(tvg-id=""(?<tvgid>[^""]*)"")))?(?=.*(tvg-logo=""(?<tvglogo>[^""]*)""))(?=.*(group-title=""(?<grouptitle>[^""]*)""))", RegexOptions.IgnoreCase);
 
         SortedList<string, SortedList<string, SortedList<string, IPTVStream>>> groups = new SortedList<string, SortedList<string, SortedList<string, IPTVStream>>>();
 
@@ -36,20 +36,29 @@ namespace OnlineVideos.Sites
                         {
                             IPTVStream stream = new IPTVStream()
                             {
-                                tvgname = m.Groups["tvgname"].Value.Replace(" H.265", ""),
+                                tvgname = (m.Groups["tvgname"].Success ? m.Groups["tvgname"].Value : m.Groups["tvgid"].Value).Replace(" H.265", ""),
                                 grouptitle = m.Groups["grouptitle"].Value.Replace(" Terugkijken + Overig", "").Replace(" KANALEN", "").Replace(" HEVC H.265", "").Replace('|', '∣'),
                                 reso = m.Groups["reso"].Value,
                                 logo = m.Groups["tvglogo"].Value
                             };
-                            stream.url = sr.ReadLine();
-                            if (!groups.ContainsKey(stream.grouptitle))
-                                groups.Add(stream.grouptitle, new SortedList<string, SortedList<string, IPTVStream>>(StringComparer.CurrentCultureIgnoreCase));
-                            var group = groups[stream.grouptitle];
-                            if (!group.ContainsKey(stream.tvgname))
-                                group.Add(stream.tvgname, new SortedList<string, IPTVStream>());
-                            var channel = group[stream.tvgname];
-                            if (!channel.ContainsKey(stream.reso))
-                                channel.Add(stream.reso, stream);
+                            var nextLine = sr.ReadLine();
+                            while (nextLine.StartsWith("#"))
+                            {
+                                stream.addOption(nextLine);
+                                nextLine = sr.ReadLine();
+                            };
+                            stream.url = nextLine;
+                            foreach (var groupName in stream.grouptitle.Split(';'))
+                            {
+                                if (!groups.ContainsKey(groupName))
+                                    groups.Add(groupName, new SortedList<string, SortedList<string, IPTVStream>>(StringComparer.CurrentCultureIgnoreCase));
+                                var group = groups[groupName];
+                                if (!group.ContainsKey(stream.tvgname))
+                                    group.Add(stream.tvgname, new SortedList<string, IPTVStream>());
+                                var channel = group[stream.tvgname];
+                                if (!channel.ContainsKey(stream.reso))
+                                    channel.Add(stream.reso, stream);
+                            }
                         }
 
                     }
@@ -80,7 +89,12 @@ namespace OnlineVideos.Sites
             foreach (var res in value)
             {
                 HttpUrl httpUrl = new HttpUrl(res.Value.url);
-                httpUrl.UserAgent = OnlineVideoSettings.Instance.UserAgent;
+                if (!String.IsNullOrEmpty(res.Value.useragent))
+                    httpUrl.UserAgent = res.Value.useragent;
+                else
+                    httpUrl.UserAgent = OnlineVideoSettings.Instance.UserAgent;
+                if (!String.IsNullOrEmpty(res.Value.referer))
+                    httpUrl.Referer = res.Value.referer;
                 httpUrl.LiveStream = String.IsNullOrEmpty(Path.GetExtension(res.Value.url));
                 video.PlaybackOptions.Add(res.Key, httpUrl.ToString());
                 video.Thumb = res.Value.logo;
@@ -95,8 +109,15 @@ namespace OnlineVideos.Sites
             List<VideoInfo> videos = new List<VideoInfo>();
             foreach (var vid in vids)
             {
-                var video = ConvertToVideo(vid.Key, vid.Value);
-                videos.Add(video);
+                try
+                {
+                    var video = ConvertToVideo(vid.Key, vid.Value);
+                    videos.Add(video);
+                }
+                catch (Exception e)
+                {
+                    OnlineVideos.Log.Debug("Error creating video " + e.Message);
+                }
             }
             return videos;
         }
@@ -137,9 +158,24 @@ namespace OnlineVideos.Sites
         public string reso;
         public string url;
         public string logo;
+        public string referer;
+        public string useragent;
         public override string ToString()
         {
             return tvgname + " " + grouptitle;
+        }
+
+        public void addOption(string s)
+        {
+            if (s.StartsWith("#EXTVLCOPT:"))
+            {
+                var rest = s.Substring(11).Split('=');
+                switch (rest[0])
+                {
+                    case "http-referrer": { referer = rest[1]; break; }
+                    case "http-user-agent": { useragent = rest[1]; break; }
+                }
+            }
         }
     }
 }
