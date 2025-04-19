@@ -884,6 +884,24 @@ namespace OnlineVideos.Hoster
             return @"http://www.playmyvid.com/files/videos/" + url;
         }
     }
+
+    public class SaveFiles : HosterBase
+    {
+        public override string GetHosterUrl()
+        {
+            return "savefiles.com";
+
+        }
+        public override string GetVideoUrl(string url)
+        {
+            var data = WebCache.Instance.GetWebData(url);
+            string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
+            string unpacked = Helpers.StringUtils.UnPack(packed);
+            var m3u8url = Helpers.StringUtils.GetSubString(unpacked, @"file:""", @"""");
+            var m3u8data = GetWebData(m3u8url);
+            return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value;
+        }
+    }
     public class SharedSx : HosterBase
     {
         public override string GetHosterUrl()
