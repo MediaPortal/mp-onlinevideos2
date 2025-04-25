@@ -31,20 +31,12 @@ namespace OnlineVideos.Sites
 
         #region Settings
 
-        [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Show loading spinner"), Description("Show the loading spinner in the Browser Player")]
-        protected bool showLoadingSpinner = true;
-        [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Enable Netflix Info/Stat OSD"), Description("Enable info and statistics OSD. Toggle OSD with 0 when video is playing. Do not enable this if you need to enter 0 in parental control pin")]
-        protected bool enableNetflixOsd = true;
         [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Number of Home categories"), Description("Change only if necessary. Number of categories in home. Default value 20 => (often) result in 20+1-2=19 categories")]
         protected int noOfCatsInHome = 20;
         [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Number of categories per page in other listings"), Description("Change only if necessary. Number of items in listings. Default 100")]
         protected uint noOfItems = 100;
         [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Enable verbose logging"), Description("DEBUG only! Enable only if you have problems. Very verbose logging, generates a lot of data in log.")]
         protected bool enableVerboseLog = false;
-        [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Disable browser logging"), Description("Change only if necessary/nothing else helps. If browser player fails. Change back if it does not help!")]
-        protected bool disableLogging = false;
-        [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Enable IE debug mode"), Description("Use only for debugging purposes, normal use in onlinevideos will not work when this is set")]
-        protected bool enableIEDebug = false;
 
         protected Dictionary<string, string> i18n = null;
 
