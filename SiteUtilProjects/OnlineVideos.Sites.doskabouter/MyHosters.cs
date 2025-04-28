@@ -460,7 +460,9 @@ namespace OnlineVideos.Hoster
             {
                 string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
                 string unpacked = Helpers.StringUtils.UnPack(packed);
-                m3u8url = Helpers.StringUtils.GetSubString(unpacked, @"file:""", @"""");
+                m = Regex.Match(unpacked, @"{""hls\d+"":""(?<url>[^""]*)""");
+                if (m.Success)
+                    m3u8url = m.Groups["url"].Value;
             }
             var m3u8data = GetWebData(m3u8url);
             return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value;
