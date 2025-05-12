@@ -57,7 +57,12 @@ namespace OnlineVideos.Sites
         private string MyGetWebData(string url, string postData = null, string referer = null)
         {
             string data = webViewHelper.GetHtml(url, postData, referer, blockOtherRequests: false);
-            if (enableVerboseLog) Log.Debug(data);
+            if (enableVerboseLog)
+            {
+                if (postData != null)
+                    Log.Debug("post" + postData);
+                Log.Debug(data);
+            }
             //Side effects
             //AuthUrl
             Regex rgx = new Regex(@"""authURL"":""(?<authURL>[^""]*)");
@@ -480,6 +485,9 @@ namespace OnlineVideos.Sites
 
         private List<Category> GetProfileSubCategories(Category parentCategory, JToken profile)
         {
+            if (enableVerboseLog)
+                Log.Debug("GetProfileSubCategories");
+
             currentProfile = profile;
             MyGetWebData(string.Format(switchProfileUrl, ShaktiApi, BuildId, ProfileToken, LatestAuthUrl), referer: homeUrl);
             i18n = null;
@@ -521,6 +529,8 @@ namespace OnlineVideos.Sites
 
         private List<Category> GetHomeCategories(Category parentCategory)
         {
+            if (enableVerboseLog)
+                Log.Debug("GetHomeCategories");
             List<Category> cats = new List<Category>();
             string data = GetPathData(@"path=[""lolomo"",{""from"":0,""to"":" + noOfCatsInHome + @"},[""summary"",""title"",""playListEvidence"",""bookmark"",""queue"",""displayName"",""context""]]&authURL=" + LatestAuthUrl);
             JObject json = (JObject)JsonConvert.DeserializeObject(data);
@@ -554,6 +564,8 @@ namespace OnlineVideos.Sites
 
         private List<Category> GetCharactersCategories(RssLink parentCategory)
         {
+            if (enableVerboseLog)
+                Log.Debug("GetCharactersCategories");
             List<Category> cats = new List<Category>();
             string data = GetPathData(@"path=[""lists"",""" + LatestKidsCharacterList + @""",{""from"":0,""to"":100},""reference"",""summary""]&path=[""lists"",""" + LatestKidsCharacterList + @""",{""from"":0,""to"":100},""reference"",""artwork"",""SQUAREHEADSHOT_1000x1000"",""png"",""_400x400""]&authURL=" + LatestAuthUrl);
             JObject json = (JObject)JsonConvert.DeserializeObject(data);
@@ -575,6 +587,8 @@ namespace OnlineVideos.Sites
 
         private List<Category> GetGenreListCategories(Category parentCategory)
         {
+            if (enableVerboseLog)
+                Log.Debug("GetGenreListCategories");
             List<Category> cats = new List<Category>();
             string data = GetPathData(@"path=[""genreList"",{""from"":0,""to"":24},[""id"",""menuName""]]&path=[""genreList"",""summary""]&authURL=" + LatestAuthUrl);
             JObject json = (JObject)JsonConvert.DeserializeObject(data);
@@ -591,6 +605,8 @@ namespace OnlineVideos.Sites
 
         private List<Category> GetDetailsCategories(Category parentCategory)
         {
+            if (enableVerboseLog)
+                Log.Debug("GetDetailsCategories");
             List<Category> cats = new List<Category>();
             string id = (parentCategory as RssLink).Url;
             string data = GetPathData(@"path=[""videos""," + id + @",[""creators"",""cast"",""directors"",""tags"",""genres""],{""from"":0,""to"":49},[""id"",""name""]]&authURL=" + LatestAuthUrl);
@@ -717,6 +733,8 @@ namespace OnlineVideos.Sites
 
         private List<Category> GetListCategories(Category parentCategory, string listType, uint startIndex)
         {
+            if (enableVerboseLog)
+                Log.Debug("GetListCategories");
             List<Category> cats = new List<Category>();
 
             string data = GetPathData(@"path=[""lolomo"",""" + listType + @""",{""from"":" + startIndex + @",""to"":" + (startIndex + noOfItems) + @"},""reference"",[""summary"",""title"",""synopsis"",""queue"",""userRating"",""runtime"",""releaseYear""]]&path=[""lolomo"",""" + listType + @""",{""from"":" + startIndex + @",""to"":" + (startIndex + noOfItems) + @"},""reference"",""boxarts"",""_342x192"",""jpg""]&path=[""lolomo"",""" + listType + @""",""reference"",[""context"",""id"",""length"",""name"",""trackIds"",""requestId""]]&authURL=" + LatestAuthUrl);
@@ -753,6 +771,8 @@ namespace OnlineVideos.Sites
 
         private List<Category> GetSubCategories(Category parentCategory, string categoryType, uint startIndex, bool getSubGenres = false)
         {
+            if (enableVerboseLog)
+                Log.Debug("GetSubCategories");
             List<Category> cats = new List<Category>();
             string id = (parentCategory as RssLink).Url;
             string data;
@@ -813,6 +833,8 @@ namespace OnlineVideos.Sites
 
         private List<Category> GetTitleCategories(Category parentCategory)
         {
+            if (enableVerboseLog)
+                Log.Debug("GetTitleCategories");
             List<Category> cats = new List<Category>();
             string id = (parentCategory as RssLink).Url;
             bool isShow = (parentCategory as NetflixCategory).IsShow;
@@ -896,6 +918,8 @@ namespace OnlineVideos.Sites
 
         private List<Category> AddToMyListCategories(Category parentCategory)
         {
+            if (enableVerboseLog)
+                Log.Debug("AddToMyListCategories");
             bool inQ = (parentCategory.ParentCategory as NetflixCategory).InQueue;
             string addRemove = inQ ? "removeFromList" : "addToList";
             string videoId = (parentCategory.ParentCategory as NetflixCategory).Url;
