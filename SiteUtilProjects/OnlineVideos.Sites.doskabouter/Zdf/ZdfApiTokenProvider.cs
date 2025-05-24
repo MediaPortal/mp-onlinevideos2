@@ -9,7 +9,6 @@ namespace OnlineVideos.Sites.Zdf
     internal class ZdfApiTokenProvider
     {
         private static readonly string API_TOKEN_URL = "https://www.zdf.de";
-        private static readonly string JSON_API_TOKEN = "apiToken";
         private Lazy<BearerToken> _token;
 
         public ZdfApiTokenProvider(WebCache webClient)
