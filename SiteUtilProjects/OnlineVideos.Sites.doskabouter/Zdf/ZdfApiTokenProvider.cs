@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
-
-using HtmlAgilityPack;
+using System.Text.RegularExpressions;
 
 using OnlineVideos.Sites.Ard;
 
@@ -24,51 +23,16 @@ namespace OnlineVideos.Sites.Zdf
 
         private static BearerToken Initialize(WebCache webClient)
         {
-            var document = webClient.GetWebData<HtmlDocument>(API_TOKEN_URL);
+            var data = webClient.GetWebData(API_TOKEN_URL);
 
-            var searchBearer = ParseBearerIndexPage(document.DocumentNode.Descendants("head").Single(), "script", "'");
-            var videoBearer = ParseBearerIndexPage(document.DocumentNode.Descendants("body").Single(), "script", "\"");
+            string videoBearer = String.Empty;
+            string searchBearer = String.Empty;
+            var match = Regex.Match(data, @"\\""videoToken\\"":{\\""apiToken\\"":\\""(?<apitoken>[^\\]*)\\""");
+            if (match.Success) videoBearer = match.Groups["apitoken"].Value;
+            match = Regex.Match(data, @"\\""appToken\\"":{\\""apiToken\\"":\\""(?<apitoken>[^\\]*)\\""");
+            if (match.Success) searchBearer = match.Groups["apitoken"].Value;
 
             return new BearerToken(searchBearer, videoBearer);
-        }
-
-        private static string ParseBearerIndexPage(HtmlNode aDocumentNode, string aQuery, string aStringQuote)
-        {
-
-            var scriptElements = aDocumentNode.Descendants(aQuery);
-            foreach (var scriptElement in scriptElements)
-            {
-                var script = scriptElement.InnerHtml;
-
-                var value = ParseBearer(script, aStringQuote);
-                if (!value.IsNullOrEmpty())
-                {
-                    return value;
-                }
-            }
-
-            return string.Empty;
-        }
-
-        private static string ParseBearer(string aJson, string aStringQuote)
-        {
-            var bearer = "";
-
-            var indexToken = aJson.IndexOf(JSON_API_TOKEN);
-
-            if (indexToken <= 0)
-            {
-                return bearer;
-            }
-            var indexStart = aJson.IndexOf(aStringQuote, indexToken + JSON_API_TOKEN.Length + 1) + 1;
-            var indexEnd = aJson.IndexOf(aStringQuote, indexStart);
-
-            if (indexStart > 0)
-            {
-                bearer = aJson.Substring(indexStart, indexEnd - indexStart);
-            }
-
-            return bearer;
         }
 
         private class BearerToken
