@@ -271,7 +271,7 @@ namespace OnlineVideos.Sites
                     {
                         try
                         {
-                            DeleteVideo(selectedItem.VideoUrl);
+                            DeleteVideo(file.FullName);
                         }
                         catch { } // file might be locked (e.g. still downloading)
                     }
