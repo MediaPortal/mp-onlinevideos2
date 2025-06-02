@@ -81,6 +81,7 @@
   <string name="LayoutList">Layout: List</string>
   <string name="LayoutIcons">Layout: Icons</string>
   <string name="LayoutBigIcons">Layout: Big Icons</string>
+  <string name="LimitUrlsPerHoster">Limit Number of Urls that are shown per hoster</string>
   <!--M-->
   <string name="Main.Help">This plugin creates a simple and consistent way to browse and play videos hosted on various websites.</string>
   <string name="ManageSites">Manage Sites</string>
@@ -147,6 +148,9 @@
   <string name="Subscriptions">Subscriptions</string>
   <string name="Success">Success</string>
   <string name="SearchRelatedKeywords">Search related keywords</string>
+  <string name="SubtitleLanguatePreference">Language preference (ex. eng;ger)</string>
+  <string name="ShowUnknownHosters">Show hosters for which no provider exists</string>
+  <string name="SubtitleSource">Subtitle source</string>
   <!--T-->
   <string name="Timeframe">Timeframe</string>
   <string name="Timeout">Timeout</string>

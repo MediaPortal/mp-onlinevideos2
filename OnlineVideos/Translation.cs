@@ -157,6 +157,7 @@ namespace OnlineVideos
         public string LayoutList = "Layout: List";
         public string LayoutIcons = "Layout: Icons";
         public string LayoutBigIcons = "Layout: Big Icons";
+        public string LimitUrlsPerHoster = "Limit Number of Urls that are shown per hoster";
 
         // M
         public string ManageSites = "Manage Sites";
@@ -228,6 +229,9 @@ namespace OnlineVideos
         public string SearchHistory = "Search history";
         public string Success = "Success";
         public string SearchRelatedKeywords = "Search related keywords";
+        public string SubtitleLanguatePreference = "Language preference (ex. eng;ger)";
+        public string ShowUnknownHosters = "Show hosters for which no provider exists";
+        public string SubtitleSource = "Subtitle source";
 
         // T
         public string Timeframe = "Timeframe";

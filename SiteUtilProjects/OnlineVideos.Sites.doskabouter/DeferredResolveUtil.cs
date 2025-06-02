@@ -14,20 +14,21 @@ namespace OnlineVideos.Sites
         /// For example, if the limit is 5, only the top 5 entries will be shown
         /// for each hoster (e.g. putlocker, megavideo,...).
         /// </summary>
-        [Category("OnlineVideosUserConfiguration"), Description("Limit Number of Urls that are shown per hosters (0: show all).")]
+        [Category("OnlineVideosUserConfiguration"), Description("Limit Number of Urls that are shown per hoster (0: show all)."), LocalizableDisplayName("Limit Number of Urls that are shown per hoster", TranslationFieldName = "LimitUrlsPerHoster")]
         protected int limitUrlsPerHoster = 5;
 
         /// <summary>
         /// If false, all video urls that have no hoster utility yet will be hidden. If true, all urls will
         /// be shown (unknown hosters will get a "ns" suffix)
         /// </summary>
-        [Category("OnlineVideosUserConfiguration"), Description("Show hosters for which no provider exists.")]
+        [Category("OnlineVideosUserConfiguration"), Description("Show hosters for which no provider exists"), LocalizableDisplayName("Show hosters for which no provider exists", TranslationFieldName = "ShowUnknownHosters")]
         protected bool showUnknownHosters = false;
 
-        [Category("OnlineVideosUserConfiguration"), Description("Select subtitle source, for example: TvSubtitles")]
+        [Category("OnlineVideosUserConfiguration"), Description("Subtitle source, for example: TvSubtitles"), LocalizableDisplayName("Subtitle source", TranslationFieldName = "SubtitleSource")]
         [TypeConverter(typeof(SubtitleSourceConverter))]
         protected string subtitleSource = "";
-        [Category("OnlineVideosUserConfiguration"), Description("Select subtitle language preferences (; separated and ISO 639-2), for example: eng;ger")]
+        [Category("OnlineVideosUserConfiguration"), Description("Select subtitle language preferences (; separated and ISO 639-2), for example: eng;ger"),
+           LocalizableDisplayName("Language preference (ex. eng;ger)", TranslationFieldName = "SubtitleLanguatePreference")]
         protected string subtitleLanguages = "";
 
         [Category("OnlineVideosConfiguration"), Description("Enables getting the redirected url instead of the given url for hoster.")]

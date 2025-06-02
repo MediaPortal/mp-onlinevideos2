@@ -80,6 +80,7 @@
   <string name="LayoutList">Weergave: Lijst</string>
   <string name="LayoutIcons">Weergave: Pictogrammen</string>
   <string name="LayoutBigIcons">Weergave: Grote pictogrammen</string>
+  <string name="LimitUrlsPerHoster">Maximaal aantal urls per hoster</string>
   <!--M-->
   <string name="ManageSites">Sites beheren</string>
   <string name="MaxResults">Max. aantal resultaten</string>
@@ -144,6 +145,9 @@
   <string name="Subscriptions">Abonnementen</string>
   <string name="Success">Gelukt</string>
   <string name="SearchRelatedKeywords">Zoek in gerelateerde zoektermen</string>
+  <string name="SubtitleLanguatePreference">Taal voorkeur (bv. eng;ger)</string>
+  <string name="ShowUnknownHosters">Toon hosters zonder provider</string>
+  <string name="SubtitleSource">Ondertitelingsbron</string>
   <!--T-->
   <string name="Timeframe">Periode</string>
   <string name="Timeout">Time-out</string>
