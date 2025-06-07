@@ -121,10 +121,20 @@ namespace OnlineVideos.Subtitles
             var it = video.TrackingInfo;
             if (it.VideoKind == VideoKind.Movie)
             {
-                SubtitleDownloader_Core.SearchQuery qu = new SubtitleDownloader_Core.SearchQuery(it.Title);
-                qu.Year = (int)it.Year;
-                qu.LanguageCodes = languagePrios.Keys.ToArray();
-                results = sd.SearchSubtitles(qu);
+                if (!String.IsNullOrEmpty(it.ID_IMDB))
+                {
+                    var imdbNumber = it.ID_IMDB.StartsWith("tt") ? it.ID_IMDB.Substring(2) : it.ID_IMDB;
+                    var qu = new SubtitleDownloader_Core.ImdbSearchQuery(imdbNumber);
+                    qu.LanguageCodes = languagePrios.Keys.ToArray();
+                    results = sd.SearchSubtitles(qu);
+                }
+                else
+                {
+                    SubtitleDownloader_Core.SearchQuery qu = new SubtitleDownloader_Core.SearchQuery(it.Title) { Year = (int)it.Year };
+                    qu.Year = (int)it.Year;
+                    qu.LanguageCodes = languagePrios.Keys.ToArray();
+                    results = sd.SearchSubtitles(qu);
+                }
             }
             else
             {
