@@ -104,7 +104,11 @@ namespace OnlineVideos.Sites
                         // read info from Matroska Xml File if available
                         if (File.Exists(Path.ChangeExtension(file.FullName, ".xml")))
                         {
-                            var matroskaTagsXmlDoc = XDocument.Load(Path.ChangeExtension(file.FullName, ".xml"));
+                            XDocument matroskaTagsXmlDoc;
+                            using (var stream = File.OpenRead(Path.ChangeExtension(file.FullName, ".xml")))
+                            {
+                                matroskaTagsXmlDoc = XDocument.Load(stream);
+                            }
                             foreach (var tagNode in matroskaTagsXmlDoc.Document.Descendants("Tag"))
                             {
                                 var targetType = tagNode.Descendants("TargetTypeValue").First<XElement>().Value;
