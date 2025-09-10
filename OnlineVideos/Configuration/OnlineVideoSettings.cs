@@ -23,6 +23,7 @@ namespace OnlineVideos
         public ImageDownloader.ResizeOptions ThumbsResizeOptions { get; set; }
         public string ConfigDir;
         public string ThumbsDir;
+        public string WebCacheDir;// for webresults persistent across sessions
         public string DownloadDir;
         public string DllsDir;
         public string UserAgent = "Mozilla/5.0 (Windows NT 6.1)";
@@ -108,6 +109,7 @@ namespace OnlineVideos
             ImageDownloader.ResizeOptions thumbsResizeOptions = Instance.ThumbsResizeOptions;
             string configDir = Instance.ConfigDir;
             string thumbsDir = Instance.ThumbsDir;
+            string webCacheDir = Instance.WebCacheDir;
             string downloadDir = Instance.DownloadDir;
             string dllsDir = Instance.DllsDir;
             string userAgent = Instance.UserAgent;
@@ -131,6 +133,7 @@ namespace OnlineVideos
             newInstance.ThumbsResizeOptions = thumbsResizeOptions;
             newInstance.ConfigDir = configDir;
             newInstance.ThumbsDir = thumbsDir;
+            newInstance.WebCacheDir = webCacheDir;
             newInstance.DownloadDir = downloadDir;
             newInstance.DllsDir = dllsDir;
             newInstance.UserAgent = userAgent;
@@ -157,6 +160,7 @@ namespace OnlineVideos
             if (!string.IsNullOrEmpty(bannerDir) && !Directory.Exists(bannerDir)) Directory.CreateDirectory(bannerDir);
             string cacheDir = string.IsNullOrEmpty(ThumbsDir) ? string.Empty : Path.Combine(ThumbsDir, @"Cache\");
             if (!string.IsNullOrEmpty(cacheDir) && !Directory.Exists(cacheDir)) Directory.CreateDirectory(cacheDir);
+            if (!Directory.Exists(WebCacheDir)) Directory.CreateDirectory(WebCacheDir);
             try { if (!string.IsNullOrEmpty(DllsDir) && !Directory.Exists(DllsDir)) Directory.CreateDirectory(DllsDir); }
             catch { /* might fail due to UAC */ }
 
