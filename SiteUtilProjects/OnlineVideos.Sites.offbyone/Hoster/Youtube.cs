@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Web;
 using System.Diagnostics;
-using System.Xml;
 using OnlineVideos.Helpers;
 using Newtonsoft.Json.Linq;
 
@@ -26,19 +23,7 @@ namespace OnlineVideos.Hoster
         [Category("OnlineVideosUserConfiguration"), Description("Select subtitle language preferences (; separated and ISO 3166-2?), for example: en;de")]
         protected string subtitleLanguages = "";
 
-        //YouTube Web               AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8
-        //YouTube Web Kids          AIzaSyBbZV_fZ3an51sF-mvs5w37OqqbsTOzwtU
-        //YouTube Web Music         AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30
-        //YouTube Web Creator       AIzaSyBUPetSUmoZL-OhlxA7wSac5XinrygCqMo
-        //YouTube Android           AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w
-        //YouTube Android Music     AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI
-        //YouTube Android Embedded  AIzaSyCjc_pVEDi4qsv5MtC2dMXzpIaDoRFLsxw
-        //YouTube Android Creator   AIzaSyD_qjV8zaaUMehtLkrKFgVeSX_Iqbtyws8
-        //YouTube IOS               AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc
-        //YouTube IOS Music         AIzaSyBAETezhkwP0ZWA02RsqT1zu78Fpt0bC_s
         private SubtitleList subtitleTexts = null;
-        private const string YoutubePlayerKey = "AIzaSyD_qjV8zaaUMehtLkrKFgVeSX_Iqbtyws8";
-        private const string YoutubePlayerUrl = "https://www.youtube.com/youtubei/v1/player?key=" + YoutubePlayerKey;
 
         public override string GetHosterUrl()
         {
@@ -142,39 +127,7 @@ namespace OnlineVideos.Hoster
 
         static readonly int[] fmtOptions3D = new int[] { 82, 83, 84, 85, 92, 93, 94, 95, 100, 101, 102 };
         static readonly int[] fmtOptionsHDR = new int[] { 330, 331, 332, 333, 334, 335, 336, 337 };
-        static readonly int[] fmtOptionsMobile = new int[] { 13, 17 };
-        static readonly int[] fmtOptionsQualitySorted = new int[] {
-            // > 2160p
-            272, 571, 702, 38, 402,
 
-            //2160p
-            337, 315, 313, 266, 138, 401,
-
-            //1440p
-            336, 308, 264, 271, 400,
-
-            //1080p
-            85, 137, 46, 37, 335, 303, 299, 248, 169, 399,
-            
-            //720p
-            102, 84, 136, 45, 22, 247, 334, 298, 302, 398,
-            
-            //480p
-            101, 135, 83, 44, 35, 244, 245, 246, 218, 168, 333, 397,
-            
-            //360p
-            100, 82, 43, 18, 34, 243, 134, 332, 396,
-            
-            //240p
-            133, 6, 5, 0, 242, 331, 395,
-        
-            //144p
-            17, 13, 160, 219, 278, 330, 394
-        };
-
-        static readonly int[] fmtOptionsQualityAudioSorted = new int[] { 141, 251, 140, 171, 250, 249 };
-
-        private static YoutubeSignatureDecryptor _YoutubeDecryptor = null;
         private static DateTime _YtDlpLastCheck = DateTime.MinValue;
         private static readonly string _YtDlpExeName = Environment.Is64BitOperatingSystem ? "yt-dlp.exe" : "yt-dlp_x86.exe";
         private static readonly string _YtDlpExePath = System.IO.Path.Combine(OnlineVideoSettings.Instance.DllsDir, _YtDlpExeName);
@@ -182,7 +135,6 @@ namespace OnlineVideos.Hoster
         public override Dictionary<string, string> GetPlaybackOptions(string url, PlaybackOptionsBuilder.SelectionOptions selection, out int iPreselection)
         {
             iPreselection = 0;
-            IWebProxy proxy = null;
             PlaybackOptionsBuilder qualities = new();
 
             string videoId = url;
@@ -202,243 +154,7 @@ namespace OnlineVideos.Hoster
 
             try
             {
-                string postdata;
-                NameValueCollection headers;
-
-                //yt-dlp processing
-                JToken jDataYtDlp = null;
-                JObject jData = null;
-                JObject jDataWeb = null;
-
-                if (_YoutubeDecryptor != null && (DateTime.Now - _YoutubeDecryptor.LoadTimestamp).TotalDays >= 1)
-                    _YoutubeDecryptor = null; //don't use the same decryptor for more than 1 day
-
-                string strContentsWeb = null;
-                string strVisitorData = null;
-
-                CookieContainer cookies = new();
-                strContentsWeb = WebCache.Instance.GetWebData(string.Format("https://www.youtube.com/watch?v={0}&bpctr=9999999999&has_verified=1", videoId),
-                    proxy: proxy,
-                    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36",
-                    cache: false,
-                    cookies: cookies
-                    );
-
-                if (strContentsWeb == null)
-                {
-                    Log.Error("[YoutubeHoster] Failed to get web content.");
-                    return null;
-                }
-
-                //Extract VisitorData
-                Match m = Regex.Match(strContentsWeb, @"ytcfg.set\((?<js>[^<]*?(?<=}))\);", RegexOptions.IgnoreCase);
-                if (m.Success)
-                {
-                    JToken jCfg = JObject.Parse(m.Groups["js"].Value);
-                    strVisitorData = jCfg["INNERTUBE_CONTEXT"]?["client"]?["visitorData"]?.ToString();
-                }
-                else
-                    Log.Error("[YoutubeHoster] Failed to load ytcfg data.");
-
-                if (string.IsNullOrWhiteSpace(strVisitorData))
-                    strVisitorData = cookies.GetCookies(new Uri("https://www.youtube.com"))["__Secure-YEC"]?.Value;
-
-                Log.Debug("[YoutubeHoster] VisitorData: {0}", strVisitorData);
-
-                //IOS
-                headers = new NameValueCollection
-                        {
-                            { "X-Youtube-Client-Name", "5" },
-                            { "X-Youtube-Client-Version", "19.29.1" },
-                            { "Origin", "https://www.youtube.com" },
-                            { "Content-Type", "application/json" },
-                            { "User-Agent", "com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)" },
-                            { "Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7" },
-                            { "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
-                            { "Accept-Encoding", "gzip, deflate" },
-                            { "Accept-Language", "en-us,en;q=0.5" }
-                        };
-
-                if (strVisitorData != null)
-                    headers.Add("X-Goog-Visitor-Id", strVisitorData);
-
-                postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""IOS"", ""clientVersion"": ""{1}"", ""deviceMake"": ""Apple"", ""deviceModel"": ""iPhone16,2"", ""hl"": ""en"", ""osName"": ""iPhone"", ""osVersion"": ""17.5.1.21F90"", ""timeZone"": ""UTC"", ""userAgent"": ""com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
-                    videoId, headers["X-Youtube-Client-Version"], "0");
-                jData = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
-
-                PlayerStatusEnum status = PlayerStatusEnum.Error;
-
-                if (jData != null)
-                {
-                    try
-                    {
-                        status = parsePlayerStatus(jData["videoDetails"], jData["streamingData"], qualities, null);
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Error("[YoutubeHoster] Error parsing video links: {0} {1} {2}", e.Message, e.Source, e.StackTrace);
-                        qualities.Clear();
-                        status = PlayerStatusEnum.Error;
-                    }
-                }
-
-            get_decr:
-                bool bExistingDecryptor = false;
-
-                if (qualities.Count == 0)
-                {
-
-                    if (this.webViewHelper != null)
-                    {
-                        if (_YoutubeDecryptor == null)
-                        {
-                            try
-                            {
-                                m = Regex.Match(strContentsWeb, @"ytInitialPlayerResponse\s+=\s+(?<js>[^<]*?(?<=}));", RegexOptions.IgnoreCase);
-                                if (m.Success)
-                                {
-                                    jDataWeb = JObject.Parse(m.Groups["js"].Value);
-
-                                    try
-                                    {
-                                        //Prepare signature decryptor
-                                        _YoutubeDecryptor = new YoutubeSignatureDecryptor(strContentsWeb, webViewHelper);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Log.Error("[YoutubeHoster] Error creating signature decryptor: {0}", ex.Message);
-                                        _YoutubeDecryptor = null;
-                                    }
-                                }
-                            }
-                            catch { jData = null; };
-                        }
-                        else
-                        {
-                            Log.Debug("[YoutubeHoster] Using existing YouTube decryptor: {0}", _YoutubeDecryptor.SignatureTimestamp);
-                            bExistingDecryptor = true;
-                        }
-                    }
-                    else
-                        Log.Error("[YoutubeHoster] WebView not initialized.");
-
-                    if (_YoutubeDecryptor != null)
-                    {
-                        //TVHTML5
-                        headers = new NameValueCollection
-                        {
-                            { "X-Youtube-Client-Name", "7" },
-                            { "X-Youtube-Client-Version", "7.20241201.18.00" },
-                            { "Origin", "https://www.youtube.com" },
-                            { "Content-Type", "application/json" },
-                            { "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.15 Safari/537.36" },
-                            { "Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7" },
-                            { "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
-                            { "Accept-Encoding", "gzip, deflate" },
-                            { "Accept-Language", "en-us,en;q=0.5" }
-                        };
-
-                        if (strVisitorData != null)
-                            headers.Add("X-Goog-Visitor-Id", strVisitorData);
-
-                        postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""TVHTML5"", ""clientVersion"": ""{1}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS"", ""signatureTimestamp"": {2}}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
-                            videoId, headers["X-Youtube-Client-Version"], _YoutubeDecryptor.SignatureTimestamp);
-                        jData = WebCache.Instance.GetWebData<JObject>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", postData: postdata, headers: headers);
-
-                        if (jData != null)
-                        {
-                            try
-                            {
-                                status = parsePlayerStatus(jData["videoDetails"], jData["streamingData"], qualities, _YoutubeDecryptor);
-                            }
-                            catch (Exception e)
-                            {
-                                Log.Error("[YoutubeHoster] Error parsing video links: {0} {1} {2}", e.Message, e.Source, e.StackTrace);
-                                qualities.Clear();
-                                status = PlayerStatusEnum.Error;
-                            }
-
-                            if (status != PlayerStatusEnum.OK)
-                            {
-                                qualities.Clear();
-                                Log.Error("[YoutubeHoster] Failed to get AdaptiveFormat working links.");
-                                _YoutubeDecryptor = null;
-
-                                if (bExistingDecryptor)
-                                    goto get_decr; //try get new fresh decryptor
-                            }
-                            else
-                                _YoutubeDecryptor.LastUseTimestamp = DateTime.Now;
-                        }
-                        else
-                            Log.Error("[YoutubeHoster] Failed to get json web data from youtube server.");
-                    }
-
-                    if (status != PlayerStatusEnum.OK || qualities.Count == 0)
-                    {
-                        qualities.Clear();
-                        if (jDataWeb != null)
-                        {
-                            //TVHTML5 client doesn't include HLS manifest. Try load the qualities from web content first.
-                            status = parsePlayerStatus(jDataWeb["videoDetails"], jDataWeb["streamingData"], qualities, null, true);
-                        }
-
-                        if (status != PlayerStatusEnum.OK || qualities.Count == 0)
-                        {
-                            Log.Error("[YoutubeHoster] Failed to get AdaptiveFormat working links. Trying yt-dlp ...");
-
-                            qualities.Clear();
-                            jDataYtDlp = this.parsePlayerStatusFromYtDlp(qualities, videoId);
-                            if (jDataYtDlp == null || qualities.Count == 0)
-                            {
-                                Log.Error("[YoutubeHoster] Failed to get working links from yt-dlp. Fallback to non JS player ...");
-
-                                try
-                                {
-                                    //Non JS player API
-
-                                    CookieContainer cc = new CookieContainer();
-                                    cc.Add(new Cookie("CONSENT", "YES+cb.20210328-17-p0.en+FX+684", "", ".youtube.com"));
-
-                                    headers = new NameValueCollection
-                                        {
-                                            { "X-Youtube-Client-Name", "95" },
-                                            { "X-Youtube-Client-Version", "0.1" },
-                                            { "Origin", "https://www.youtube.com" },
-                                            { "Content-Type", "application/json" },
-                                            { "User-Agent", "com.google.android.apps.youtube.producer/0.111.1 (Linux; U; Android 11) gzip" },
-                                            { "Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7" },
-                                            { "Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
-                                            { "Accept-Encoding", "gzip, deflate" },
-                                            { "Accept-Language", "en-us,en;q=0.5" }
-                                        };
-
-                                    postdata = string.Format(@"{{""context"": {{""client"": {{""clientName"": ""MEDIA_CONNECT_FRONTEND"", ""clientVersion"": ""{1}"", ""androidSdkVersion"": 30, ""userAgent"": ""{2}"", ""hl"": ""en"", ""timeZone"": ""UTC"", ""utcOffsetMinutes"": 0}}}}, ""videoId"": ""{0}"", ""params"": ""CgIQBg=="", ""playbackContext"": {{""contentPlaybackContext"": {{""html5Preference"": ""HTML5_PREF_WANTS""}}}}, ""contentCheckOk"": true, ""racyCheckOk"": true}}",
-                                        videoId, headers["X-Youtube-Client-Version"], headers["User-Agent"]);
-                                    jData = WebCache.Instance.GetWebData<JObject>(YoutubePlayerUrl, postData: postdata, headers: headers);
-
-                                    if (jData != null)
-                                    {
-                                        parsePlayerStatus(jData["videoDetails"], jData["streamingData"], qualities, null);
-
-                                        if (qualities.Count == 0)
-                                        {
-                                            Log.Error("[YoutubeHoster] Failed to get working links from non JS player.");
-                                            return null;
-                                        }
-                                    }
-                                    else
-                                        Log.Error("[YoutubeHoster] Failed to get json web data from youtube server.");
-                                }
-                                catch (Exception e)
-                                {
-                                    Log.Error("Error getting links from non JS player api: {0}", e.Message);
-                                    return null;
-                                }
-                            }
-                        }
-                    }
-                }
+                var jDataYtDlp = this.parsePlayerStatusFromYtDlp(qualities, videoId);
 
                 Log.Debug("[YoutubeHoster] VideoQualities count: {0}", qualities.Count);
 
@@ -451,17 +167,7 @@ namespace OnlineVideos.Hoster
                     try
                     {
                         Dictionary<string, string> subUrls = null;
-                        if (jDataYtDlp != null)
-                        {
-                            subUrls = getSubUrlFromYtDlp(jDataYtDlp["automatic_captions"], subtitleLanguages);
-                        }
-                        else if (jData != null)
-                        {
-                            JArray captions = jData["captions"]?["playerCaptionsTracklistRenderer"]?["captionTracks"] as JArray;
-
-                            if (captions != null)
-                                subUrls = getSubUrl(captions, subtitleLanguages);
-                        }
+                        subUrls = getSubUrlFromYtDlp(jDataYtDlp["automatic_captions"], subtitleLanguages);
 
                         if (subUrls != null && subUrls.Count > 0)
                         {
@@ -513,92 +219,6 @@ namespace OnlineVideos.Hoster
             }
         }
 
-        private Dictionary<string, string> getSubUrl(JArray captions, string languages)
-        {
-            Dictionary<string, string> result = new Dictionary<string, string>();
-            if (captions?.Count > 0)
-            {
-                string[] langs = languages.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-                JToken jMain = null;
-                StringBuilder sb = new StringBuilder(256);
-                foreach (string lang in langs)
-                {
-                    string strName = lang.Trim();
-                    bool bExists = false;
-                    foreach (JToken caption in captions)
-                    {
-                        if (strName.Equals(caption.Value<string>("languageCode"), StringComparison.OrdinalIgnoreCase))
-                        {
-                            addSubtitleToList(result, strName, caption, sb);
-                            bExists = true;
-                        }
-                    }
-
-                    if (!bExists)
-                    {
-                        if (jMain == null)
-                        {
-                            //Try to take first normal(non autogenerated) subtitle
-                            jMain = captions.FirstOrDefault(c => c["kind"] == null);
-                            if (jMain == null)
-                                jMain = captions[0]; //take first available
-                        }
-
-                        addSubtitleToList(result, strName, jMain, sb, true);
-                    }
-                }
-            }
-            return result;
-        }
-
-        private static bool addSubtitleToList(Dictionary<string, string> result, string strLang, JToken jCaption,  StringBuilder sb, bool bAutoTransl = false)
-        {
-            sb.Clear();
-            sb.Append(strLang);
-
-            string strUrl = (string)jCaption["baseUrl"] + "&fmt=vtt";
-
-            if (bAutoTransl)
-            {
-                //Check for subtitle availability
-                strUrl += "&tlang=" + strLang;
-                HttpWebRequest wr = (HttpWebRequest)WebRequest.Create(strUrl);
-                wr.Method = "HEAD";
-                HttpWebResponse resp = null;
-                try { resp = (HttpWebResponse)wr.GetResponse(); }
-                catch { }
-                if (resp == null || resp.StatusCode != HttpStatusCode.OK)
-                {
-                    Log.Error("[YoutubeHoster][addSubtitleToList] Failed: {0}/{1}", strLang, strUrl);
-                    return false;
-                }
-            }
-
-            string strKind = jCaption["kind"]?.Value<string>();
-            if (strKind != null)
-            {
-                if (strKind.Equals("asr", StringComparison.OrdinalIgnoreCase))
-                    sb.Append(".Autogenerated");
-                else if (strKind.Equals("forced", StringComparison.OrdinalIgnoreCase))
-                    sb.Append(".Forced");
-            }
-
-            if (bAutoTransl)
-                sb.Append(".Translated");
-
-            string strKey = sb.ToString();
-            if (result.ContainsKey(strKey))
-            {
-                sb.Append('.');
-                sb.Append(result.Count(pair => pair.Key == strKey) + 1);
-                strKey = sb.ToString();
-            }
-            
-            result.Add(strKey, strUrl);
-            Log.Debug("[YoutubeHoster][addSubtitleToList] {0}/{1}", strKey, strUrl);
-            return true;
-        }
-
         private Dictionary<string, string> getSubUrlFromYtDlp(JToken captions, string languages)
         {
             Dictionary<string, string> result = new Dictionary<string, string>();
@@ -640,95 +260,6 @@ namespace OnlineVideos.Hoster
             return result;
         }
 
-        private PlayerStatusEnum parsePlayerStatus(JToken videoDetails, JToken streamingData, PlaybackOptionsBuilder qualities, YoutubeSignatureDecryptor dec, bool bLiveOnly = false)
-        {
-            if (streamingData == null)
-                return PlayerStatusEnum.Error;
-
-            string hlsUrl = streamingData.Value<string>("hlsManifestUrl");
-
-            //In case of LIVE stream take the HLS or DASH link only; adaptive formats have cca 5s streams only
-            bool bIsLive = (videoDetails?.Value<bool>("isLive") ?? false) || (videoDetails?.Value<int>("lengthSeconds") ?? 0) == 0;
-
-            if (!bLiveOnly && !bIsLive)
-            {
-                if (streamingData["formats"] is JArray formats)
-                    parseFormats(formats, qualities, dec, false);
-
-                if (streamingData["adaptiveFormats"] is JArray formatsAdapt)
-                {
-                    if (parseFormats(formatsAdapt, qualities, dec, dec != null) == PlayerStatusEnum.InvalidLink)
-                        return PlayerStatusEnum.InvalidLink;
-                }
-            }
-
-            // Web page links can have higher resolution so take always the LIVE streams
-            if (qualities.Count == 0 || bIsLive)
-            {
-                if (!String.IsNullOrEmpty(hlsUrl))
-                {
-                    var data = GetWebData(hlsUrl);
-                    var res = HlsPlaylistParser.GetPlaybackOptionsEx(data, hlsUrl, HlsStreamInfoComparer.BandwidtLowHigh, HlsStreamInfoFormatter.VideoDimension);
-                    foreach (var kv in res)
-                    {
-                        qualities.AddVideoQuality(kv.Value.Url, false, "HLS", string.Empty, kv.Value.Width, kv.Value.Height, kv.Value.Bandwidth, false, false);
-                    }
-                }
-            }
-
-            return PlayerStatusEnum.OK; //LAV is failing to play YouTube MPEG-DASH(so far)
-            /*
-           //MPEG-DASH; LAV does support this format
-           string strDashUrl = streamingData.Value<string>("dashManifestUrl");
-           if (!string.IsNullOrEmpty(strDashUrl))
-           {
-               try
-               {
-                   const string MPD_NS = "urn:mpeg:dash:schema:mpd:2011";
-                   const string MPD_NS2 = "urn:mpeg:DASH:schema:MPD:2011";
-                   string strContent = WebCache.Instance.GetWebData(strDashUrl);
-                   XmlDocument xml = new();
-                   xml.LoadXml(strContent);
-                   XmlNamespaceManager mgr = new(xml.NameTable);
-                   mgr.AddNamespace("ns", MPD_NS);
-                   XmlNode nodeMPD = xml.SelectSingleNode("ns:MPD", mgr);
-                   if (nodeMPD == null)
-                   {
-                       mgr.AddNamespace("ns", MPD_NS2);
-                       nodeMPD = xml.SelectSingleNode("ns:MPD", mgr);
-                   }
-
-                   //Find highest video resolution
-                   XmlNodeList nodesRepresentation = nodeMPD.SelectNodes("//ns:AdaptationSet/ns:Representation[@width][@height]", mgr);
-                   int iWidthMax = 0;
-                   int iHeightMax = 0;
-                   int iBandwidth = 0;
-                   for (int i = 0; i < nodesRepresentation.Count; i++)
-                   {
-                       XmlNode nodeR = nodesRepresentation[i];
-                       int iW = int.Parse(nodeR.Attributes["width"].Value);
-                       int iH = int.Parse(nodeR.Attributes["height"].Value);
-                       if (iW > iWidthMax || iH > iHeightMax)
-                       {
-                           iWidthMax = iW;
-                           iHeightMax = iH;
-                       }
-
-                       if (!int.TryParse(nodeR.Attributes["bandwidth"]?.Value, out iBandwidth))
-                           iBandwidth = 0;
-                   }
-
-                   qualities.AddVideoQuality(strDashUrl, false, "DASH", string.Empty, iWidthMax, iHeightMax, iBandwidth, false, false);
-
-               }
-               catch (Exception ex)
-               {
-                   Log.Error("[YoutubeHoster] parsePlayerStatus() Error downloading MPEG-DASH manifest: {0}", ex.Message);
-               }
-           }
-           */
-        }
-
         private static bool checkYtDlpVersion()
         {
             if ((DateTime.Now - _YtDlpLastCheck).TotalHours < 24)
@@ -739,7 +270,8 @@ namespace OnlineVideos.Hoster
             try
             {
                 string strContent;
-                if (Environment.OSVersion.Version.Major == 6 && Environment.OSVersion.Version.MajorRevision < 2)
+
+                if (Environment.OSVersion.Version.Major == 6 && Environment.OSVersion.Version.Minor < 2)
                 {
                     //2024.10.22 is latest working version for Win7
                     Log.Warn("[YoutubeHoster] checkYtDlpVersion() Latest working version for Windows 7 is 2024.10.22");
@@ -945,137 +477,6 @@ namespace OnlineVideos.Hoster
             }
 
             return jStreamingData;
-        }
-
-        private static PlayerStatusEnum parseFormats(JArray formats, PlaybackOptionsBuilder qualities, YoutubeSignatureDecryptor dec, bool bCheckLink)
-        {
-            bool bStreamValid = !bCheckLink;
-
-            foreach (JToken format in formats)
-            {
-                string strUrl = getStreamUrl(format, dec);
-                if (strUrl == null)
-                    continue;
-
-                int iItag = (int)format["itag"];
-
-                if (!bStreamValid)
-                {
-                    //Check for stream availability
-                    HttpWebRequest wr = (HttpWebRequest)WebRequest.Create(strUrl);
-                    wr.Method = "HEAD";
-                    HttpWebResponse resp = null;
-                    try { resp = (HttpWebResponse)wr.GetResponse(); }
-                    catch { }
-                    if (resp == null || resp.StatusCode != HttpStatusCode.OK)
-                    {
-                        Log.Warn("[YoutubeHoster] parseFormats() Invalid link.");
-                        return PlayerStatusEnum.InvalidLink;
-                    }
-
-                    Log.Debug("[YoutubeHoster] parseFormats() Link is valid.");
-                    bStreamValid = true; //links seems to be valid; no more checks
-                }
-
-                if (format["width"] == null)
-                {
-                    //Audio only
-
-                    //Audio language track check (MLA)
-                    JToken jTrack = format["audioTrack"];
-                    string strLanguageID = null;
-                    string strLanguage = null;
-                    string strLanguageDisplayName = null;
-                    bool bDefault = false;
-                    if (jTrack != null)
-                    {
-                        strLanguageID = jTrack["id"]?.Value<string>();
-                        strLanguageDisplayName = jTrack["displayName"]?.Value<string>();
-
-                        if (!string.IsNullOrEmpty(strLanguageID))
-                        {
-                            int iIdx = strLanguageID.IndexOf('.');
-                            if (iIdx > 0)
-                                strLanguage = strLanguageID.Substring(0, iIdx);
-                            else
-                                strLanguage = strLanguageID;
-                        }
-
-                        bDefault = jTrack["audioIsDefault"]?.Value<bool>() ?? false;
-                    }
-
-                    qualities.AddAudioQuality(
-                        strUrl,
-                        bDefault,
-                        strLanguageID,
-                        strLanguage,
-                        strLanguageDisplayName,
-                        format.Value<string>("mimeType"),
-                        format.Value<string>("mimeType"),
-                        format.Value<int>("bitrate"),
-                        format.Value<int>("audioChannels"),
-                        format.Value<int>("audioSampleRate"));
-                }
-                else
-                {
-                    qualities.AddVideoQuality(
-                           strUrl,
-                           format["audioChannels"] == null,
-                           format.Value<string>("mimeType"),
-                           format.Value<string>("mimeType"),
-                           format.Value<int>("width"),
-                           format.Value<int>("height"),
-                           format.Value<int>("bitrate"),
-                           fmtOptions3D.Contains(iItag),
-                           fmtOptionsHDR.Contains(iItag));
-                }
-            }
-
-            return PlayerStatusEnum.OK;
-        }
-
-        private static string getStreamUrl(JToken jFormat, YoutubeSignatureDecryptor decryptor)
-        {
-            JToken jUrlDecr = jFormat["urlDecrypted"];
-            if (jUrlDecr == null)
-            {
-                string strUrl = null;
-                string strSig = null;
-                JToken jUrl = jFormat["url"];
-                if (jUrl == null)
-                {
-                    string strSignatureCipher = jFormat["signatureCipher"]?.ToString();
-                    if (!string.IsNullOrWhiteSpace(strSignatureCipher))
-                    {
-                        NameValueCollection col = HttpUtility.ParseQueryString(strSignatureCipher);
-                        strUrl = col["url"];
-                        strSig = col["s"];
-                    }
-                }
-                else
-                    strUrl = (string)jUrl;
-
-                if (strUrl != null)
-                {
-                    if (decryptor != null)
-                    {
-                        Match m = Regex.Match(strUrl, "&n=(?<n>[^&]+)");
-                        if (m.Success)
-                        {
-                            string str = decryptor.DecryptNSignature(m.Groups["n"].Value);
-                            strUrl = strUrl.Substring(0, m.Index + 3) + str + strUrl.Substring(m.Index + m.Length);
-                            if (strSig != null)
-                                strUrl += "&sig=" + decryptor.DecryptSignature(strSig);
-                        }
-                    }
-                    jFormat["urlDecrypted"] = strUrl; //to avoid further decrypting
-                    return strUrl;
-                }
-
-                return null;
-            }
-            else
-                return (string)jUrlDecr;
         }
     }
 }
