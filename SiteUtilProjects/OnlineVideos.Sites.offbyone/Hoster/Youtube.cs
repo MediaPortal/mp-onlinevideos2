@@ -329,7 +329,6 @@ namespace OnlineVideos.Hoster
             try
             {
                 StringBuilder sbStd = new(1024 * 128);
-                StringBuilder sbErr = new(1024 * 1);
 
                 ProcessStartInfo psi = new()
                 {
@@ -349,7 +348,7 @@ namespace OnlineVideos.Hoster
                     (sender, e) =>
                     {
                         if (e.Data != null)
-                            sbErr.Append(e.Data);
+                            Log.Debug(e.Data);
                     });
                 proc.OutputDataReceived += new DataReceivedEventHandler(
                     (sender, e) =>
@@ -365,7 +364,9 @@ namespace OnlineVideos.Hoster
                 proc.BeginErrorReadLine();
 
                 //Wait for yt-dlp exit
-                proc.WaitForExit();
+                while (!proc.WaitForExit(500)) // give the os a chance to properly exit in case of thread.abort
+                {
+                }
                 proc.CancelOutputRead();
                 proc.CancelErrorRead();
 
