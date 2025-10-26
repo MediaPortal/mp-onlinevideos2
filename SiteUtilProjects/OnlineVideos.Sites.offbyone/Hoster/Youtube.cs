@@ -359,16 +359,25 @@ namespace OnlineVideos.Hoster
                     );
 
                 //Start yt-dlp process
-                proc.Start();
-                proc.BeginOutputReadLine();
-                proc.BeginErrorReadLine();
-
-                //Wait for yt-dlp exit
-                while (!proc.WaitForExit(500)) // give the os a chance to properly exit in case of thread.abort
+                try
                 {
+                    proc.Start();
+                    proc.BeginOutputReadLine();
+                    proc.BeginErrorReadLine();
+
+                    //Wait for yt-dlp exit
+                    while (!proc.WaitForExit(500)) // give the os a chance to properly exit in case of thread.abort
+                    {
+                    }
+                    proc.CancelOutputRead();
+                    proc.CancelErrorRead();
                 }
-                proc.CancelOutputRead();
-                proc.CancelErrorRead();
+                catch (System.Threading.ThreadAbortException)
+                {
+                    Log.Debug("Thread aborted, killing yt-dlp");
+                    proc.Kill();
+                    throw;
+                }
 
                 jStreamingData = Newtonsoft.Json.JsonConvert.DeserializeObject<JToken>(sbStd.ToString());
                 JArray jFormats = jStreamingData["formats"] as JArray;
@@ -419,7 +428,7 @@ namespace OnlineVideos.Hoster
                             }
                             catch (Exception ex)
                             {
-                                Log.Error("[YoutubeHoster] parsePlayerStatusFromYtDlp() Error: {0}", ex.Message);
+                                Log.Error("[YoutubeHoster] parsePlayerStatusFromYtDlp()1 Error: {0}", ex.Message);
                             }
                         }
                         else
@@ -465,7 +474,7 @@ namespace OnlineVideos.Hoster
                             }
                             catch (Exception ex)
                             {
-                                Log.Error("[YoutubeHoster] parsePlayerStatusFromYtDlp() Error: {0}", ex.Message);
+                                Log.Error("[YoutubeHoster] parsePlayerStatusFromYtDlp()2 Error: {0}", ex.Message);
                             }
                         }
                     }
@@ -473,7 +482,7 @@ namespace OnlineVideos.Hoster
             }
             catch (Exception ex)
             {
-                Log.Error("[YoutubeHoster] parsePlayerStatusFromYtDlp() Error: {0}", ex.Message);
+                Log.Error("[YoutubeHoster] parsePlayerStatusFromYtDlp()3 Error: {0}", ex.Message);
                 return null;
             }
 
