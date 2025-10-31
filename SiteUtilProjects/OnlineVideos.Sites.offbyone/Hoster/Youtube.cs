@@ -337,6 +337,7 @@ namespace OnlineVideos.Hoster
                     RedirectStandardError = true,
                     RedirectStandardInput = true,
                     CreateNoWindow = true,
+                    WorkingDirectory = OnlineVideoSettings.Instance.DllsDir,
                     StandardOutputEncoding = Encoding.UTF8,
                     StandardErrorEncoding = Encoding.UTF8,
                     FileName = _YtDlpExePath,
