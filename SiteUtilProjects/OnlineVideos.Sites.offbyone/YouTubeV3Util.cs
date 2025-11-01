@@ -111,13 +111,7 @@ namespace OnlineVideos.Sites
             {
                 Settings.Categories = new BindingList<Category>();
 
-                var guideCatgeory = new Category() { Name = "YouTube Guide", HasSubCategories = true };
-                guideCatgeory.Other = (Func<List<Category>>)(() => QueryGuideCategories(guideCatgeory));
-                Settings.Categories.Add(guideCatgeory);
-
-                var videoCategory = new Category() { Name = "Video Categories", HasSubCategories = true };
-                videoCategory.Other = (Func<List<Category>>)(() => QueryVideoCategories(videoCategory));
-                Settings.Categories.Add(videoCategory);
+                QueryVideoCategories(null).ForEach(c => Settings.Categories.Add(c));
                 if (enableLogin)
                 {
                     try
@@ -453,7 +447,10 @@ namespace OnlineVideos.Sites
         List<VideoInfo> QueryUserUploads(string username)
         {
             var query = Service.Channels.List("snippet, contentDetails");
-            query.ForUsername = username;
+            if (username.StartsWith("@"))
+                query.ForHandle = username;
+            else
+                query.ForUsername = username;
             query.Hl = hl;
             var response = query.Execute();
             if (response.Items.Count == 0)
@@ -481,7 +478,7 @@ namespace OnlineVideos.Sites
                         using (var stream = new System.IO.MemoryStream(Convert.FromBase64String(CLIENT)))
                         {
                             credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                                GoogleClientSecrets.Load(stream).Secrets,
+                                GoogleClientSecrets.FromStream(stream).Secrets,
                                 new[] { YouTubeService.Scope.Youtube },
                                 "user",
                                 CancellationToken.None,
@@ -525,27 +522,6 @@ namespace OnlineVideos.Sites
                     playlistsCategory.Other = (Func<List<Category>>)(() => QueryChannelPlaylists(playlistsCategory, null));
                     results.Add(playlistsCategory);
                 }
-            }
-            return results;
-        }
-
-        /// <summary>Returns a list of categories that can be associated with YouTube channels.</summary>
-        /// <remarks>
-        /// A guide category identifies a category that YouTube algorithmically assigns based on a channel's content or other indicators, such as the channel's popularity. 
-        /// The list is similar to video categories, with the difference being that a video's uploader can assign a video category but only YouTube can assign a channel category.
-        /// </remarks>
-        List<Category> QueryGuideCategories(Category parentCategory)
-        {
-            var query = Service.GuideCategories.List("snippet");
-            query.RegionCode = regionCode;
-            query.Hl = hl;
-            var response = query.Execute();
-            var results = new List<Category>();
-            foreach (var item in response.Items)
-            {
-                var category = new YouTubeCategory() { Name = item.Snippet.Title, HasSubCategories = true, ParentCategory = parentCategory, Kind = YouTubeCategory.CategoryKind.GuideCategory, Id = item.Id };
-                category.Other = (Func<List<Category>>)(() => QueryChannelsForGuideCategory(category, item.Id));
-                results.Add(category);
             }
             return results;
         }
@@ -767,7 +743,7 @@ namespace OnlineVideos.Sites
                 Title = i.Snippet.Title,
                 Description = i.Snippet.Description,
                 Thumb = i.Snippet.Thumbnails != null ? i.Snippet.Thumbnails.High.Url : null,
-                Airdate = i.Snippet.PublishedAt != null ? i.Snippet.PublishedAt.Value.ToString("g", OnlineVideoSettings.Instance.Locale) : i.Snippet.PublishedAtRaw,
+                Airdate = i.Snippet.PublishedAtDateTimeOffset.HasValue ? i.Snippet.PublishedAtDateTimeOffset.Value.LocalDateTime.ToString("g", OnlineVideoSettings.Instance.Locale) : i.Snippet.PublishedAtRaw,
                 VideoUrl = i.Id.VideoId,
                 ChannelId = i.Snippet.ChannelId,
                 ChannelTitle = i.Snippet.ChannelTitle,
@@ -798,7 +774,7 @@ namespace OnlineVideos.Sites
                 Title = i.Snippet.Localized.Title,
                 Description = i.Snippet.Localized.Description,
                 Thumb = i.Snippet.Thumbnails != null ? i.Snippet.Thumbnails.High.Url : null,
-                Airdate = i.Snippet.PublishedAt != null ? i.Snippet.PublishedAt.Value.ToString("g", OnlineVideoSettings.Instance.Locale) : i.Snippet.PublishedAtRaw,
+                Airdate = i.Snippet.PublishedAtDateTimeOffset.HasValue ? i.Snippet.PublishedAtDateTimeOffset.Value.LocalDateTime.ToString("g", OnlineVideoSettings.Instance.Locale) : i.Snippet.PublishedAtRaw,
                 Length = System.Xml.XmlConvert.ToTimeSpan(i.ContentDetails.Duration).ToString(),
                 VideoUrl = i.Id,
                 ChannelId = i.Snippet.ChannelId,
@@ -826,7 +802,7 @@ namespace OnlineVideos.Sites
                 Title = i.Snippet.Title,
                 Description = i.Snippet.Description,
                 Thumb = i.Snippet.Thumbnails != null ? i.Snippet.Thumbnails.High.Url : null,
-                Airdate = i.Snippet.PublishedAt != null ? i.Snippet.PublishedAt.Value.ToString("g", OnlineVideoSettings.Instance.Locale) : i.Snippet.PublishedAtRaw,
+                Airdate = i.Snippet.PublishedAtDateTimeOffset.HasValue ? i.Snippet.PublishedAtDateTimeOffset.Value.LocalDateTime.ToString("g", OnlineVideoSettings.Instance.Locale) : i.Snippet.PublishedAtRaw,
                 VideoUrl = i.Snippet.ResourceId.VideoId,
                 ChannelId = i.Snippet.ChannelId,
                 ChannelTitle = i.Snippet.ChannelTitle,
@@ -891,7 +867,7 @@ namespace OnlineVideos.Sites
                 Title = i.Snippet.Title,
                 Description = i.Snippet.Description,
                 Thumb = i.Snippet.Thumbnails != null ? i.Snippet.Thumbnails.High.Url : null,
-                Airdate = i.Snippet.PublishedAt != null ? i.Snippet.PublishedAt.Value.ToString("g", OnlineVideoSettings.Instance.Locale) : i.Snippet.PublishedAtRaw,
+                Airdate = i.Snippet.PublishedAtDateTimeOffset.HasValue ? i.Snippet.PublishedAtDateTimeOffset.Value.LocalDateTime.ToString("g", OnlineVideoSettings.Instance.Locale) : i.Snippet.PublishedAtRaw,
                 VideoUrl = i.Id.VideoId,
                 ChannelId = i.Snippet.ChannelId,
                 ChannelTitle = i.Snippet.ChannelTitle,

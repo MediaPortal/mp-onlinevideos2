@@ -57,6 +57,18 @@
     <Reference Include="Microsoft.Threading.Tasks.Extensions.Desktop, Version=1.0.168.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\..\Packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.Desktop.dll</HintPath>
     </Reference>
+    <Reference Include="Google.Apis, Version=1.70.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\..\Packages\Google.Apis.1.70.0\lib\net462\Google.Apis.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Apis.Auth, Version=1.70.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\..\Packages\Google.Apis.Auth.1.70.0\lib\net462\Google.Apis.Auth.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Apis.Core, Version=1.70.0.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\..\Packages\Google.Apis.Core.1.70.0\lib\net462\Google.Apis.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Apis.YouTube.v3, Version=1.70.0.3847, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\..\Packages\Google.Apis.YouTube.v3.1.70.0.3847\lib\net462\Google.Apis.YouTube.v3.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
@@ -84,97 +96,6 @@
     <Compile Include="CNNUtil.cs" />
     <Compile Include="DreiSatUtil.cs" />
     <Compile Include="FilmStartsUtil.cs" />
-    <Compile Include="Google\Apis\Auth\GoogleJsonWebSignature.cs" />
-    <Compile Include="Google\Apis\Auth\JsonWebSignature.cs" />
-    <Compile Include="Google\Apis\Auth\JsonWebToken.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\AuthorizationCodeInstalledApp.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\BearerToken.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\ClientSecrets.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\ComputeCredential.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Flows\AuthorizationCodeFlow.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Flows\GoogleAuthorizationCodeFlow.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Flows\IAuthorizationCodeFlow.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\GoogleClientSecrets.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\GoogleConsts.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\GoogleWebAuthorizationBroker.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\IAccessMethod.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\IAuthorizationCodeInstalledApp.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\ICodeReceiver.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\LocalServerCodeReceiver.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\PromptCodeReceiver.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Requests\AuthorizationCodeRequestUrl.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Requests\AuthorizationCodeTokenRequest.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Requests\AuthorizationRequestUrl.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Requests\GoogleAssertionTokenRequest.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Requests\GoogleAuthorizationCodeRequestUrl.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Requests\GoogleRevokeTokenRequest.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Requests\RefreshTokenRequest.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Requests\TokenRequest.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Requests\TokenRequestExtenstions.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Responses\AuthorizationCodeResponseUrl.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Responses\TokenErrorResponse.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Responses\TokenResponse.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Responses\TokenResponseException.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\ServiceAccountCredential.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\ServiceCredential.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\UserCredential.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Web\AuthorizationCodeWebApp.cs" />
-    <Compile Include="Google\Apis\Auth\OAuth2\Web\AuthWebUtility.cs" />
-    <Compile Include="Google\Apis\Discovery\DiscoveryVersion.cs" />
-    <Compile Include="Google\Apis\Discovery\Features.cs" />
-    <Compile Include="Google\Apis\Discovery\IParameter.cs" />
-    <Compile Include="Google\Apis\Discovery\Parameter.cs" />
-    <Compile Include="Google\Apis\YouTube\Google.Apis.YouTube.v3.cs" />
-    <Compile Include="Google\Apis\Http\BackOffHandler.cs" />
-    <Compile Include="Google\Apis\Http\ConfigurableHttpClient.cs" />
-    <Compile Include="Google\Apis\Http\ConfigurableMessageHandler.cs" />
-    <Compile Include="Google\Apis\Http\ExponentialBackOffInitializer.cs" />
-    <Compile Include="Google\Apis\Http\HttpClientFactory.cs" />
-    <Compile Include="Google\Apis\Http\HttpConsts.cs" />
-    <Compile Include="Google\Apis\Http\HttpExtenstions.cs" />
-    <Compile Include="Google\Apis\Http\IConfigurableHttpClientInitializer.cs" />
-    <Compile Include="Google\Apis\Http\IHttpClientFactory.cs" />
-    <Compile Include="Google\Apis\Http\IHttpExceptionHandler.cs" />
-    <Compile Include="Google\Apis\Http\IHttpExecuteInterceptor.cs" />
-    <Compile Include="Google\Apis\Http\IHttpUnsuccessfulResponseHandler.cs" />
-    <Compile Include="Google\Apis\Http\MaxUrlLengthInterceptor.cs" />
-    <Compile Include="Google\Apis\ISerializer.cs" />
-    <Compile Include="Google\Apis\Json\IJsonSerializer.cs" />
-    <Compile Include="Google\Apis\Json\NewtonsoftJsonSerializer.cs" />
-    <Compile Include="Google\Apis\Logging\ILogger.cs" />
-    <Compile Include="Google\Apis\Logging\NullLogger.cs" />
-    <Compile Include="Google\Apis\Requests\BatchRequest.cs" />
-    <Compile Include="Google\Apis\Requests\ClientServiceRequest.cs" />
-    <Compile Include="Google\Apis\Requests\ETagAction.cs" />
-    <Compile Include="Google\Apis\Requests\HttpRequestMessageExtenstions.cs" />
-    <Compile Include="Google\Apis\Requests\IClientServiceRequest.cs" />
-    <Compile Include="Google\Apis\Requests\IDirectResponseSchema.cs" />
-    <Compile Include="Google\Apis\Requests\Parameters\ParameterCollection.cs" />
-    <Compile Include="Google\Apis\Requests\Parameters\ParameterUtils.cs" />
-    <Compile Include="Google\Apis\Requests\Parameters\ParameterValidator.cs" />
-    <Compile Include="Google\Apis\Requests\RequestBuilder.cs" />
-    <Compile Include="Google\Apis\Requests\RequestError.cs" />
-    <Compile Include="Google\Apis\Requests\SingleError.cs" />
-    <Compile Include="Google\Apis\Services\BaseClientService.cs" />
-    <Compile Include="Google\Apis\Services\IClientService.cs" />
-    <Compile Include="Google\Apis\Testing\VisibleForTestOnly.cs" />
-    <Compile Include="Google\Apis\Util\ExponentialBackOff.cs" />
-    <Compile Include="Google\Apis\Util\IBackOff.cs" />
-    <Compile Include="Google\Apis\Util\IClock.cs" />
-    <Compile Include="Google\Apis\Util\Repeatable.cs" />
-    <Compile Include="Google\Apis\Util\RequestParameterAttribute.cs" />
-    <Compile Include="Google\Apis\Util\StandardResponse.cs" />
-    <Compile Include="Google\Apis\Util\Store\FileDataStore.cs" />
-    <Compile Include="Google\Apis\Util\Store\IDataStore.cs" />
-    <Compile Include="Google\Apis\Util\StringValueAttribute.cs" />
-    <Compile Include="Google\Apis\Util\Utilities.cs" />
-    <Compile Include="Google\Apis\[Media]\Download\IDownloadProgress.cs" />
-    <Compile Include="Google\Apis\[Media]\Download\IMediaDownloader.cs" />
-    <Compile Include="Google\Apis\[Media]\Download\MediaDownloader.cs" />
-    <Compile Include="Google\Apis\[Media]\Upload\IUploadProgress.cs" />
-    <Compile Include="Google\Apis\[Media]\Upload\ResumableUpload.cs" />
-    <Compile Include="Google\ApplicationContext.cs" />
-    <Compile Include="Google\GoogleApiException.cs" />
     <Compile Include="HeiseVideoUtil.cs" />
     <Compile Include="Hoster\Youtube.cs" />
     <Compile Include="KeyValuePairComparer.cs" />
@@ -206,6 +127,10 @@
   <UsingTask TaskName="ILMerge.MSBuild.Tasks.ILMerge" AssemblyFile="$(SolutionDir)\packages\ILMerge.MSBuild.Tasks.1.0.0.3\tools\ILMerge.MSBuild.Tasks.dll" />
   <ItemGroup>
     <MergeAsm Include="$(TargetPath)" />
+    <MergeAsm Include="$(TargetDir)Google.Apis.Auth.dll" />
+    <MergeAsm Include="$(TargetDir)Google.Apis.Core.dll" />
+    <MergeAsm Include="$(TargetDir)Google.Apis.dll" />
+    <MergeAsm Include="$(TargetDir)Google.Apis.YouTube.v3.dll" />
     <MergeAsm Include="$(SolutionDir)\packages\Microsoft.Net.Http.2.2.29\lib\net40\System.Net.Http.dll" />
     <MergeAsm Include="$(SolutionDir)\packages\Microsoft.Bcl.1.1.10\lib\net40\System.Runtime.dll" />
     <MergeAsm Include="$(SolutionDir)\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.dll" />
@@ -218,6 +143,10 @@
   <Target Name="BeforeBuild">
   </Target>
   <Target Name="AfterBuild">
+    <ItemGroup>
+      <ExternalPdbs Include="$(TargetDir)Google*.pdb" />
+    </ItemGroup>
+    <Delete Files="@(ExternalPdbs)" ContinueOnError="true" />
     <ILMerge InputAssemblies="@(MergeAsm)" LibraryPath="$(SolutionDir)\OnlineVideos\bin\$(Configuration)" DebugInfo="true" OutputFile="$(SolutionDir)\Build\SiteUtilDlls\$(TargetFileName)" />
   </Target>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
