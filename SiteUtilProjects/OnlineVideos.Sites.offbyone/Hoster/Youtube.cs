@@ -385,20 +385,6 @@ namespace OnlineVideos.Hoster
 
                 Log.Debug("[YoutubeHoster] parsePlayerStatusFromYtDlp() json data loaded");
 
-                //Check Live HLS first
-                JToken jHlsManifestUrl = jStreamingData["manifest_url"];
-                if (jHlsManifestUrl != null)
-                {
-                    string strContent = this.GetWebData((string)jHlsManifestUrl);
-                    Dictionary<string, HlsStreamInfo> options = HlsPlaylistParser.GetPlaybackOptionsEx(strContent, (string)jHlsManifestUrl, HlsStreamInfoComparer.BandwidtLowHigh, HlsStreamInfoFormatter.VideoDimension);
-                    foreach (KeyValuePair<string, HlsStreamInfo> kv in options)
-                    {
-                        qualities.AddVideoQuality(kv.Value.Url, false, "HLS", string.Empty, kv.Value.Width, kv.Value.Height, kv.Value.Bandwidth, false, false);
-                    }
-
-                    return jStreamingData;
-                }
-
                 foreach (JToken format in jFormats)
                 {
                     if (format.Value<string>("protocol").StartsWith("http"))
@@ -479,6 +465,23 @@ namespace OnlineVideos.Hoster
                             }
                         }
                     }
+                }
+
+                //Check Live HLS last as this contains streams with different audio
+                // like ...acont%3Ddubbed-auto:lang%3Duk/...playlist/index.m3u8
+                // and  ...acont%3Doriginal:lang%3Den-US/...playlist/index.m3u8
+
+                JToken jHlsManifestUrl = jStreamingData["manifest_url"];
+                if (jHlsManifestUrl != null && qualities.Count == 0)
+                {
+                    string strContent = this.GetWebData((string)jHlsManifestUrl);
+                    Dictionary<string, HlsStreamInfo> options = HlsPlaylistParser.GetPlaybackOptionsEx(strContent, (string)jHlsManifestUrl, HlsStreamInfoComparer.BandwidtLowHigh, HlsStreamInfoFormatter.VideoDimension);
+                    foreach (KeyValuePair<string, HlsStreamInfo> kv in options)
+                    {
+                        qualities.AddVideoQuality(kv.Value.Url, false, "HLS", string.Empty, kv.Value.Width, kv.Value.Height, kv.Value.Bandwidth, false, false);
+                    }
+
+                    return jStreamingData;
                 }
             }
             catch (Exception ex)
