@@ -112,27 +112,27 @@ namespace OnlineVideos.Sites
             {
                 Settings.Categories = new BindingList<Category>();
 
-                if (enableLogin)
+                try
                 {
-                    try
+                    if (enableLogin)
                     {
                         QueryUserChannel().ForEach(c => Settings.Categories.Add(c));
                     }
-                    catch (AggregateException ex)
+                    QueryVideoCategories(null).ForEach(c => Settings.Categories.Add(c));
+                }
+                catch (AggregateException ex)
+                {
+                    StringBuilder sb = new StringBuilder();
+                    foreach (var inner in ex.InnerExceptions)
                     {
-                        StringBuilder sb = new StringBuilder();
-                        foreach (var inner in ex.InnerExceptions)
-                        {
-                            sb.Append(inner.Message);
-                            throw new OnlineVideosException(sb.ToString());
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new OnlineVideosException(ex.Message);
+                        sb.Append(inner.Message);
+                        throw new OnlineVideosException(sb.ToString());
                     }
                 }
-                QueryVideoCategories(null).ForEach(c => Settings.Categories.Add(c));
+                catch (Exception ex)
+                {
+                    throw new OnlineVideosException(ex.Message);
+                }
 
                 Settings.DynamicCategoriesDiscovered = true;
             }
@@ -226,9 +226,9 @@ namespace OnlineVideos.Sites
             {
                 video.SubtitleTexts = ((Hoster.ISubtitle)hoster).SubtitleTexts;
 
-                return new List<string>() { iPreselection >= 0 && iPreselection < video.PlaybackOptions.Count ? 
+                return new List<string>() { iPreselection >= 0 && iPreselection < video.PlaybackOptions.Count ?
                     video.PlaybackOptions.ElementAt(iPreselection).Value : video.PlaybackOptions.First().Value };
-                
+
             }
             return null; // no playback options
         }
