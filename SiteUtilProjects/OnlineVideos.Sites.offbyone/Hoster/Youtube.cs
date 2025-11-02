@@ -427,7 +427,7 @@ namespace OnlineVideos.Hoster
                                 string strLanguageID = null;
                                 string strLanguage = null;
                                 string strLanguageDisplayName = null;
-                                bool bDefault = false;
+                                bool bDefault = format.Value<string>("url").Contains("acont%3Doriginal%3Alang%3D");
 
                                 //Audio language track (MLA)
                                 JToken jLang = format["language"];
