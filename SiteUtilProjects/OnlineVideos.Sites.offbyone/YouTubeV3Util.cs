@@ -111,7 +111,6 @@ namespace OnlineVideos.Sites
             {
                 Settings.Categories = new BindingList<Category>();
 
-                QueryVideoCategories(null).ForEach(c => Settings.Categories.Add(c));
                 if (enableLogin)
                 {
                     try
@@ -123,6 +122,7 @@ namespace OnlineVideos.Sites
                         throw new OnlineVideosException(ex.Message);
                     }
                 }
+                QueryVideoCategories(null).ForEach(c => Settings.Categories.Add(c));
 
                 Settings.DynamicCategoriesDiscovered = true;
             }
@@ -503,7 +503,7 @@ namespace OnlineVideos.Sites
             var query = Service.Channels.List("snippet, contentDetails");
             query.Mine = true;
             var response = query.Execute();
-            var userChannel = response.Items.FirstOrDefault();
+            var userChannel = response.Items?.FirstOrDefault();
             var results = new List<Category>();
             if (userChannel != null)
             {
@@ -513,16 +513,15 @@ namespace OnlineVideos.Sites
                     userFavoritesPlaylistId = userChannel.ContentDetails.RelatedPlaylists.Favorites;
                     results.Add(new Category() { Name = string.Format("{0}'s {1}", userName, "Watch Later"), Thumb = userChannel.Snippet.Thumbnails.High.Url, Other = (Func<List<VideoInfo>>)(() => QueryPlaylistVideos(userChannel.ContentDetails.RelatedPlaylists.WatchLater)) });
                     results.Add(new Category() { Name = string.Format("{0}'s {1}", userName, "Watch History"), Thumb = userChannel.Snippet.Thumbnails.High.Url, Other = (Func<List<VideoInfo>>)(() => QueryPlaylistVideos(userChannel.ContentDetails.RelatedPlaylists.WatchHistory)) });
-
-                    var subscriptionsCategory = new Category() { Name = string.Format("{0}'s {1}", userName, Translation.Instance.Subscriptions), Thumb = userChannel.Snippet.Thumbnails.High.Url, HasSubCategories = true };
-                    subscriptionsCategory.Other = (Func<List<Category>>)(() => QueryMySubscriptions(subscriptionsCategory));
-                    results.Add(subscriptionsCategory);
-
-                    var playlistsCategory = new YouTubeCategory() { Name = string.Format("{0}'s {1}", userName, Translation.Instance.Playlists), Thumb = userChannel.Snippet.Thumbnails.High.Url, HasSubCategories = true, IsMine = true };
-                    playlistsCategory.Other = (Func<List<Category>>)(() => QueryChannelPlaylists(playlistsCategory, null));
-                    results.Add(playlistsCategory);
                 }
             }
+            var subscriptionsCategory = new Category() { Name = Translation.Instance.Subscriptions, HasSubCategories = true };
+            subscriptionsCategory.Other = (Func<List<Category>>)(() => QueryMySubscriptions(subscriptionsCategory));
+            results.Add(subscriptionsCategory);
+
+            var playlistsCategory = new YouTubeCategory() { Name = Translation.Instance.Playlists, HasSubCategories = true, IsMine = true };
+            playlistsCategory.Other = (Func<List<Category>>)(() => QueryChannelPlaylists(playlistsCategory, null));
+            results.Add(playlistsCategory);
             return results;
         }
 
