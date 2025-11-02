@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -116,6 +117,15 @@ namespace OnlineVideos.Sites
                     try
                     {
                         QueryUserChannel().ForEach(c => Settings.Categories.Add(c));
+                    }
+                    catch (AggregateException ex)
+                    {
+                        StringBuilder sb = new StringBuilder();
+                        foreach (var inner in ex.InnerExceptions)
+                        {
+                            sb.Append(inner.Message);
+                            throw new OnlineVideosException(sb.ToString());
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -430,6 +440,15 @@ namespace OnlineVideos.Sites
                     if (playlistsCategory != null) playlistsCategory.SubCategoriesDiscovered = false;
                 }
 
+            }
+            catch (AggregateException ex)
+            {
+                StringBuilder sb = new StringBuilder();
+                foreach (var inner in ex.InnerExceptions)
+                {
+                    sb.Append(inner.Message);
+                    throw new OnlineVideosException(sb.ToString());
+                }
             }
             catch (Google.GoogleApiException apiEx)
             {
