@@ -116,6 +116,7 @@
     <Compile Include="MyHosters.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="WebDAVUtil.cs" />
+    <Compile Include="XtreamUtil.cs" />
     <Compile Include="Zdf\ZdfApiTokenProvider.cs" />
     <Compile Include="Zdf\ZDFMediathekUtil.cs" />
   </ItemGroup>
