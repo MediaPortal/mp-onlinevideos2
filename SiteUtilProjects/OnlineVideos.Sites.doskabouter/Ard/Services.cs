@@ -1,5 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
-
+using OnlineVideos.Sites.Ard.Json;
 using OnlineVideos.Sites.Zdf;
 
 using System;
@@ -9,17 +9,6 @@ using System.Net;
 
 namespace OnlineVideos.Sites.Ard
 {
-
-    public class ContinuationToken : Dictionary<string, object>
-    {
-        public ContinuationToken()
-        {
-        }
-
-        public ContinuationToken(ContinuationToken otherToken) : base(otherToken)
-        {
-        }
-    }
 
     internal abstract class PageDeserializerBase
     {
