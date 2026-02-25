@@ -11,6 +11,8 @@ namespace OnlineVideos.Sites.Ard.Json
     {
         protected static readonly string ELEMENT_WIDGETS = "widgets";
         protected static readonly string ELEMENT_TEASERS = "teasers";
+        protected static readonly string ELEMENT_CHANNELS = "channels";
+        protected static readonly string ELEMENT_TIMESLOTS = "timeSlots";
 
         protected static readonly string ELEMENT_LINKS = "links";
         protected static readonly string ELEMENT_SELF = "self";
@@ -25,6 +27,8 @@ namespace OnlineVideos.Sites.Ard.Json
         protected static readonly string ATTRIBUTE_ID = "id";
         protected static readonly string ATTRIBUTE_HREF = "href";
         protected static readonly string ATTRIBUTE_SRC = "src";
+        protected static readonly string ATTRIBUTE_URL_ID = "urlId";
+        protected static readonly string ATTRIBUTE_VIDEO = "video";
 
         protected static readonly string ATTRIBUTE_TITLE = "title";
         protected static readonly string ATTRIBUTE_TITLE_SHORT = "shortTitle";
@@ -45,6 +49,20 @@ namespace OnlineVideos.Sites.Ard.Json
             return jsonElement?.Type == JTokenType.Object && jsonElement?[ELEMENT_WIDGETS] != null
                        ? jsonElement[ELEMENT_WIDGETS]
                        : jsonElement;
+        }
+
+        protected static JArray? TryGetChannelsArray(JToken jsonElement)
+        {
+            return jsonElement?.Type == JTokenType.Object && jsonElement[ELEMENT_CHANNELS] != null
+                       ? jsonElement[ELEMENT_CHANNELS].Value<JArray>()
+                       : null;
+        }
+
+        protected static IEnumerable<JObject> TryGetTimeSlotEntries(JToken channelElement)
+        {
+            return channelElement?.Type == JTokenType.Object && channelElement[ELEMENT_TIMESLOTS] != null
+                       ? channelElement[ELEMENT_TIMESLOTS].Value<JArray>().SelectMany(slot => slot.Value<JArray>()).Select(e => e.Value<JObject>())
+                       : null;
         }
 
 
@@ -74,13 +92,13 @@ namespace OnlineVideos.Sites.Ard.Json
         protected static IEnumerable<JObject> TrySelectWidgetElements(JToken widgetsElement, int takeWidgets)
         {
             var selectedWidgetElements = widgetsElement?.Type == JTokenType.Array
-                                             ? widgetsElement.Children()
-                                                             .Take(takeWidgets)
-                                                             .OfType<JObject>()
-                                             : new List<JObject>()
-                                               {
-                                                   widgetsElement as JObject
-                                               };
+                ? widgetsElement.Children()
+                                .Take(takeWidgets)
+                                .OfType<JObject>()
+                : new List<JObject>()
+                {
+                    widgetsElement as JObject
+                };
             return selectedWidgetElements;
         }
     }

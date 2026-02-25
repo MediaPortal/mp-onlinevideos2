@@ -22,15 +22,26 @@ namespace OnlineVideos.Sites.Ard.Json
         {
             var widgetsElement = TryGetWidgetsTokenOrInput(jsonElement);
             var firstWidget = TrySelectWidgetElements(widgetsElement, 1).FirstOrDefault();
-            var collectionEmbedded = firstWidget?[ELEMENT_MEDIACOLLECTION][ELEMENT_EMBEDDED];
+            JToken? collectionEmbedded = null;
 
-            return MediaArrayConverter.ParseVideoUrls(collectionEmbedded as JObject);
+            JToken mediaCollection = firstWidget?[ELEMENT_MEDIACOLLECTION];
+            if (mediaCollection?.HasValues is true)
+            {
+                collectionEmbedded = mediaCollection[ELEMENT_EMBEDDED];
+            }
+
+            return collectionEmbedded is null ? [] : MediaArrayConverter.ParseVideoUrls(collectionEmbedded as JObject);
         }
 
 
         public static int? GetDuration(JToken jsonElement)
         {
-            return jsonElement?[ELEMENT_MEDIACOLLECTION][ELEMENT_EMBEDDED]?.Value<int>(ATTRIBUTE_DURATION);
+            JToken mediaCollection = jsonElement?[ELEMENT_MEDIACOLLECTION];
+            if (mediaCollection?.HasValues is true)
+            {
+                return mediaCollection[ELEMENT_EMBEDDED]?.Value<int>(ATTRIBUTE_DURATION);
+            }
+            return null;
         }
     }
 }

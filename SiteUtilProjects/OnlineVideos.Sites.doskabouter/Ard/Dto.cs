@@ -76,7 +76,7 @@ namespace OnlineVideos.Sites.Ard
     public class ArdVideoInfoDto : ArdInformationDtoBase, IEquatable<ArdVideoInfoDto> //extends CrawlerUrlDTO
     {
         //public string TargetUrl { get; }
-        //public string Id { get; }
+        public string Id { get; }
         public int NumberOfClips { get; }
 
 
@@ -92,9 +92,8 @@ namespace OnlineVideos.Sites.Ard
 
         public ArdVideoInfoDto(string id, int numberOfClips, string url = null) : base(id)
         {
-            //super(url);
-            TargetUrl = url ?? ArdConstants.ITEM_URL + id;
-            //Id = id;
+            Id = id;
+            TargetUrl = url ?? ArdConstants.CreateItemUrl(id).AbsoluteUri;
             NumberOfClips = numberOfClips;
         }
 

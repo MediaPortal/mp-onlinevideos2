@@ -1,17 +1,24 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 
 namespace OnlineVideos.Sites.Ard
 {
     internal class ArdDayPageDeserializer : PageDeserializerBase
     {
-        private static readonly string _categoryLevel = "Level";
+        private const string PLACEHOLDER_PARTNERNAME = "$$partnerName$$";
+        private const string _categoryLevel = "Level";
+
+        private const int MAX_DAYS_PAST = 7;
+        private const int MAX_DAYS_FUTURE = 7;
 
         /// <inheritdoc />
         public override ArdCategoryInfoDto RootCategory { get; } = new ArdCategoryInfoDto(nameof(ArdDayPageDeserializer), string.Empty)
         {
-            Title = "Was lief",
-            Description = "Sendungen der letzten 7 Tage.",
+            Title = "Programm",
+            Description = "Programmübersicht",
             HasSubCategories = true,
             //ImageUrl = ,
             //TargetUrl =
@@ -26,9 +33,9 @@ namespace OnlineVideos.Sites.Ard
             continuationToken ??= new ContinuationToken() { { _categoryLevel, 0 } };
             var currentLevel = continuationToken.GetValueOrDefault(_categoryLevel) as int? ?? 0;
 
-            var categoryInfos = currentLevel switch
+            var dayCategories = currentLevel switch
             {
-                0 => LastSevenDays(),
+                0 => GetTvListings(),
                 1 => PartnerNames(targetUrl),
                 _ => throw new ArgumentOutOfRangeException(),
             };
@@ -38,39 +45,33 @@ namespace OnlineVideos.Sites.Ard
             return new Result<IEnumerable<ArdCategoryInfoDto>>
             {
                 ContinuationToken = newToken,
-                Value = categoryInfos
+                Value = dayCategories
             };
-
         }
 
 
-        private static readonly string PLACEHOLDER_PARTNERNAME = "{{partnerName}}";
 
-        private IEnumerable<ArdCategoryInfoDto> LastSevenDays()
+        private IEnumerable<ArdCategoryInfoDto> GetTvListings()
         {
-            const string DAY_PAGE_DATE_FORMAT = "yyyy-MM-dd";
-            static string CreateDayUrl(DateTime day)
-                => $"https://api.ardmediathek.de//page-gateway/compilations/{PLACEHOLDER_PARTNERNAME}/pastbroadcasts" +
-                   $"?startDateTime={day.ToString(DAY_PAGE_DATE_FORMAT)}T00:00:00.000Z" +
-                   $"&endDateTime={day.ToString(DAY_PAGE_DATE_FORMAT)}T23:59:59.000Z" +
-                   $"&pageNumber=0" +
-                   $"&pageSize={ArdConstants.DAY_PAGE_SIZE}";
+            static Uri CreateDayUrl(DateTimeOffset day)
+                => ArdConstants.CreateDayPageUrl(day, PLACEHOLDER_PARTNERNAME);
 
-            for (var i = 0; i <= 7; i++)
+            var today = DateTimeOffset.Now;
+            for (int i = -MAX_DAYS_PAST; i <= MAX_DAYS_FUTURE; i++)
             {
-                var day = DateTime.Today.AddDays(-i);
+                var day = today.AddDays(i);
                 var url = CreateDayUrl(day);
-                yield return new ArdCategoryInfoDto(nameof(ArdDayPageDeserializer) + i, url)
+                var formattedDay = $"{day:ddd, dd.MM.}";
+                yield return new ArdCategoryInfoDto(nameof(ArdDayPageDeserializer) + i, url.AbsoluteUri)
                 {
                     Title = i switch
                     {
-                        0 => "Heute",
-                        1 => "Gestern",
-                        _ => day.ToString("ddd, d.M.")
+                        -1 => $"Gestern - {formattedDay}",
+                        0 => $"Heute - {formattedDay}",
+                        1 => $"Morgen - {formattedDay}",
+                        _ => formattedDay
                     },
-                    //Url = url,
                     HasSubCategories = true,
-                    //ImageUrl =
                 };
             }
         }
@@ -91,6 +92,18 @@ namespace OnlineVideos.Sites.Ard
                     //ImageUrl =
                 };
             }
+        }
+
+        public override Result<IEnumerable<ArdVideoInfoDto>> GetVideos(string url, ContinuationToken continuationToken = null)
+        {
+            var json = WebClient.GetWebData<JToken>(url, cache: false, proxy: WebRequest.GetSystemWebProxy());
+            var filmInfos = VideoDeserializer.ParseChannels(json).ToList();
+
+            return new Result<IEnumerable<ArdVideoInfoDto>>()
+            {
+                ContinuationToken = continuationToken,
+                Value = filmInfos
+            };
         }
     }
 }

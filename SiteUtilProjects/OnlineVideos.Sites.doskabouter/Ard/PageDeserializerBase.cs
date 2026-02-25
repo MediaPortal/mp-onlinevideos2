@@ -46,8 +46,8 @@ namespace OnlineVideos.Sites.Ard
         private ArdVideoInfoDto GetVideoDetails(string url)
         {
             var details = WebClient.GetWebData<JObject>(url, proxy: WebRequest.GetSystemWebProxy());
-            var filmInfo = VideoDeserializer.ParseWidgets(details, takeWidgets: 1).FirstOrDefault();
-            return filmInfo;
+            var filmInfos = VideoDeserializer.ParseWidgets(details).ToList();
+            return filmInfos.FirstOrDefault();
         }
 
 
