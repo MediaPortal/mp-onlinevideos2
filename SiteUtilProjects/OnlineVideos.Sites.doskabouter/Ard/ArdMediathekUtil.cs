@@ -67,7 +67,9 @@ namespace OnlineVideos.Sites.Ard
                 foreach (var filmInfoDto in result.Value)
                 {
                     if (filmInfoDto != null)
+                    { 
                         list.Add(filmInfoDto.AsVideoInfo(page, result.ContinuationToken, skipPlaybackOptionsDialog: _skipPlayackOptionsDialog));
+                    }
                 }
             }
             return list;

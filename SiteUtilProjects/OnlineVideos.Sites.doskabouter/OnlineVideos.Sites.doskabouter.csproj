@@ -78,9 +78,11 @@
     <Compile Include="Ard\CollectionExtensions.cs" />
     <Compile Include="Ard\ContinuationToken.cs" />
     <Compile Include="Ard\Json\ArdCategoryDeserializer.cs" />
-    <Compile Include="Ard\Json\ArdMediaStreamsDeserializer.cs" />
+    <Compile Include="Ard\Json\ArdMediaStreamsV6Deserializer.cs" />
     <Compile Include="Ard\Json\ArdVideoInfoDeserializer.cs" />
     <Compile Include="Ard\Json\ArdWidgetTeaserDeserializerBase.cs" />
+    <Compile Include="Ard\Json\MediumExtensions.cs" />
+    <Compile Include="Ard\Models\MediaCollectionV6.cs" />
     <Compile Include="Ard\PageDeserializerBase.cs" />
     <Compile Include="Ard\Result.cs" />
     <Compile Include="Ard\Dto.cs" />

@@ -10,7 +10,7 @@ namespace OnlineVideos.Sites.Ard
     {
         protected ArdCategoryDeserializer CategoryDeserializer { get; } = new ArdCategoryDeserializer();
         protected ArdVideoInfoDeserializer VideoDeserializer { get; } = new ArdVideoInfoDeserializer();
-        protected ArdMediaStreamsDeserializer VideoStreamsDeserializer { get; } = new ArdMediaStreamsDeserializer();
+        protected ArdMediaStreamsV6Deserializer VideoStreamsDeserializer { get; } = new ArdMediaStreamsV6Deserializer();
 
         protected WebCache WebClient { get; }
 

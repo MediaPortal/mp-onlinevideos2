@@ -8,7 +8,7 @@ namespace OnlineVideos.Sites.Ard
         private const string DAY_PAGE_DATE_FORMAT = "yyyy-MM-dd";
 
         private static readonly string API_URL = "https://api.ardmediathek.de";
-        private static readonly string ITEM_URL = API_URL + "/page-gateway/pages/ard/item/{0}";
+        private static readonly string ITEM_URL = API_URL + "/page-gateway/pages/ard/item/{0}?embedded=true&mcV6=true";
 
         private static readonly string DAY_PAGE_URL = "https://programm-api.ard.de/program/api/program?day={0}&channelIds={1}&mode=channel";
 

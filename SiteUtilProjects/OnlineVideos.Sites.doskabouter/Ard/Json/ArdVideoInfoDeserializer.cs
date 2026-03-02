@@ -94,10 +94,9 @@ namespace OnlineVideos.Sites.Ard.Json
             {
                 return null;
             }
-            
-            var url = GetTeaserTargetUrl(teaserElement);
+
             var numberOfClips = teaserElement.Value<int?>(ATTRIBUTE_NUMBER_OF_CLIPS) ?? 0;
-            return new ArdVideoInfoDto(id, numberOfClips, url)
+            return new ArdVideoInfoDto(id, numberOfClips)
             {
                 Title = teaserElement.Value<string>(ATTRIBUTE_TITLE),
                 AirDate = teaserElement.Value<DateTime?>(ATTRIBUTE_AIR_DATETIME),
@@ -116,15 +115,14 @@ namespace OnlineVideos.Sites.Ard.Json
                 return null;
             }
 
-            var url = GetTeaserTargetUrl(itemElement);
             var numberOfClips = itemElement.Value<int?>(ATTRIBUTE_NUMBER_OF_CLIPS) ?? 0;
-            return new ArdVideoInfoDto(id, numberOfClips, url)
+            return new ArdVideoInfoDto(id, numberOfClips)
             {
                 Title = itemElement.Value<string>(ATTRIBUTE_TITLE),
                 AirDate = itemElement.Value<DateTime?>(ATTRIBUTE_AIR_DATETIME),
                 AvailableUntilDate = itemElement.Value<DateTime?>(ATTRIBUTE_UNTIL_DATETIME),
                 Description = itemElement.Value<string>(ATTRIBUTE_DESCRIPTION),
-                Duration = ArdMediaStreamsDeserializer.GetDuration(itemElement),
+                Duration = ArdMediaStreamsV6Deserializer.GetDuration(itemElement),
                 ImageUrl = GetTeaserImageUrl(itemElement)
             };
         }

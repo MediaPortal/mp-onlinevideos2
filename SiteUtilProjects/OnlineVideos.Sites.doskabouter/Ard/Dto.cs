@@ -7,25 +7,27 @@ namespace OnlineVideos.Sites.Ard
 
     public class DownloadDetailsDto : IEquatable<DownloadDetailsDto>
     {
-        public DownloadDetailsDto(/*string mimeType, string language, */Qualities quality, string url)
+        public DownloadDetailsDto(Qualities quality, string url)
         {
-            //MimeType = mimeType;
-            //Language = language;
             Quality = quality;
-#pragma warning disable CS0618 // Type or member is obsolete
-            var uriBuilder = new UriBuilder(new Uri(url, true))
-#pragma warning restore CS0618 // Type or member is obsolete
-            {
-                Scheme = Uri.UriSchemeHttps,
-                Port = -1, //default port of scheme
-            };
-            Url = uriBuilder.ToString();
+            //var uriBuilder = new UriBuilder(new Uri(url, true))
+            //{
+            //    Scheme = Uri.UriSchemeHttps,
+            //    Port = -1, //default port of scheme
+            //};
+            //Url = uriBuilder.ToString();
+            Url = url;
         }
 
-        //public string MimeType { get; }
-        //public string Language { get; }
+        public string MimeType { get; set; }
+
+        public string Language { get; set; }
+
         public Qualities Quality { get; }
+
         public string Url { get; }
+
+        public string SubtitleUrl { get; set; }
 
         public bool Equals(DownloadDetailsDto other)
         {
@@ -75,24 +77,17 @@ namespace OnlineVideos.Sites.Ard
 
     public class ArdVideoInfoDto : ArdInformationDtoBase, IEquatable<ArdVideoInfoDto> //extends CrawlerUrlDTO
     {
-        //public string TargetUrl { get; }
-        public string Id { get; }
         public int NumberOfClips { get; }
 
-
-        //public string Title { get; set; }
-        //public string Description { get; set; }
         public DateTime? AirDate { get; set; }
         public DateTime? AvailableUntilDate { get; set; }
         public int? Duration { get; set; }
-        //public string ImageUrl { get; set; }
         public bool IsGeoBlocked { get; set; }
         public bool IsFskBlocked { get; set; }
 
 
         public ArdVideoInfoDto(string id, int numberOfClips, string url = null) : base(id)
         {
-            Id = id;
             TargetUrl = url ?? ArdConstants.CreateItemUrl(id).AbsoluteUri;
             NumberOfClips = numberOfClips;
         }
@@ -132,28 +127,6 @@ namespace OnlineVideos.Sites.Ard
         {
             return !Equals(left, right);
         }
-    }
-
-
-    public class PublicationService
-    {
-        public string Name { get; set; }
-        public string ImageUrl { get; set; }
-        public string PartnerName { get; set; }
-
-        /*
-        "name": "BR Fernsehen",
-        "logo": {
-          "title": "BR Fernsehen",
-          "alt": "BR Logo",
-          "producerName": "BR",
-          "src": "https://img.ardmediathek.de/standard/00/21/51/89/04/-2114473875/16x9/{width}?mandant=ard",
-          "aspectRatio": "16x9"
-        },
-        "publisherType": "TV",
-        "partner": "br",
-        "id": "b3JnYW5pemF0aW9uX0JS"
-         */
     }
 
 
@@ -219,7 +192,7 @@ namespace OnlineVideos.Sites.Ard
             PageNumber = pageNumber;
         }
 
-        public int PageNumber { get; set; } = 0;
+        public int PageNumber { get; set; } = 0;    
         public int PageSize { get; set; }
         public int TotalElements { get; set; }
     }
