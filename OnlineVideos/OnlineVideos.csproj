@@ -70,9 +70,9 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <StartAction>Program</StartAction>
-    <StartProgram>$(ProgramFiles)\Team MediaPortal\MediaPortal\mediaportal.exe</StartProgram>
+    <StartProgram>$(MediaPortalInstallPath)\mediaportal.exe</StartProgram>
     <RemoteDebugEnabled>false</RemoteDebugEnabled>
-    <StartWorkingDirectory>$(ProgramFiles)\Team MediaPortal\MediaPortal</StartWorkingDirectory>
+    <StartWorkingDirectory>$(MediaPortalInstallPath)</StartWorkingDirectory>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
@@ -425,6 +425,8 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\Packages\Microsoft.Web.WebView2.1.0.2277.86\build\Microsoft.Web.WebView2.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\Packages\Microsoft.Web.WebView2.1.0.2277.86\build\Microsoft.Web.WebView2.targets'))" />
+    <Error Condition="!Exists('..\Packages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\Packages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets'))" />    
   </Target>
   <Import Project="..\Packages\Microsoft.Web.WebView2.1.0.2277.86\build\Microsoft.Web.WebView2.targets" Condition="Exists('..\Packages\Microsoft.Web.WebView2.1.0.2277.86\build\Microsoft.Web.WebView2.targets')" />
+  <Import Project="..\Packages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets" Condition="Exists('..\Packages\MSBuildTasks.1.5.0.235\build\MSBuildTasks.targets')" />  
 </Project>

@@ -2,8 +2,8 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
 
   <PropertyGroup>
-    <PluginDestination>$(ProgramFiles)\Team MediaPortal\MediaPortal\plugins\Windows\</PluginDestination>
-    <DataDestination>$(ProgramData)\Team MediaPortal\MediaPortal\</DataDestination>
+    <PluginDestination>$(MediaPortalInstallPath)\plugins\Windows\</PluginDestination>
+    <DataDestination>$(ProgramData)$(_MediaPortalSubPath)\</DataDestination>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,7 +23,7 @@
     <IconFiles Include="$(SolutionDir)SiteImages\**\*.*" />
   </ItemGroup>
 
-  <Target Name="AfterBuild">
+  <Target Name="AfterBuild" Condition="'$(CopyBuildResultToMediaPortalInstallPath)' == 'True'">
     <Copy SourceFiles="@(PluginFiles)" DestinationFolder="$(PluginDestination)" />
     <Copy SourceFiles="@(APIFiles)" DestinationFolder="$(PluginDestination)OnlineVideos\" />
     <Copy SourceFiles="@(SiteUtilDllFiles)" DestinationFolder="$(PluginDestination)OnlineVideos\" />
@@ -31,6 +31,6 @@
     <Copy SourceFiles="@(SkinFiles)"
           DestinationFiles="@(SkinFiles->'$(DataDestination)Skin\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Copy SourceFiles="@(IconFiles)"
-            DestinationFiles="@(IconFiles->'$(DataDestination)thumbs\OnlineVideos\%(RecursiveDir)%(Filename)%(Extension)')" />
+          DestinationFiles="@(IconFiles->'$(DataDestination)thumbs\OnlineVideos\%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
 </Project>
