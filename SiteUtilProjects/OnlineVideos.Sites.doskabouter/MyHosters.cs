@@ -271,6 +271,14 @@ namespace OnlineVideos.Hoster
         }
     }
 
+    public class Dsvplay : Dood
+    {
+        public override string GetHosterUrl()
+        {
+            return "dsvplay.com";
+        }
+    }
+
     public class Dood : HosterBase
     {
         public override string GetHosterUrl()
