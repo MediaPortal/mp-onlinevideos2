@@ -238,13 +238,25 @@ namespace OnlineVideos
 
         public string GetRedirectedUrl(string url, CookieContainer cc = null, NameValueCollection headers = null, bool allowAutoRedirect = true)
         {
-            HttpWebResponse httpWebresponse = null;
+            HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
+
+            string GetFinalUrl(WebResponse response)
+            {
+                if (response == null) return url;
+                if (!allowAutoRedirect)
+                    return response.Headers["location"];
+
+                if (request.RequestUri.Equals(response.ResponseUri))
+                    return url;
+                else
+                    return response.ResponseUri.OriginalString;
+            }
+
             try
             {
                 if (headers == null)
                     headers = new NameValueCollection();
 
-                HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
                 if (request == null) return url;
                 SetRequestProperties(request, headers, false);
 
@@ -256,33 +268,18 @@ namespace OnlineVideos
                 var result = request.BeginGetResponse((ar) => request.Abort(), null);
                 // wait for the completion (or abortion) of the async response
                 while (!result.IsCompleted) Thread.Sleep(10);
-                httpWebresponse = request.EndGetResponse(result) as HttpWebResponse;
-                if (httpWebresponse == null) return url;
-                if (!allowAutoRedirect)
-                    return httpWebresponse.Headers["location"];
-
-                if (request.RequestUri.Equals(httpWebresponse.ResponseUri))
-                    return url;
-                else
-                    return httpWebresponse.ResponseUri.OriginalString;
+                using (var httpWebresponse = request.EndGetResponse(result))
+                {
+                    return GetFinalUrl(httpWebresponse);
+                }
+            }
+            catch (WebException ex)
+            {
+                return GetFinalUrl(ex.Response);
             }
             catch (Exception ex)
             {
                 Log.Warn(ex.ToString());
-            }
-            finally
-            {
-                if (httpWebresponse != null)
-                {
-                    try
-                    {
-                        httpWebresponse.Close();
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warn(ex.ToString());
-                    }
-                }
             }
             return url;
         }
