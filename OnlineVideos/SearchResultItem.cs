@@ -16,6 +16,7 @@ namespace OnlineVideos
         protected string _thumb;
         protected string _thumbnailImage;
 
+        // Uri of the image (url or full file path)
         [DataMember(Name = "thumb", Order = 1, EmitDefaultValue = false)]
         [XmlAttribute("thumb")]
         public string Thumb { get { return _thumb; } set { _thumb = value; NotifyPropertyChanged("Thumb"); } }

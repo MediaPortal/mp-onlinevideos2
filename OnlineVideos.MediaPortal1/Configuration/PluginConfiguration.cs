@@ -192,6 +192,7 @@ namespace OnlineVideos.MediaPortal1
             ovsconf.Logger = Log.Instance;
             ovsconf.ThumbsDir = Config.GetFolder(Config.Dir.Thumbs) + @"\OnlineVideos\";
             ovsconf.WebCacheDir = Config.GetFolder(Config.Dir.Cache) + @"\OnlineVideos\";
+            ovsconf.SkinMediaFolder = GUIGraphicsContext.Skin + @"\media\OnlineVideos\";
             ovsconf.ConfigDir = Config.GetFolder(Config.Dir.Config);
             ovsconf.DllsDir = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "OnlineVideos\\");
 

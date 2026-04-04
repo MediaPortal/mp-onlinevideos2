@@ -24,6 +24,7 @@ namespace OnlineVideos
         public string ConfigDir;
         public string ThumbsDir;
         public string WebCacheDir;// for webresults persistent across sessions
+        public string SkinMediaFolder;
         public string DownloadDir;
         public string DllsDir;
         public string UserAgent = "Mozilla/5.0 (Windows NT 6.1)";
@@ -110,6 +111,7 @@ namespace OnlineVideos
             string configDir = Instance.ConfigDir;
             string thumbsDir = Instance.ThumbsDir;
             string webCacheDir = Instance.WebCacheDir;
+            string skinMediaFolder = Instance.SkinMediaFolder;
             string downloadDir = Instance.DownloadDir;
             string dllsDir = Instance.DllsDir;
             string userAgent = Instance.UserAgent;
@@ -134,6 +136,7 @@ namespace OnlineVideos
             newInstance.ConfigDir = configDir;
             newInstance.ThumbsDir = thumbsDir;
             newInstance.WebCacheDir = webCacheDir;
+            newInstance.SkinMediaFolder = skinMediaFolder;
             newInstance.DownloadDir = downloadDir;
             newInstance.DllsDir = dllsDir;
             newInstance.UserAgent = userAgent;

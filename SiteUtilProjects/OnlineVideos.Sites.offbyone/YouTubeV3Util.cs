@@ -557,7 +557,14 @@ namespace OnlineVideos.Sites
             {
                 if (item.Snippet.Assignable == true)
                 {
-                    var category = new YouTubeCategory() { Name = item.Snippet.Title, ParentCategory = parentCategory, Kind = YouTubeCategory.CategoryKind.VideoCategory, Id = item.Id };
+                    var category = new YouTubeCategory()
+                    {
+                        Name = item.Snippet.Title,
+                        ParentCategory = parentCategory,
+                        Kind = YouTubeCategory.CategoryKind.VideoCategory,
+                        Id = item.Id,
+                        Thumb = OnlineVideoSettings.Instance.SkinMediaFolder + @"Youtube\" + item.Id + ".png"
+                    };
                     category.Other = (Func<List<VideoInfo>>)(() => QueryCategoryVideos(item.Id));
                     results.Add(category);
                     cachedSearchCategories.Add(item.Snippet.Title, item.Id);
