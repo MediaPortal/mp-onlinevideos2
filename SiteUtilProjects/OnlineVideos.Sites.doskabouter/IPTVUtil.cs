@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using OnlineVideos.MPUrlSourceFilter;
+using OnlineVideos.Helpers;
 
 namespace OnlineVideos.Sites
 {
@@ -23,7 +24,18 @@ namespace OnlineVideos.Sites
         {
             if (!String.IsNullOrEmpty(m3u8urlPrivate))
                 m3u8url = m3u8urlPrivate;
-            var data = GetWebData(m3u8url);
+            string cacheFileName = Path.Combine(OnlineVideoSettings.Instance.WebCacheDir, "IPTV_" + EncryptionUtils.CalculateCRC32(m3u8url));
+
+            string data;
+            if (File.Exists(cacheFileName))
+            {
+                data = File.ReadAllText(cacheFileName);
+            }
+            else
+            {
+                data = GetWebData(m3u8url);
+                File.WriteAllText(cacheFileName, data);
+            }
             using (StringReader sr = new StringReader(data))
             {
                 string line = sr.ReadLine();
