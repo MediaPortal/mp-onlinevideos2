@@ -77,6 +77,9 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="HtmlAgilityPack, Version=1.11.46.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
+      <HintPath>..\Packages\HtmlAgilityPack.1.11.46\lib\Net45\HtmlAgilityPack.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Web.WebView2.Core, Version=1.0.2277.86, Culture=neutral, PublicKeyToken=2a8ab48044d2601e, processorArchitecture=MSIL">
       <HintPath>..\Packages\Microsoft.Web.WebView2.1.0.2277.86\lib\net45\Microsoft.Web.WebView2.Core.dll</HintPath>
       <Private>True</Private>
@@ -270,35 +273,6 @@
     <Compile Include="Hoster\Base\HosterBase.cs" />
     <Compile Include="Hoster\Base\HosterFactory.cs" />
     <Compile Include="Hoster\Base\ISubtitle.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\crc32.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\EncodingFoundException.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlAttribute.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlAttributeCollection.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlCmdLine.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlCommentNode.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlConsoleListener.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlDocument.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlElementFlag.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlEntity.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlNameTable.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlNode.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlNodeCollection.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlNodeNavigator.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlNodeType.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlParseError.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlParseErrorCode.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlTextNode.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlWeb.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\HtmlWebException.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\IOLibrary.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\MixedCodeDocument.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\MixedCodeDocumentCodeFragment.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\MixedCodeDocumentFragment.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\MixedCodeDocumentFragmentList.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\MixedCodeDocumentFragmentType.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\MixedCodeDocumentTextFragment.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\NameValuePair.cs" />
-    <Compile Include="3rdParty\HtmlAgilityPack\NameValuePairList.cs" />
     <Compile Include="LocalizableDisplayNameAttribute.cs" />
     <Compile Include="ILog.cs" />
     <Compile Include="MixedUrl.cs" />
