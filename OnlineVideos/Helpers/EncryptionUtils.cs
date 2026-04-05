@@ -5,19 +5,47 @@ using System.Text;
 
 namespace OnlineVideos.Helpers
 {
+
+    public class CRC32
+    {
+        private static readonly uint[] table = GenerateTable();
+        private uint crc = 0xFFFFFFFF;
+
+        public void Update(byte[] buffer)
+        {
+            foreach (var b in buffer)
+            {
+                crc = (crc >> 8) ^ table[(crc ^ b) & 0xFF];
+            }
+        }
+
+        public uint Value => crc ^ 0xFFFFFFFF;
+
+        private static uint[] GenerateTable()
+        {
+            var t = new uint[256];
+            const uint poly = 0xEDB88320;
+            for (uint i = 0; i < 256; i++)
+            {
+                uint temp = i;
+                for (int j = 0; j < 8; j++)
+                {
+                    temp = ((temp & 1) == 1) ? (poly ^ (temp >> 1)) : (temp >> 1);
+                }
+                t[i] = temp;
+            }
+            return t;
+        }
+    }
+
     public static class EncryptionUtils
     {
         public static string CalculateCRC32(string strLine)
         {
             if (string.IsNullOrEmpty(strLine)) return string.Empty;
-            Ionic.Zlib.CRC32 crc = new Ionic.Zlib.CRC32();
-            using (MemoryStream stream = new MemoryStream())
-            using (StreamWriter writer = new StreamWriter(stream) { AutoFlush = true })
-            {
-                writer.Write(strLine);
-                stream.Position = 0;
-                return string.Format("{0}", crc.GetCrc32(stream));
-            }
+            CRC32 crc = new CRC32();
+            crc.Update(Encoding.UTF8.GetBytes(strLine));
+            return crc.Value.ToString();
         }
 
         public static string GetMD5Hash(string input)
@@ -26,7 +54,7 @@ namespace OnlineVideos.Helpers
             int count;
             StringBuilder result;
 
-            using (MD5 md5Hasher = System.Security.Cryptography.MD5.Create())
+            using (MD5 md5Hasher = MD5.Create())
             {
                 data = md5Hasher.ComputeHash(Encoding.Default.GetBytes(input));
             }
