@@ -79,12 +79,9 @@ namespace OnlineVideos.MediaPortal1
         const string CFG_PLAY_BUFFER = "playbuffer";
         const string CFG_EMAIL = "email";
         const string CFG_PASSWORD = "password";
-        const string CFG_HTTP_SOURCE_FILTER = "httpsourcefilter";
-        const string CFG_SEARCHHISTORY_ENABLED = "searchHistoryEnabled";
         const string CFG_SEARCHHISTORY_NUM = "searchHistoryNum";
         const string CFG_SEARCHHISTORY = "searchHistory";
         const string CFG_SEARCHHISTORYTYPE = "searchHistoryType";
-        const string CFG_USE_RTMP_PROXY = "useRtmpProxy";
         const string CFG_AUTO_LANG_GROUPS = "autoGroupByLang";
         const string CFG_LAST_FIRSTRUN = "lastFirstRun";
         const string CFG_UPDATEPERIOD = "updatePeriod";
@@ -96,9 +93,6 @@ namespace OnlineVideos.MediaPortal1
         const string CFG_ALLOW_REFRESHRATE_CHANGE = "allowRefreshRateChange";
         const string CFG_STORE_LAYOUT_PER_CATEGORY = "storeLayoutPerCategory";
         const string CFG_USE_MPURLSOURCESPLITTER = "useMPUrlSourceSplitter";
-
-        // filter V2
-        const string CFG_FILTER_V2_VIEW_MODE = "filterv2";
 
         const string CFG_FILTER_V2_HTTP_PREFERRED_NETWORK_INTERFACE = "filterv2httpinterface";
         const string CFG_FILTER_V2_HTTP_OPEN_CONNECTION_TIMEOUT = "filterv2httpopenconnectiontimeout";
@@ -167,25 +161,25 @@ namespace OnlineVideos.MediaPortal1
                 useQuickSelect = settings.GetValueAsBool(CFG_SECTION, CFG_USE_QUICKSELECT, useQuickSelect);
                 searchHistoryType = (SearchHistoryType)settings.GetValueAsInt(CFG_SECTION, CFG_SEARCHHISTORYTYPE, (int)searchHistoryType);
                 ThumbsAge = settings.GetValueAsInt(CFG_SECTION, CFG_THUMBNAIL_AGE, ThumbsAge);
-                OnlineVideos.OnlineVideoSettings.Instance.CacheTimeout = settings.GetValueAsInt(CFG_SECTION, CFG_CACHE_TIMEOUT, OnlineVideos.OnlineVideoSettings.Instance.CacheTimeout);
-                OnlineVideos.OnlineVideoSettings.Instance.UtilTimeout = settings.GetValueAsInt(CFG_SECTION, CFG_UTIL_TIMEOUT, OnlineVideos.OnlineVideoSettings.Instance.UtilTimeout);
-                OnlineVideos.OnlineVideoSettings.Instance.DynamicCategoryTimeout = settings.GetValueAsInt(CFG_SECTION, CFG_CATEGORYDISCOVERED_TIMEOUT, OnlineVideos.OnlineVideoSettings.Instance.DynamicCategoryTimeout);
+                OnlineVideoSettings.Instance.CacheTimeout = settings.GetValueAsInt(CFG_SECTION, CFG_CACHE_TIMEOUT, OnlineVideoSettings.Instance.CacheTimeout);
+                OnlineVideoSettings.Instance.UtilTimeout = settings.GetValueAsInt(CFG_SECTION, CFG_UTIL_TIMEOUT, OnlineVideoSettings.Instance.UtilTimeout);
+                OnlineVideoSettings.Instance.DynamicCategoryTimeout = settings.GetValueAsInt(CFG_SECTION, CFG_CATEGORYDISCOVERED_TIMEOUT, OnlineVideoSettings.Instance.DynamicCategoryTimeout);
                 wmpbuffer = settings.GetValueAsInt(CFG_SECTION, CFG_WMP_BUFFER, wmpbuffer);
                 playbuffer = settings.GetValueAsInt(CFG_SECTION, CFG_PLAY_BUFFER, playbuffer);
                 autoGroupByLang = settings.GetValueAsBool(CFG_SECTION, CFG_AUTO_LANG_GROUPS, autoGroupByLang);
-                OnlineVideos.OnlineVideoSettings.Instance.FavoritesFirst = settings.GetValueAsBool(CFG_SECTION, CFG_FAVORITES_FIRST, OnlineVideos.OnlineVideoSettings.Instance.FavoritesFirst);
+                OnlineVideoSettings.Instance.FavoritesFirst = settings.GetValueAsBool(CFG_SECTION, CFG_FAVORITES_FIRST, OnlineVideoSettings.Instance.FavoritesFirst);
                 LatestVideosRandomize = settings.GetValueAsBool(CFG_SECTION, CFG_LATESTVIDEOS_RANDOMIZE, LatestVideosRandomize);
                 LatestVideosOnlineDataRefresh = (uint)settings.GetValueAsInt(CFG_SECTION, CFG_LATESTVIDEOS_ONLINEDATA_REFRESH, (int)LatestVideosOnlineDataRefresh);
                 LatestVideosGuiDataRefresh = (uint)settings.GetValueAsInt(CFG_SECTION, CFG_LATESTVIDEOS_GUIDATA_REFRESH, (int)LatestVideosGuiDataRefresh);
                 AllowRefreshRateChange = settings.GetValueAsBool(CFG_SECTION, CFG_ALLOW_REFRESHRATE_CHANGE, AllowRefreshRateChange);
                 StoreLayoutPerCategory = settings.GetValueAsBool(CFG_SECTION, CFG_STORE_LAYOUT_PER_CATEGORY, StoreLayoutPerCategory);
-                useMPUrlSourceSplitter=settings.GetValueAsBool(CFG_SECTION, CFG_USE_MPURLSOURCESPLITTER, useMPUrlSourceSplitter);
+                useMPUrlSourceSplitter = settings.GetValueAsBool(CFG_SECTION, CFG_USE_MPURLSOURCESPLITTER, useMPUrlSourceSplitter);
             }
         }
 
         void Load()
         {
-            OnlineVideos.OnlineVideoSettings ovsconf = OnlineVideos.OnlineVideoSettings.Instance;
+            OnlineVideoSettings ovsconf = OnlineVideoSettings.Instance;
 
             ovsconf.UserStore = new UserStore();
             ovsconf.FavDB = FavoritesDatabase.Instance;
@@ -218,7 +212,7 @@ namespace OnlineVideos.MediaPortal1
                 Log.Instance.Error(ex);
             }
 
-            ovsconf.ThumbsResizeOptions = new OnlineVideos.Downloading.ImageDownloader.ResizeOptions()
+            ovsconf.ThumbsResizeOptions = new Downloading.ImageDownloader.ResizeOptions()
             {
                 MaxSize = (int)Thumbs.ThumbLargeResolution,
                 Compositing = Thumbs.Compositing,
@@ -245,7 +239,7 @@ namespace OnlineVideos.MediaPortal1
                     currentVideoView = (GUIFacadeControl.Layout)settings.GetValueAsInt(CFG_SECTION, CFG_VIDEOVIEW_MODE, (int)GUIFacadeControl.Layout.SmallIcons);
 
                     ovsconf.ThumbsDir = settings.GetValueAsString(CFG_SECTION, CFG_THUMBNAIL_DIR, ovsconf.ThumbsDir).Replace("/", @"\");
-                    if (!ovsconf.ThumbsDir.EndsWith(@"\")) ovsconf.ThumbsDir = ovsconf.ThumbsDir + @"\"; // fix thumbnail dir to include the trailing slash
+                    if (!ovsconf.ThumbsDir.EndsWith(@"\")) ovsconf.ThumbsDir += @"\"; // fix thumbnail dir to include the trailing slash
                     try { if (!string.IsNullOrEmpty(ovsconf.ThumbsDir) && !Directory.Exists(ovsconf.ThumbsDir)) Directory.CreateDirectory(ovsconf.ThumbsDir); }
                     catch (Exception e) { Log.Instance.Error("Failed to create thumb dir: {0}", e.ToString()); }
                     ThumbsAge = settings.GetValueAsInt(CFG_SECTION, CFG_THUMBNAIL_AGE, ThumbsAge);
@@ -278,9 +272,11 @@ namespace OnlineVideos.MediaPortal1
                         try
                         {
                             byte[] searchHistoryBytes = System.Text.Encoding.UTF8.GetBytes(searchHistoryXML);
-                            MemoryStream xmlMem = new MemoryStream(searchHistoryBytes);
-                            xmlMem.Position = 0;
-                            System.Runtime.Serialization.DataContractSerializer dcs = new System.Runtime.Serialization.DataContractSerializer(typeof(Dictionary<string, List<string>>));
+                            MemoryStream xmlMem = new MemoryStream(searchHistoryBytes)
+                            {
+                                Position = 0
+                            };
+                            DataContractSerializer dcs = new DataContractSerializer(typeof(Dictionary<string, List<string>>));
                             searchHistory = (Dictionary<string, List<string>>)dcs.ReadObject(xmlMem);
                         }
                         catch (Exception e)
@@ -337,7 +333,7 @@ namespace OnlineVideos.MediaPortal1
                     ovsconf.HttpProxyServerPort = settings.GetValueAsInt(CFG_SECTION, CFG_FILTER_V2_HTTP_PROXY_SERVER_PORT, ovsconf.HttpProxyServerPort);
                     ovsconf.HttpProxyServerUserName = settings.GetValueAsString(CFG_SECTION, CFG_FILTER_V2_HTTP_PROXY_SERVER_USER_NAME, ovsconf.HttpProxyServerUserName);
                     ovsconf.HttpProxyServerPassword = settings.GetValueAsString(CFG_SECTION, CFG_FILTER_V2_HTTP_PROXY_SERVER_PASSWORD, ovsconf.HttpProxyServerPassword);
-                    ovsconf.HttpProxyServerType = (OnlineVideos.MPUrlSourceFilter.ProxyServerType)settings.GetValueAsInt(CFG_SECTION, CFG_FILTER_V2_HTTP_PROXY_SERVER_TYPE, (int)ovsconf.HttpProxyServerType);
+                    ovsconf.HttpProxyServerType = (MPUrlSourceFilter.ProxyServerType)settings.GetValueAsInt(CFG_SECTION, CFG_FILTER_V2_HTTP_PROXY_SERVER_TYPE, (int)ovsconf.HttpProxyServerType);
 
                     ovsconf.RtmpPreferredNetworkInterface = settings.GetValueAsString(CFG_SECTION, CFG_FILTER_V2_RTMP_PREFERRED_NETWORK_INTERFACE, OnlineVideoSettings.NetworkInterfaceSystemDefault);
                     ovsconf.RtmpOpenConnectionTimeout = settings.GetValueAsInt(CFG_SECTION, CFG_FILTER_V2_RTMP_OPEN_CONNECTION_TIMEOUT, ovsconf.RtmpOpenConnectionTimeout);
@@ -359,17 +355,18 @@ namespace OnlineVideos.MediaPortal1
                     ovsconf.UdpRtpReceiveDataCheckInterval = settings.GetValueAsInt(CFG_SECTION, CFG_FILTER_V2_UDPRTP_RECEIVE_DATA_CHECK_INTERVAL, ovsconf.UdpRtpReceiveDataCheckInterval);
 
 
-                    ovsconf.VideoQualitySelectionOptions = new PlaybackOptionsBuilder.SelectionOptions();
-                    ovsconf.VideoQualitySelectionOptions.AutomaticVideoSelection = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_AUTO, false);
-                    PlaybackOptionsBuilder.VideoSelection sel;
-                    if (Enum.TryParse(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_QUALITY, PlaybackOptionsBuilder.VideoSelection.Highest.ToString()), out sel))
+                    ovsconf.VideoQualitySelectionOptions = new PlaybackOptionsBuilder.SelectionOptions
+                    {
+                        AutomaticVideoSelection = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_AUTO, false),
+                        Allow3D = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_3D, false),
+                        AllowHDR = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_HDR, false)
+                    };
+                    if (Enum.TryParse(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_QUALITY, PlaybackOptionsBuilder.VideoSelection.Highest.ToString()), out PlaybackOptionsBuilder.VideoSelection sel))
                         ovsconf.VideoQualitySelectionOptions.VideoResolution = sel;
                     else
                         ovsconf.VideoQualitySelectionOptions.VideoResolution = PlaybackOptionsBuilder.VideoSelection.Highest;
-                    ovsconf.VideoQualitySelectionOptions.Allow3D = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_3D, false);
-                    ovsconf.VideoQualitySelectionOptions.AllowHDR = settings.GetValueAsBool(CFG_SECTION, CFG_VIDEO_SELECTION_ALLOW_HDR, false);
                     ovsconf.VideoQualitySelectionOptions.PreferredContainers = DeserializeEnumList<PlaybackOptionsBuilder.Container>(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CONTAINER, string.Empty));
-                    ovsconf.VideoQualitySelectionOptions.PreferredVideoCodecs  = DeserializeEnumList<PlaybackOptionsBuilder.VideoCodec>(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CODEC_VIDEO, string.Empty));
+                    ovsconf.VideoQualitySelectionOptions.PreferredVideoCodecs = DeserializeEnumList<PlaybackOptionsBuilder.VideoCodec>(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CODEC_VIDEO, string.Empty));
                     ovsconf.VideoQualitySelectionOptions.PreferredAudioCodecs = DeserializeEnumList<PlaybackOptionsBuilder.AudioCodec>(settings.GetValueAsString(CFG_SECTION, CFG_VIDEO_SELECTION_PREF_CODEC_AUDIO, string.Empty));
 
                 }
@@ -384,7 +381,7 @@ namespace OnlineVideos.MediaPortal1
 
         public void Save(bool saveOnlyRuntimeModifyable)
         {
-            OnlineVideos.OnlineVideoSettings ovsconf = OnlineVideos.OnlineVideoSettings.Instance;
+            OnlineVideoSettings ovsconf = OnlineVideoSettings.Instance;
             try
             {
                 using (Settings settings = new MPSettings())
@@ -394,7 +391,7 @@ namespace OnlineVideos.MediaPortal1
                     settings.SetValue(CFG_SECTION, CFG_SITEVIEW_ORDER, (int)siteOrder);
                     settings.SetValue(CFG_SECTION, CFG_VIDEOVIEW_MODE, (int)currentVideoView);
                     settings.SetValue(CFG_SECTION, CFG_CATEGORYVIEW_MODE, (int)currentCategoryView);
-                    if (lastFirstRun != default(DateTime)) settings.SetValue(CFG_SECTION, CFG_LAST_FIRSTRUN, lastFirstRun.ToString("s"));
+                    if (lastFirstRun != default) settings.SetValue(CFG_SECTION, CFG_LAST_FIRSTRUN, lastFirstRun.ToString("s"));
                     try
                     {
                         MemoryStream xmlMem = new MemoryStream();
@@ -524,12 +521,10 @@ namespace OnlineVideos.MediaPortal1
                 var siteutils = OnlineVideoSettings.Instance.SiteUtilsList;
                 foreach (string name in siteutils.Keys)
                 {
-                    Sites.SiteUtilBase aSite;
-                    if (siteutils.TryGetValue(name, out aSite) && !(aSite is Sites.FavoriteUtil) && !(aSite is Sites.DownloadedVideoUtil))
+                    if (siteutils.TryGetValue(name, out Sites.SiteUtilBase aSite) && !(aSite is Sites.FavoriteUtil) && !(aSite is Sites.DownloadedVideoUtil))
                     {
                         string key = string.IsNullOrEmpty(aSite.Settings.Language) ? "--" : aSite.Settings.Language;
-                        BindingList<string> listForLang = null;
-                        if (!sitenames.TryGetValue(key, out listForLang)) { listForLang = new BindingList<string>(); sitenames.Add(key, listForLang); }
+                        if (!sitenames.TryGetValue(key, out BindingList<string> listForLang)) { listForLang = new BindingList<string>(); sitenames.Add(key, listForLang); }
                         listForLang.Add(aSite.Settings.Name);
                     }
                 }

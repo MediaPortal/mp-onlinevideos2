@@ -154,7 +154,7 @@ namespace OnlineVideos.Hoster
 
             try
             {
-                var jDataYtDlp = this.parsePlayerStatusFromYtDlp(qualities, videoId);
+                var jDataYtDlp = this.ParsePlayerStatusFromYtDlp(qualities, videoId);
 
                 Log.Debug("[YoutubeHoster] VideoQualities count: {0}", qualities.Count);
 
@@ -167,15 +167,14 @@ namespace OnlineVideos.Hoster
                     try
                     {
                         Dictionary<string, string> subUrls = null;
-                        subUrls = getSubUrlFromYtDlp(jDataYtDlp["automatic_captions"], subtitleLanguages);
+                        subUrls = GetSubUrlFromYtDlp(jDataYtDlp["automatic_captions"], subtitleLanguages);
 
                         if (subUrls != null && subUrls.Count > 0)
                         {
                             subtitleTexts = new SubtitleList();
                             foreach (var kv in subUrls)
                             {
-                                Uri uri;
-                                if (Uri.TryCreate(new Uri("https://www.youtube.com"), kv.Value, out uri))
+                                if (Uri.TryCreate(new Uri("https://www.youtube.com"), kv.Value, out Uri uri))
                                 {
                                     string strSubText = WebCache.Instance.GetWebData(uri.ToString());
                                     if (string.IsNullOrWhiteSpace(strSubText))
@@ -219,9 +218,9 @@ namespace OnlineVideos.Hoster
             }
         }
 
-        private Dictionary<string, string> getSubUrlFromYtDlp(JToken captions, string languages)
+        private Dictionary<string, string> GetSubUrlFromYtDlp(JToken captions, string languages)
         {
-            Dictionary<string, string> result = new Dictionary<string, string>();
+            Dictionary<string, string> result = new();
             if (captions != null)
             {
                 string[] langs = languages.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
@@ -260,7 +259,7 @@ namespace OnlineVideos.Hoster
             return result;
         }
 
-        private static bool checkYtDlpVersion()
+        private static bool CheckYtDlpVersion()
         {
             if ((DateTime.Now - _YtDlpLastCheck).TotalHours < 24)
                 return true;
@@ -318,9 +317,9 @@ namespace OnlineVideos.Hoster
             }
         }
 
-        private JToken parsePlayerStatusFromYtDlp(PlaybackOptionsBuilder qualities, string strVideoId)
+        private JToken ParsePlayerStatusFromYtDlp(PlaybackOptionsBuilder qualities, string strVideoId)
         {
-            if (!checkYtDlpVersion())
+            if (!CheckYtDlpVersion())
                 return null;
 
             Log.Debug("[YoutubeHoster] parsePlayerStatusFromYtDlp() loading json data: " + strVideoId);

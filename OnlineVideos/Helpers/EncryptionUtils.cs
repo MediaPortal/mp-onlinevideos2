@@ -68,7 +68,7 @@ namespace OnlineVideos.Helpers
             return result.ToString();
         }
 
-        static byte[] aditionalEntropy = { };
+        static readonly byte[] aditionalEntropy = { };
         public static string SymEncryptLocalPC(string data)
         {
             byte[] bytes = Encoding.UTF8.GetBytes(data);

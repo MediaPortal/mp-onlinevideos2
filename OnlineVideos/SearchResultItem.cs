@@ -48,15 +48,13 @@ namespace OnlineVideos
                 if (_other != value)
                 {
                     // unsubscribe from a previous notfier
-                    var oldNotifier = _other as INotifyPropertyChanged;
-                    if (oldNotifier != null) oldNotifier.PropertyChanged -= OnOtherPropertyChanged;
+                    if (_other is INotifyPropertyChanged oldNotifier) oldNotifier.PropertyChanged -= OnOtherPropertyChanged;
 
                     _other = value;
                     NotifyPropertyChanged("Other");
 
                     // propagate changes in the Other object (if it supports INotifyPropertyChanged)
-                    var newNotifier = _other as INotifyPropertyChanged;
-                    if (newNotifier != null) newNotifier.PropertyChanged += OnOtherPropertyChanged;
+                    if (_other is INotifyPropertyChanged newNotifier) newNotifier.PropertyChanged += OnOtherPropertyChanged;
                 }
             }
         }
@@ -69,7 +67,7 @@ namespace OnlineVideos
         public string GetOtherAsString()
         {
             if (Other == null) return "";
-            if (Other is string) return (string)Other;
+            if (Other is string res) return res;
             if (Other.GetType().IsSerializable)
             {
                 try
@@ -134,9 +132,7 @@ namespace OnlineVideos
 
         internal void NotifyPropertyChanged(string propertyName)
         {
-            var propChanged = PropertyChanged;
-            if (propChanged != null)
-                propChanged(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         #endregion

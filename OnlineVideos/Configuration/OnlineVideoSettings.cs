@@ -168,7 +168,7 @@ namespace OnlineVideos
             catch { /* might fail due to UAC */ }
 
             string filename = string.IsNullOrEmpty(ConfigDir) ? string.Empty : Path.Combine(ConfigDir, SitesFileName);
-            Stream sitesStream = null;
+            Stream sitesStream;
             if (string.IsNullOrEmpty(filename) || !File.Exists(filename))
             {
                 Log.Info("ConfigFile \"{0}\" was not found. Using embedded resource.", filename);

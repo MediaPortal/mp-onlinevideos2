@@ -172,13 +172,15 @@ namespace OnlineVideos.Sites
             Match m = regEx_dynamicCategories.Match(data);
             while (m.Success)
             {
-                RssLink cat = new RssLink();
-                cat.Url = FormatDecodeAbsolutifyUrl(baseUrl, m.Groups["url"].Value, dynamicCategoryUrlFormatString, dynamicCategoryUrlDecoding);
-                cat.Name = HttpUtility.HtmlDecode(m.Groups["title"].Value.Trim().Replace('\n', ' '));
-                cat.Thumb = m.Groups["thumb"].Value;
+                RssLink cat = new RssLink
+                {
+                    Url = FormatDecodeAbsolutifyUrl(baseUrl, m.Groups["url"].Value, dynamicCategoryUrlFormatString, dynamicCategoryUrlDecoding),
+                    Name = HttpUtility.HtmlDecode(m.Groups["title"].Value.Trim().Replace('\n', ' ')),
+                    Thumb = m.Groups["thumb"].Value,
+                    Description = m.Groups["description"].Value,
+                    HasSubCategories = regEx_dynamicSubCategories != null
+                };
                 if (!String.IsNullOrEmpty(cat.Thumb) && !Uri.IsWellFormedUriString(cat.Thumb, System.UriKind.Absolute)) cat.Thumb = new Uri(new Uri(baseUrl), cat.Thumb).AbsoluteUri;
-                cat.Description = m.Groups["description"].Value;
-                if (regEx_dynamicSubCategories != null) cat.HasSubCategories = true;
                 ExtraCategoryMatch(cat, m.Groups);
                 dynamicCategories.Add(cat);
                 m = m.NextMatch();
@@ -223,13 +225,15 @@ namespace OnlineVideos.Sites
                     Match m = regEx_dynamicSubCategories.Match(data);
                     while (m.Success)
                     {
-                        RssLink cat = new RssLink();
-                        cat.Url = FormatDecodeAbsolutifyUrl(baseUrl, m.Groups["url"].Value, dynamicSubCategoryUrlFormatString, dynamicSubCategoryUrlDecoding);
-                        cat.Name = HttpUtility.HtmlDecode(m.Groups["title"].Value.Trim());
-                        cat.Thumb = m.Groups["thumb"].Value;
+                        RssLink cat = new RssLink
+                        {
+                            Url = FormatDecodeAbsolutifyUrl(baseUrl, m.Groups["url"].Value, dynamicSubCategoryUrlFormatString, dynamicSubCategoryUrlDecoding),
+                            Name = HttpUtility.HtmlDecode(m.Groups["title"].Value.Trim()),
+                            Thumb = m.Groups["thumb"].Value,
+                            Description = m.Groups["description"].Value,
+                            ParentCategory = parentCategory
+                        };
                         if (!String.IsNullOrEmpty(cat.Thumb) && !Uri.IsWellFormedUriString(cat.Thumb, System.UriKind.Absolute)) cat.Thumb = new Uri(new Uri(baseUrl), cat.Thumb).AbsoluteUri;
-                        cat.Description = m.Groups["description"].Value;
-                        cat.ParentCategory = parentCategory;
                         ExtraSubCategoryMatch(cat, m.Groups);
                         dynamicSubCategories.Add(cat);
                         m = m.NextMatch();
@@ -270,7 +274,6 @@ namespace OnlineVideos.Sites
             else
             {
                 category.ParentCategory.SubCategories.Remove(category);
-                int oldAmount = category.ParentCategory.SubCategories.Count;
                 return ParseSubCategories(category.ParentCategory, data);
             }
         }
@@ -283,14 +286,14 @@ namespace OnlineVideos.Sites
         public override List<VideoInfo> GetVideos(Category category)
         {
             List<VideoInfo> loVideoList = null;
-            if (category is RssLink)
+            if (category is RssLink link)
             {
-                return Parse(((RssLink)category).Url, null);
+                return Parse(link.Url, null);
             }
-            else if (category is Group)
+            else if (category is Group group)
             {
                 loVideoList = new List<VideoInfo>();
-                foreach (Channel channel in ((Group)category).Channels)
+                foreach (Channel channel in group.Channels)
                 {
                     VideoInfo video = CreateVideoInfo();
                     video.Title = channel.StreamName;
@@ -480,9 +483,11 @@ namespace OnlineVideos.Sites
                 Uri uri = new Uri(mmsUrl);
                 if (uri.Scheme == "mms")
                 {
-                    video.PlaybackOptions = new Dictionary<string, string>();
-                    video.PlaybackOptions.Add("http:// .asx", resultUrl);
-                    video.PlaybackOptions.Add(string.Format("{0}:// {1}", new Uri(mmsUrl).Scheme, System.IO.Path.GetExtension(mmsUrl)), resultUrl);
+                    video.PlaybackOptions = new Dictionary<string, string>
+                    {
+                        { "http:// .asx", resultUrl },
+                        { string.Format("{0}:// {1}", new Uri(mmsUrl).Scheme, System.IO.Path.GetExtension(mmsUrl)), resultUrl }
+                    };
                 }
             }
 
@@ -495,8 +500,8 @@ namespace OnlineVideos.Sites
                         if (hosterUtil.Matches(uri.Host))
                         {
                             Dictionary<string, string> options = hosterUtil.GetPlaybackOptions(resultUrl);
-                            if (hosterUtil is ISubtitle)
-                                video.SubtitleTexts = ((ISubtitle)hosterUtil).SubtitleTexts;
+                            if (hosterUtil is ISubtitle subtitle)
+                                video.SubtitleTexts = subtitle.SubtitleTexts;
 
                             if (options != null && options.Count > 0)
                             {
@@ -523,8 +528,8 @@ namespace OnlineVideos.Sites
                             if (hosterUtil.Matches(uri.Host))
                             {
                                 Dictionary<string, string> options = hosterUtil.GetPlaybackOptions(value);
-                                if (hosterUtil is ISubtitle)
-                                  video.SubtitleTexts = ((ISubtitle)hosterUtil).SubtitleTexts;
+                                if (hosterUtil is ISubtitle subtitle)
+                                    video.SubtitleTexts = subtitle.SubtitleTexts;
                                 if (options != null && options.Count > 0)
                                     foreach (var option in options)
                                         video.PlaybackOptions.Add(string.Format("{0} - {1}", video.PlaybackOptions.Count + 1, option.Key), option.Value);
@@ -786,8 +791,7 @@ namespace OnlineVideos.Sites
                 }
                 else
                 {
-                    Uri uri = null;
-                    if (Uri.TryCreate(new Uri(currentUrl), result, out uri))
+                    if (Uri.TryCreate(new Uri(currentUrl), result, out Uri uri))
                     {
                         result = uri.ToString();
                     }
@@ -850,11 +854,13 @@ namespace OnlineVideos.Sites
             foreach (string aCookie in myCookies)
             {
                 string[] name_value = aCookie.Split('=');
-                Cookie c = new Cookie();
-                c.Name = name_value[0];
-                c.Value = name_value[1];
-                c.Expires = DateTime.Now.AddHours(1);
-                c.Domain = new Uri(baseUrl).Host;
+                Cookie c = new Cookie
+                {
+                    Name = name_value[0],
+                    Value = name_value[1],
+                    Expires = DateTime.Now.AddHours(1),
+                    Domain = new Uri(baseUrl).Host
+                };
                 cc.Add(c);
             }
             return cc;

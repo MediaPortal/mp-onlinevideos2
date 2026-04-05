@@ -162,15 +162,17 @@ namespace OnlineVideos.MediaPortal1
             {
                 if (!site.IsAdult || !OnlineVideoSettings.Instance.UseAgeConfirmation || OnlineVideoSettings.Instance.AgeConfirmed)
                 {
-                    GUIListItem loListItem = new GUIListItem(site.Name);
-                    loListItem.TVTag = site;
-                    loListItem.Label2 = site.Language;
-                    loListItem.Label3 = site.LastUpdated.ToLocalTime().ToString("g", OnlineVideoSettings.Instance.Locale);
+                    GUIListItem loListItem = new GUIListItem(site.Name)
+                    {
+                        TVTag = site,
+                        Label2 = site.Language,
+                        Label3 = site.LastUpdated.ToLocalTime().ToString("g", OnlineVideoSettings.Instance.Locale),
+                        IsPlayed = localSitesDic.ContainsKey(site.Name)// GetLocalSite(site.Name) != -1;
+                    };
                     string image = SiteImageExistenceCache.GetImageForSite(site.Name, "", "Icon", false);
                     if (!string.IsNullOrEmpty(image)) { loListItem.IconImage = image; loListItem.ThumbnailImage = image; }
                     if (!string.IsNullOrEmpty(site.OwnerId)) loListItem.PinImage = GUIGraphicsContext.Skin + @"\Media\OnlineVideos\" + site.State.ToString() + ".png";
                     loListItem.OnItemSelected += new MediaPortal.GUI.Library.GUIListItem.ItemSelectedHandler(OnSiteSelected);
-                    loListItem.IsPlayed = localSitesDic.ContainsKey(site.Name);// GetLocalSite(site.Name) != -1;
                     GUI_infoList.Add(loListItem);
                     if ((selectedItem != null && selectedItem.Label == loListItem.Label) ||
                         selectedSite == loListItem.Label ||
@@ -192,8 +194,7 @@ namespace OnlineVideos.MediaPortal1
 
         private void OnSiteSelected(GUIListItem item, GUIControl parent)
         {
-            WebService.Site site = item.TVTag as WebService.Site;
-            if (site != null)
+            if (item.TVTag is WebService.Site site)
             {
                 if (!string.IsNullOrEmpty(site.OwnerId)) GUIPropertyManager.SetProperty("#OnlineVideos.owner", site.OwnerId.Substring(0, site.OwnerId.IndexOf('@')));
                 else GUIPropertyManager.SetProperty("#OnlineVideos.owner", string.Empty);
@@ -204,8 +205,7 @@ namespace OnlineVideos.MediaPortal1
 
         private void OnReportSelected(GUIListItem item, GUIControl parent)
         {
-            WebService.Report report = item.TVTag as WebService.Report;
-            if (report != null)
+            if (item.TVTag is WebService.Report report)
             {
                 GUIPropertyManager.SetProperty("#OnlineVideos.owner", string.Empty);
                 if (!string.IsNullOrEmpty(report.Message)) GUIPropertyManager.SetProperty("#OnlineVideos.desc", report.Message);
@@ -478,10 +478,12 @@ namespace OnlineVideos.MediaPortal1
                                 foreach (WebService.Report report in reports)
                                 {
                                     string shortMsg = report.Message.Replace(Environment.NewLine, " ").Replace("\n", " ").Replace("\r", " ");
-                                    GUIListItem loListItem = new GUIListItem(shortMsg.Length > 44 ? shortMsg.Substring(0, 40) + " ..." : shortMsg);
-                                    loListItem.TVTag = report;
-                                    loListItem.Label2 = report.Type.ToString();
-                                    loListItem.Label3 = report.Date.ToString("g", OnlineVideoSettings.Instance.Locale);
+                                    GUIListItem loListItem = new GUIListItem(shortMsg.Length > 44 ? shortMsg.Substring(0, 40) + " ..." : shortMsg)
+                                    {
+                                        TVTag = report,
+                                        Label2 = report.Type.ToString(),
+                                        Label3 = report.Date.ToString("g", OnlineVideoSettings.Instance.Locale)
+                                    };
                                     loListItem.OnItemSelected += new MediaPortal.GUI.Library.GUIListItem.ItemSelectedHandler(OnReportSelected);
                                     GUI_infoList.Add(loListItem);
                                 }
@@ -612,17 +614,16 @@ namespace OnlineVideos.MediaPortal1
                 case FilterStateOption.Broken:
                     return site.State == OnlineVideos.WebService.SiteState.Broken;
                 case FilterStateOption.Updatable:
-                    SiteSettings localSite = null;
-                    if (OnlineVideoSettings.Instance.GetSiteByName(site.Name, out localSite) >= 0)
+                    if (OnlineVideoSettings.Instance.GetSiteByName(site.Name, out SiteSettings localSite) >= 0)
                     {
                         if ((site.LastUpdated - localSite.LastUpdated).TotalMinutes > 2) return true;
                         else return false;
                     }
                     return false;
                 case FilterStateOption.OnlyLocal:
-                    return OnlineVideoSettings.Instance.GetSiteByName(site.Name, out localSite) >= 0;
+                    return OnlineVideoSettings.Instance.GetSiteByName(site.Name, out _) >= 0;
                 case FilterStateOption.OnlyServer:
-                    return OnlineVideoSettings.Instance.GetSiteByName(site.Name, out localSite) < 0;
+                    return OnlineVideoSettings.Instance.GetSiteByName(site.Name, out _) < 0;
                 default: return true;
             }
         }
@@ -664,11 +665,10 @@ namespace OnlineVideos.MediaPortal1
             foreach (WebService.Site site in Sites.Updater.OnlineSites)
             {
                 string owner = site.OwnerId.Substring(0, site.OwnerId.IndexOf('@'));
-                bool temp;
-                if (!creatorsHash.TryGetValue(owner, out temp)) creatorsHash.Add(owner, true);
+                if (!creatorsHash.TryGetValue(owner, out _)) creatorsHash.Add(owner, true);
                 if (!string.IsNullOrEmpty(site.Language))
                 {
-                    if (!languagesHash.TryGetValue(site.Language, out temp)) languagesHash.Add(site.Language, true);
+                    if (!languagesHash.TryGetValue(site.Language, out _)) languagesHash.Add(site.Language, true);
                 }
             }
             string[] creators = new string[creatorsHash.Count];

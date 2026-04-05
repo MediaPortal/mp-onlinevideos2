@@ -12,7 +12,7 @@ namespace OnlineVideos.Sites
         string lastSort = "date";
 
         // keep a reference of all Categories ever created and reuse them, to get them selected when returning to the category view
-        Dictionary<string, RssLink> cachedCategories = new Dictionary<string, RssLink>();
+        readonly Dictionary<string, RssLink> cachedCategories = new Dictionary<string, RssLink>();
 
         public override int DiscoverDynamicCategories()
         {
@@ -45,8 +45,7 @@ namespace OnlineVideos.Sites
             {
                 // try to find a SiteUtil according to the directory name
                 string siteName = Path.GetFileName(aDir);
-                SiteUtilBase util = null;
-                OnlineVideoSettings.Instance.SiteUtilsList.TryGetValue(siteName, out util);
+                OnlineVideoSettings.Instance.SiteUtilsList.TryGetValue(siteName, out SiteUtilBase util);
 
                 DirectoryInfo dirInfo = new DirectoryInfo(aDir);
                 FileInfo[] files = dirInfo.GetFiles();
@@ -63,11 +62,13 @@ namespace OnlineVideos.Sites
                     {
                         if (!cachedCategories.TryGetValue(siteName + " - " + Translation.Instance.DownloadedVideos, out cat))
                         {
-                            cat = new RssLink();
-                            cat.Name = siteName + " - " + Translation.Instance.DownloadedVideos;
-                            cat.Description = util != null ? util.Settings.Description : "";
-                            ((RssLink)cat).Url = aDir;
-                            cat.Thumb = Path.Combine(OnlineVideoSettings.Instance.ThumbsDir, @"Icons\" + siteName + ".png");
+                            cat = new RssLink
+                            {
+                                Name = siteName + " - " + Translation.Instance.DownloadedVideos,
+                                Description = util != null ? util.Settings.Description : "",
+                                Url = aDir,
+                                Thumb = Path.Combine(OnlineVideoSettings.Instance.ThumbsDir, @"Icons\" + siteName + ".png")
+                            };
                             cachedCategories.Add(cat.Name, cat);
                         }
                         cat.EstimatedVideoCount = (uint)files.Count(f => IsPossibleVideo(f.Name));
@@ -83,10 +84,10 @@ namespace OnlineVideos.Sites
 
         public override List<VideoInfo> GetVideos(Category category)
         {
-            return getVideoList((category as RssLink).Url, "*", category.Name == Translation.Instance.All);
+            return GetVideoList((category as RssLink).Url, "*", category.Name == Translation.Instance.All);
         }
 
-        List<VideoInfo> getVideoList(string path, string search, bool recursive)
+        private List<VideoInfo> GetVideoList(string path, string search, bool recursive)
         {
             List<VideoInfo> loVideoInfoList = new List<VideoInfo>();
             if (!(string.IsNullOrEmpty(path)))
@@ -138,16 +139,14 @@ namespace OnlineVideos.Sites
                                                 else if (simpleNode.Element("Name").Value == "DATE_RELEASED")
                                                 {
                                                     airdate_xml = simpleNode.Element("String").Value;
-                                                    UInt32 year;
-                                                    if (UInt32.TryParse(airdate_xml, out year))
+                                                    if (UInt32.TryParse(airdate_xml, out UInt32 year))
                                                         ti.Year = year;
                                                 }
                                                 else if (simpleNode.Element("Name").Value == "PART_NUMBER")
                                                     ti.Episode = Convert.ToUInt32(simpleNode.Element("String").Value);
                                                 else if (simpleNode.Element("Name").Value == "CONTENT_TYPE")
                                                 {
-                                                    VideoKind kind;
-                                                    if (VideoKind.TryParse(simpleNode.Element("String").Value, out kind))
+                                                    if (VideoKind.TryParse(simpleNode.Element("String").Value, out VideoKind kind))
                                                     {
                                                         ti.VideoKind = kind;
                                                     }
@@ -164,15 +163,17 @@ namespace OnlineVideos.Sites
                         }
                         if (ti.VideoKind == VideoKind.Movie)
                             ti.Title = title_xml;
-                        VideoInfo loVideoInfo = new VideoInfo();
-                        loVideoInfo.VideoUrl = file.FullName;
-                        loVideoInfo.Thumb = file.FullName.Substring(0, file.FullName.LastIndexOf(".")) + ".jpg";
-                        loVideoInfo.Title = string.IsNullOrEmpty(title_xml) ? file.Name : title_xml;
-                        loVideoInfo.Length = string.Format("{0} MB", (file.Length / 1024 / 1024).ToString("N0"));
-                        loVideoInfo.Airdate = string.IsNullOrEmpty(airdate_xml) ? file.LastWriteTime.ToString("g", OnlineVideoSettings.Instance.Locale) : airdate_xml;
-                        loVideoInfo.Description = description_xml;
-                        loVideoInfo.TrackingInfo = ti;
-                        loVideoInfo.Other = file;
+                        VideoInfo loVideoInfo = new VideoInfo
+                        {
+                            VideoUrl = file.FullName,
+                            Thumb = file.FullName.Substring(0, file.FullName.LastIndexOf(".")) + ".jpg",
+                            Title = string.IsNullOrEmpty(title_xml) ? file.Name : title_xml,
+                            Length = string.Format("{0} MB", (file.Length / 1024 / 1024).ToString("N0")),
+                            Airdate = string.IsNullOrEmpty(airdate_xml) ? file.LastWriteTime.ToString("g", OnlineVideoSettings.Instance.Locale) : airdate_xml,
+                            Description = description_xml,
+                            TrackingInfo = ti,
+                            Other = file
+                        };
                         loVideoInfoList.Add(loVideoInfo);
                     }
                 }
@@ -205,13 +206,15 @@ namespace OnlineVideos.Sites
                 {
                     if (PassesAgeCheck(di.LocalFile))
                     {
-                        VideoInfo loVideoInfo = new VideoInfo();
-                        loVideoInfo.Title = string.IsNullOrEmpty(di.Title) ? di.VideoInfo.Title : di.Title;
-                        loVideoInfo.Thumb = string.IsNullOrEmpty(di.ThumbFile) ? (string.IsNullOrEmpty(di.VideoInfo.ThumbnailImage) ? di.VideoInfo.Thumb : di.VideoInfo.ThumbnailImage) : di.ThumbFile;
-                        loVideoInfo.Airdate = di.Start.ToString("HH:mm:ss");
-                        loVideoInfo.Length = di.ProgressInfo;
-                        loVideoInfo.Description = string.Format("{0}\n{1}", di.Url, di.LocalFile);
-                        loVideoInfo.Other = di;
+                        VideoInfo loVideoInfo = new VideoInfo
+                        {
+                            Title = string.IsNullOrEmpty(di.Title) ? di.VideoInfo.Title : di.Title,
+                            Thumb = string.IsNullOrEmpty(di.ThumbFile) ? (string.IsNullOrEmpty(di.VideoInfo.ThumbnailImage) ? di.VideoInfo.Thumb : di.VideoInfo.ThumbnailImage) : di.ThumbFile,
+                            Airdate = di.Start.ToString("HH:mm:ss"),
+                            Length = di.ProgressInfo,
+                            Description = string.Format("{0}\n{1}", di.Url, di.LocalFile),
+                            Other = di
+                        };
                         loVideoInfo.PropertyChanged += (s, e) =>
                         {
                             if (e.PropertyName == "Other")
@@ -324,7 +327,7 @@ namespace OnlineVideos.Sites
         public override List<SearchResultItem> Search(string query, string category = null)
         {
             query = FixQuery(query);
-            return getVideoList(OnlineVideoSettings.Instance.DownloadDir, query, true)
+            return GetVideoList(OnlineVideoSettings.Instance.DownloadDir, query, true)
                 .ConvertAll<SearchResultItem>(v => v as SearchResultItem);
         }
 
@@ -342,7 +345,7 @@ namespace OnlineVideos.Sites
         {
             lastSort = orderBy;
             query = FixQuery(query);
-            return getVideoList(OnlineVideoSettings.Instance.DownloadDir, query, true);
+            return GetVideoList(OnlineVideoSettings.Instance.DownloadDir, query, true);
         }
 
         public List<VideoInfo> FilterSearchResults(string query, string category, int maxResult, string orderBy, string timeFrame)
@@ -357,10 +360,12 @@ namespace OnlineVideos.Sites
 
         public Dictionary<string, string> GetOrderByOptions()
         {
-            Dictionary<string, string> options = new Dictionary<string, string>();
-            options.Add(Translation.Instance.Date, "date");
-            options.Add(Translation.Instance.Name, "name");
-            options.Add(Translation.Instance.Size, "size");
+            Dictionary<string, string> options = new Dictionary<string, string>
+            {
+                { Translation.Instance.Date, "date" },
+                { Translation.Instance.Name, "name" },
+                { Translation.Instance.Size, "size" }
+            };
             return options;
         }
 
@@ -381,8 +386,7 @@ namespace OnlineVideos.Sites
                 // try to find out what site this video belongs to
                 string siteName = Path.GetDirectoryName(fullFileName);
                 siteName = siteName.Substring(siteName.LastIndexOf('\\') + 1);
-                SiteUtilBase util = null;
-                if (OnlineVideoSettings.Instance.SiteUtilsList.TryGetValue(siteName, out util))
+                if (OnlineVideoSettings.Instance.SiteUtilsList.TryGetValue(siteName, out SiteUtilBase util))
                 {
                     return !util.Settings.ConfirmAge;
                 }

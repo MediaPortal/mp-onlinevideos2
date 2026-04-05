@@ -29,13 +29,13 @@ namespace OnlineVideos.MediaPortal1
             }
         }
 
-        public OnlineVideosGuiListItem(Sites.SiteUtilBase item) : base(item.Settings.Name) 
+        public OnlineVideosGuiListItem(Sites.SiteUtilBase item) : base(item.Settings.Name)
         {
             Label2 = item.Settings.Language;
             IsFolder = true;
             Item = item;
             // use Icon with the same name as the Site
-			string image = SiteImageExistenceCache.GetImageForSite(item.Settings.Name, item.Settings.UtilName, "Icon");
+            string image = SiteImageExistenceCache.GetImageForSite(item.Settings.Name, item.Settings.UtilName, "Icon");
             if (!string.IsNullOrEmpty(image))
             {
                 ThumbnailImage = image;
@@ -50,7 +50,7 @@ namespace OnlineVideos.MediaPortal1
 
         public OnlineVideosGuiListItem(Category item) : base(item.Name)
         {
-            Label2 = item is RssLink && (item as RssLink).EstimatedVideoCount > 0 ? (item as RssLink).EstimatedVideoCount.ToString() : 
+            Label2 = item is RssLink && (item as RssLink).EstimatedVideoCount > 0 ? (item as RssLink).EstimatedVideoCount.ToString() :
                 item is Group && (item as Group).Channels.Count > 0 ? (item as Group).Channels.Count.ToString() : Label2;
             IsFolder = true;
             Item = item;
@@ -72,32 +72,34 @@ namespace OnlineVideos.MediaPortal1
         }
         #endregion
 
-		protected PropertyChangedDelegator eventDelegator = null;
+        protected PropertyChangedDelegator eventDelegator = null;
         protected object _Item;
         /// <summary>
         /// The <see cref="SiteUtilBase"/>, <see cref="Category"/>, <see cref="VideoInfo"/> or <see cref="SitesGroup"/> that belongs to this object.
         /// </summary>
-        public object Item 
+        public object Item
         {
             get { return _Item; }
             internal set
             {
                 _Item = value;
-				System.ComponentModel.INotifyPropertyChanged notifier = value as System.ComponentModel.INotifyPropertyChanged;
-				if (notifier != null)
-				{
-					eventDelegator = OnlineVideosAppDomain.Domain.CreateInstanceAndUnwrap(typeof(PropertyChangedDelegator).Assembly.FullName, typeof(PropertyChangedDelegator).FullName) as PropertyChangedDelegator;
-					eventDelegator.InvokeTarget = new PropertyChangedExecutor() { InvokeHandler = (s, e) =>
-					{
-						if (s is VideoInfo && e.PropertyName == "ThumbnailImage") SetImageToGui((s as VideoInfo).ThumbnailImage);
-						else if (s is Category && e.PropertyName == "ThumbnailImage") SetImageToGui((s as Category).ThumbnailImage);
-						else if (s is VideoInfo && e.PropertyName == "Length") Label2 = (s as VideoInfo).Length;
-					} };
-					notifier.PropertyChanged += eventDelegator.EventDelegate;
-				}
+                if (value is System.ComponentModel.INotifyPropertyChanged notifier)
+                {
+                    eventDelegator = OnlineVideosAppDomain.Domain.CreateInstanceAndUnwrap(typeof(PropertyChangedDelegator).Assembly.FullName, typeof(PropertyChangedDelegator).FullName) as PropertyChangedDelegator;
+                    eventDelegator.InvokeTarget = new PropertyChangedExecutor()
+                    {
+                        InvokeHandler = (s, e) =>
+                        {
+                            if (s is VideoInfo && e.PropertyName == "ThumbnailImage") SetImageToGui((s as VideoInfo).ThumbnailImage);
+                            else if (s is Category && e.PropertyName == "ThumbnailImage") SetImageToGui((s as Category).ThumbnailImage);
+                            else if (s is VideoInfo && e.PropertyName == "Length") Label2 = (s as VideoInfo).Length;
+                        }
+                    };
+                    notifier.PropertyChanged += eventDelegator.EventDelegate;
+                }
             }
         }
-		
+
         public string Title
         {
             get
@@ -105,20 +107,16 @@ namespace OnlineVideos.MediaPortal1
                 string title = null;
                 if (Item != null)
                 {
-                    SitesGroup group = Item as SitesGroup;
-                    if (group != null) title = group.Name;
+                    if (Item is SitesGroup group) title = group.Name;
                     else
                     {
-                        Sites.SiteUtilBase site = Item as Sites.SiteUtilBase;
-                        if (site != null) title = site.Settings.Name;
+                        if (Item is Sites.SiteUtilBase site) title = site.Settings.Name;
                         else
                         {
-                            Category cat = Item as Category;
-                            if (cat != null) title = cat.Name;
+                            if (Item is Category cat) title = cat.Name;
                             else
                             {
-                                VideoInfo vid = Item as VideoInfo;
-                                if (vid != null) title = vid.Title;
+                                if (Item is VideoInfo vid) title = vid.Title;
                             }
                         }
                     }
@@ -134,20 +132,16 @@ namespace OnlineVideos.MediaPortal1
                 string desc = null;
                 if (Item != null)
                 {
-                    SitesGroup group = Item as SitesGroup;
-                    if (group != null) desc = group.Description;
+                    if (Item is SitesGroup group) desc = group.Description;
                     else
                     {
-                        Sites.SiteUtilBase site = Item as Sites.SiteUtilBase;
-                        if (site != null) desc = site.Settings.Description;
+                        if (Item is Sites.SiteUtilBase site) desc = site.Settings.Description;
                         else
                         {
-                            Category cat = Item as Category;
-                            if (cat != null) desc = cat.Description;
+                            if (Item is Category cat) desc = cat.Description;
                             else
                             {
-                                VideoInfo vid = Item as VideoInfo;
-                                if (vid != null) desc = vid.Description;
+                                if (Item is VideoInfo vid) desc = vid.Description;
                             }
                         }
                     }
@@ -163,8 +157,7 @@ namespace OnlineVideos.MediaPortal1
             IconImageBig = imageFilePath;
 
             // if selected and OnlineVideos is current window force an update of #selectedthumb
-            GUIOnlineVideos ovsWindow = GUIWindowManager.GetWindow(GUIWindowManager.ActiveWindow) as GUIOnlineVideos;
-            if (ovsWindow != null)
+            if (GUIWindowManager.GetWindow(GUIWindowManager.ActiveWindow) is GUIOnlineVideos ovsWindow)
             {
                 int listControlId = ovsWindow.CurrentState == GUIOnlineVideos.State.details ? 51 : 50;
                 GUIListItem selectedItem = GUIControl.GetSelectedListItem(GUIOnlineVideos.WindowId, listControlId);

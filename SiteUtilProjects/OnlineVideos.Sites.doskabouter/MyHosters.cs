@@ -57,7 +57,7 @@ namespace OnlineVideos.Hoster
 
         public override Dictionary<string, string> GetPlaybackOptions(string url)
         {
-            Dictionary<string, string> res = new Dictionary<string, string>();
+            Dictionary<string, string> res = new();
             string s = HttpUtility.UrlDecode(WebCache.Instance.GetRedirectedUrl(url));
             int p = s.IndexOf("file=");
             if (p > -1)
@@ -66,10 +66,10 @@ namespace OnlineVideos.Hoster
                 if (q < 0) q = s.Length;
                 s = s.Substring(p + 5, q - p - 5);
                 string rss = WebCache.Instance.GetWebData(s);
-                XmlDocument xmlDoc = new XmlDocument();
+                XmlDocument xmlDoc = new();
                 xmlDoc.LoadXml(rss);
 
-                XmlNamespaceManager nsmgr = new XmlNamespaceManager(xmlDoc.NameTable);
+                XmlNamespaceManager nsmgr = new(xmlDoc.NameTable);
                 nsmgr.AddNamespace("a", "http://search.yahoo.com/mrss/");
                 XmlNodeList nodes = xmlDoc.SelectNodes("//a:group/a:content", nsmgr);
                 foreach (XmlNode node in nodes)
@@ -168,8 +168,7 @@ namespace OnlineVideos.Hoster
                     string result = m.Groups["url"].Value;
                     if (!Uri.IsWellFormedUriString(result, UriKind.Absolute))
                     {
-                        Uri uri = null;
-                        if (Uri.TryCreate(new Uri(url), result, out uri))
+                        if (Uri.TryCreate(new Uri(url), result, out Uri uri))
                             result = uri.ToString();
                         else
                             result = string.Empty;
@@ -200,7 +199,7 @@ namespace OnlineVideos.Hoster
 
             string webData = WebCache.Instance.GetWebData(url);
 
-            Dictionary<string, string> res = new Dictionary<string, string>();
+            Dictionary<string, string> res = new();
             Match matchFileUrl = Regex.Match(webData, @"""qualities"":{""auto"":\[{""type"":""application\\/x-mpegURL"",""url"":""(?<url>[^""]+)""}");
             if (matchFileUrl.Success)
             {
@@ -297,8 +296,7 @@ namespace OnlineVideos.Hoster
                 var tmpUrl = m.Groups["url"].Value;
                 if (!Uri.IsWellFormedUriString(tmpUrl, UriKind.Absolute))
                 {
-                    Uri uri = null;
-                    if (Uri.TryCreate(new Uri(url), tmpUrl, out uri))
+                    if (Uri.TryCreate(new Uri(url), tmpUrl, out Uri uri))
                     {
                         tmpUrl = uri.ToString();
                     }
@@ -311,7 +309,7 @@ namespace OnlineVideos.Hoster
                     TimeSpan span = DateTime.Now.Subtract(new DateTime(1970, 1, 1, 0, 0, 0));
                     var newurl = m.Groups["url"].Value + //m.Groups["rest"].Value;
                        "SQPPQsSXKD?token=" + tmpUrl.Substring(i + 1) + "&expiry=" + Math.Truncate(span.TotalSeconds);
-                    HttpUrl finalUrl = new HttpUrl(newurl);
+                    HttpUrl finalUrl = new(newurl);
                     finalUrl.Referer = "https://dood.yt";
                     return finalUrl.ToString();
                 }
@@ -338,7 +336,7 @@ namespace OnlineVideos.Hoster
             string unpacked = Helpers.StringUtils.UnPack(packed);
             var m3u8url = Helpers.StringUtils.GetSubString(unpacked, @"file:""", @"""");
             var m3u8data = GetWebData(m3u8url);
-            HttpUrl res = new HttpUrl(Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value);
+            HttpUrl res = new(Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value);
             res.CustomHeaders.Add(new MPUrlSourceFilter.Http.HttpHeader("Accept-Language", "en-US,en;q=0.9"));
             res.UserAgent = OnlineVideoSettings.Instance.UserAgent;
             return res.ToString();
@@ -395,7 +393,7 @@ namespace OnlineVideos.Hoster
             string id = Helpers.StringUtils.GetSubString(url, "/v_", ".html");
             //http://stat.56.com/stat/flv.php?id=MzYxNzA2MzE&pct=1&user_id=&norand=1&gJsonId=1&gJson=VideoTimes&gJsonData=n&gJsonDoStr=oFlv.up_times(oJson.VideoTimes.data)
             string tmpUrl = @"http://stat.56.com/stat/flv.php?id=" + id + @"&pct=1&user_id=&norand=1&gJsonId=1&gJson=VideoTimes&gJsonData=n&gJsonDoStr=oFlv.up_times(oJson.VideoTimes.data)";
-            CookieContainer cc = new CookieContainer();
+            CookieContainer cc = new();
             string webData = WebCache.Instance.GetWebData(tmpUrl, cookies: cc);
             CookieCollection ccol = cc.GetCookies(new Uri("http://stat.56.com"));
             string id2 = null;
@@ -491,7 +489,7 @@ namespace OnlineVideos.Hoster
             Match m = Regex.Match(webData, @"var\slnk1\s=\s'(?<url>[^']*)'");
             if (m.Success)
             {
-                HttpUrl httpUrl = new HttpUrl(m.Groups["url"].Value);
+                HttpUrl httpUrl = new(m.Groups["url"].Value);
                 httpUrl.UserAgent = OnlineVideoSettings.Instance.UserAgent;
                 return httpUrl.ToString();
             }
@@ -509,7 +507,7 @@ namespace OnlineVideos.Hoster
 
         public override string GetVideoUrl(string url)
         {
-            CookieContainer cc = new CookieContainer();
+            CookieContainer cc = new();
             if (url.Contains("embed"))
             {
                 string page = WebCache.Instance.GetWebData(url);
@@ -656,8 +654,7 @@ namespace OnlineVideos.Hoster
                     var newUrl = m2.Groups["url"].Value;
                     if (!Uri.IsWellFormedUriString(newUrl, UriKind.Absolute))
                     {
-                        Uri uri = null;
-                        if (Uri.TryCreate(new Uri(url), newUrl, out uri))
+                        if (Uri.TryCreate(new Uri(url), newUrl, out Uri uri))
                         {
                             newUrl = uri.ToString();
                         }
@@ -738,7 +735,7 @@ namespace OnlineVideos.Hoster
             Match m = Regex.Match(webData, @"var\slnk1\s=\s'(?<url>[^']*)'");
             if (m.Success)
             {
-                HttpUrl httpUrl = new HttpUrl(m.Groups["url"].Value);
+                HttpUrl httpUrl = new(m.Groups["url"].Value);
                 httpUrl.UserAgent = OnlineVideoSettings.Instance.UserAgent;
                 return httpUrl.ToString();
             }
@@ -799,7 +796,7 @@ namespace OnlineVideos.Hoster
                 return base.GetPlaybackOptions(url);
 
             int aflID = Convert.ToInt32(url.Split('&')[0].Split('=')[1]);
-            XmlDocument doc = new XmlDocument();
+            XmlDocument doc = new();
             string seqData = WebCache.Instance.GetWebData(@"http://pi.omroep.nl/info/security/");
             doc.LoadXml(seqData);
             string data = doc.SelectSingleNode("session/key").InnerText;
@@ -812,7 +809,7 @@ namespace OnlineVideos.Hoster
             doc.Load(url2);
 
             List<KeyValuePair<KeyValuePair<string, string>, string>> playbackOptions =
-                new List<KeyValuePair<KeyValuePair<string, string>, string>>();
+                new();
 
             foreach (XmlNode node in doc.SelectNodes("streams/stream"))
             {
@@ -825,13 +822,13 @@ namespace OnlineVideos.Hoster
 
                 if (!String.IsNullOrEmpty(streamUrl) && Uri.IsWellFormedUriString(streamUrl, System.UriKind.Absolute))
                 {
-                    KeyValuePair<string, string> q = new KeyValuePair<string, string>(quality, format);
+                    KeyValuePair<string, string> q = new(quality, format);
                     playbackOptions.Add(new KeyValuePair<KeyValuePair<string, string>, string>(q, streamUrl));
                 }
             }
             playbackOptions.Sort(Compare);
 
-            Dictionary<string, string> res = new Dictionary<string, string>();
+            Dictionary<string, string> res = new();
             foreach (KeyValuePair<KeyValuePair<string, string>, string> kv in playbackOptions)
                 res.Add(kv.Key.Value + ' ' + kv.Key.Key, kv.Value);
             return res;
@@ -841,10 +838,10 @@ namespace OnlineVideos.Hoster
         {
             int aflID = Convert.ToInt32(url.Split('&')[0].Split('=')[1]);
 
-            CookieContainer cc = new CookieContainer();
+            CookieContainer cc = new();
             string step1 = WebCache.Instance.GetWebData(url, cookies: cc);
             CookieCollection ccol = cc.GetCookies(new Uri("http://tmp.player.omroep.nl/"));
-            CookieContainer newcc = new CookieContainer();
+            CookieContainer newcc = new();
             foreach (Cookie c in ccol) newcc.Add(c);
 
             step1 = WebCache.Instance.GetWebData("http://player.omroep.nl/js/initialization.js.php?aflID=" + aflID.ToString(), cookies: newcc);
@@ -858,7 +855,7 @@ namespace OnlineVideos.Hoster
                     string step2 = WebCache.Instance.GetWebData("http://player.omroep.nl/xml/metaplayer.xml.php?aflID=" + aflID.ToString() + "&md5=" + sec, cookies: newcc);
                     if (!String.IsNullOrEmpty(step2))
                     {
-                        XmlDocument tdoc = new XmlDocument();
+                        XmlDocument tdoc = new();
                         tdoc.LoadXml(step2);
                         XmlNode final = tdoc.SelectSingleNode("/media_export_player/aflevering/streams/stream[@compressie_kwaliteit='bb' and @compressie_formaat='wmv']");
                         if (final != null)
@@ -940,7 +937,7 @@ namespace OnlineVideos.Hoster
 
         public override string GetVideoUrl(string url)
         {
-            CookieContainer cc = new CookieContainer();
+            CookieContainer cc = new();
             if (url.Contains("embed") || url.Contains(@"/f/"))
             {
                 string page = WebCache.Instance.GetWebData(url);
@@ -949,7 +946,7 @@ namespace OnlineVideos.Hoster
                     Match n = Regex.Match(page, @"file:\s'(?<url>[^']*)'");
                     if (n.Success)
                     {
-                        HttpUrl httpurl = new HttpUrl(n.Groups["url"].Value);
+                        HttpUrl httpurl = new(n.Groups["url"].Value);
                         httpurl.UserAgent = @"Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko";
                         return httpurl.ToString();
                     }
@@ -1076,7 +1073,7 @@ namespace OnlineVideos.Hoster
                 int mask = int.Parse(m.Groups["mask"].Value);
                 enc = Regex.Replace(enc, @"[^A-Za-z0-9\+\/\=]", "");
                 int idx = 0;
-                StringBuilder res = new StringBuilder();
+                StringBuilder res = new();
                 res.Append("http:");
                 while (idx < enc.Length)
                 {
@@ -1159,8 +1156,7 @@ namespace OnlineVideos.Hoster
             string timeToWait = Regex.Match(webdata, @"<span\sid=""countdown_str"">[^>]*>(?<time>[^<]+)</span>").Groups["time"].Value;
             if (String.IsNullOrEmpty(timeToWait) && webdata.Length < 50)
                 throw new OnlineVideosException(webdata);
-            int time;
-            if (Int32.TryParse(timeToWait, out time) && time < 10)
+            if (Int32.TryParse(timeToWait, out int time) && time < 10)
                 System.Threading.Thread.Sleep(time * 1001);
             webdata = GetFromPost(url, webdata, false, null, new[] { "imhuman=+" });
 
@@ -1179,7 +1175,7 @@ namespace OnlineVideos.Hoster
             Match nofile = Regex.Match(webdata, @"<title>File\sRemoved</title>\s*<b>(?<message>[^<]*)</b>");
             TestForError(nofile, streamer);
 
-            RtmpUrl rtmpUrl = new RtmpUrl(streamer)
+            RtmpUrl rtmpUrl = new(streamer)
             {
                 PlayPath = file
             };
@@ -1215,8 +1211,8 @@ namespace OnlineVideos.Hoster
         public override string GetVideoUrl(string url)
         {
             const string uagent = @"Mozilla/5.0 (Windows NT 6.1; rv:90.0) Gecko/20100101 Firefox/90.0";
-            CookieContainer cc = new CookieContainer();
-            NameValueCollection headers = new NameValueCollection();
+            CookieContainer cc = new();
+            NameValueCollection headers = new();
             headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,* /*;q=0.8");
             headers.Set("Accept-Language", "en-US,en;q=0.5");
             headers.Set("Accept-Encoding", "gzip, deflate, br");
@@ -1232,8 +1228,7 @@ namespace OnlineVideos.Hoster
                 string referer = m.Groups["url"].Value;
                 if (!Uri.IsWellFormedUriString(referer, UriKind.Absolute))
                 {
-                    Uri uri = null;
-                    if (Uri.TryCreate(new Uri(url), referer, out uri))
+                    if (Uri.TryCreate(new Uri(url), referer, out Uri uri))
                         referer = uri.ToString();
                 }
                 headers.Set("Referer", referer);
@@ -1244,7 +1239,6 @@ namespace OnlineVideos.Hoster
             GetWebData(@"https://cnt.streamzz.to/count.php?xyz=1", cookies: cc, headers: headers);
 
             m = Regex.Match(data, @"return\sp(?<pack>[^<]*)</script");
-            var l = new List<String>();
             string url1 = null;
             while (m.Success && url1 == null)
             {
@@ -1333,7 +1327,7 @@ namespace OnlineVideos.Hoster
 
             url = url.Replace(@"https://vev.io/", @"https://vev.io/api/serve/video/");
             var jsonData = GetWebData<JToken>(url, "{}");
-            Dictionary<string, string> result = new Dictionary<string, string>();
+            Dictionary<string, string> result = new();
             foreach (JProperty q in jsonData["qualities"])
             {
                 result.Add(q.Name, q.Value.ToString());
@@ -1356,7 +1350,7 @@ namespace OnlineVideos.Hoster
             //url = @"http://v2.tudou.com/v?it=" + iid;
             url = @"http://v2.tudou.com/v?vn=02&ui=0&refurl=" + HttpUtility.UrlEncode(url) + @"&it=" + iid + @"&pw=&noCache=13678&st=1%2C2&si=sp";
             //http://v2.tudou.com/v?vn=02&ui=0&refurl=http%3A%2F%2Fwww%2Etudou%2Ecom%2Fprograms%2Fview%2FXQ1dE6XJWnU&it=20391047&pw=&noCache=13678&st=1%2C2&si=sp
-            XmlDocument doc = new XmlDocument();
+            XmlDocument doc = new();
             webData = WebCache.Instance.GetWebData(url);
             doc.LoadXml(webData);
             XmlNodeList nodes = doc.SelectNodes("//v/f");
@@ -1445,7 +1439,7 @@ namespace OnlineVideos.Hoster
                 string unpacked = Helpers.StringUtils.UnPack(packed);
                 var resUrl = Helpers.StringUtils.GetSubString(unpacked, @"file:""", @"""");
 
-                Uri uri = new Uri(resUrl);
+                Uri uri = new(resUrl);
                 string extension = System.IO.Path.GetExtension(uri.LocalPath.Trim(new char[] { '/' }));
 
                 if (extension == ".m3u8")
@@ -1453,7 +1447,7 @@ namespace OnlineVideos.Hoster
                     var m3u8Data = GetWebData(resUrl, referer: "https://upstream.to/");
                     var res = Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8Data, resUrl);
                     var finalUrl = res.LastOrDefault().Value;
-                    HttpUrl ress = new HttpUrl(finalUrl);
+                    HttpUrl ress = new(finalUrl);
                     ress.Referer = "https://upstream.to/";
                     return ress.ToString();
                 }
@@ -1518,7 +1512,7 @@ namespace OnlineVideos.Hoster
                 if (!id.Contains("-"))
                     id = "embed-" + id + "-640x360.html";
                 if (!id.EndsWith(".html"))
-                    id = id + ".html";
+                    id += ".html";
                 url = @"http://vidbull.com/" + id;
             };
 
@@ -1530,26 +1524,22 @@ namespace OnlineVideos.Hoster
             if (res.StartsWith(@"http://"))
                 return res;
 
-            RijndaelManaged rijndael = new RijndaelManaged();
+            RijndaelManaged rijndael = new();
             rijndael.Key = HexToBytes("a949376e37b369f17bc7d3c7a04c5721");
             rijndael.Mode = CipherMode.ECB;
             rijndael.Padding = PaddingMode.Zeros;
             ICryptoTransform decryptor = rijndael.CreateDecryptor(rijndael.Key, rijndael.IV);
-            using (MemoryStream msDecrypt = new MemoryStream(HexToBytes(res)))
+            using MemoryStream msDecrypt = new(HexToBytes(res));
+            using CryptoStream csDecrypt = new(msDecrypt, decryptor, CryptoStreamMode.Read);
+            using (StreamReader srDecrypt = new(csDecrypt))
             {
-                using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
-                {
-                    using (StreamReader srDecrypt = new StreamReader(csDecrypt))
-                    {
-                        res = srDecrypt.ReadToEnd();
-                        int p = res.IndexOf('\0');
-                        if (p >= 0)
-                            return res.Substring(0, p - 1);
-                        m = Regex.Match(webData, @"<span[^>]*>(?<message>[^<]*)</span>");
-                        TestForError(m);
-                        return String.Empty;
-                    }
-                }
+                res = srDecrypt.ReadToEnd();
+                int p = res.IndexOf('\0');
+                if (p >= 0)
+                    return res.Substring(0, p - 1);
+                m = Regex.Match(webData, @"<span[^>]*>(?<message>[^<]*)</span>");
+                TestForError(m);
+                return String.Empty;
             }
         }
 
@@ -1618,7 +1608,7 @@ namespace OnlineVideos.Hoster
 
         public override Dictionary<string, string> GetPlaybackOptions(string url)
         {
-            Dictionary<string, string> res = new Dictionary<string, string>();
+            Dictionary<string, string> res = new();
             string webData = WebCache.Instance.GetWebData(url);
 
             string timeToWait = Regex.Match(webData, @"<span\sid=""countdown_str"">[^>]*>(?<time>[^<]+)</span>").Groups["time"].Value;
@@ -1855,11 +1845,11 @@ namespace OnlineVideos.Hoster
 
         public override string GetVideoUrl(string url)
         {
-            CookieContainer cc = new CookieContainer();
+            CookieContainer cc = new();
             string webData = WebCache.Instance.GetWebData(url, cookies: cc, referer: @"http://www.wisevid.com/");
 
             CookieCollection ccol = cc.GetCookies(new Uri("http://www.wisevid.com/"));
-            CookieContainer newcc = new CookieContainer();
+            CookieContainer newcc = new();
             foreach (Cookie c in ccol) newcc.Add(c);
             // (with age confirm)
             url = @"http://www.wisevid.com/play?v=" + Helpers.StringUtils.GetSubString(webData,
@@ -1881,13 +1871,13 @@ namespace OnlineVideos.Hoster
 
         public override string GetVideoUrl(string url)
         {
-            CookieContainer cc = new CookieContainer();
+            CookieContainer cc = new();
             string webData = WebCache.Instance.GetWebData(url, cookies: cc);
             if (url.Contains("humancheck.php"))
             {
 
                 CookieCollection ccol = cc.GetCookies(new Uri("http://xtshare.com/humancheck.php"));
-                CookieContainer newcc = new CookieContainer();
+                CookieContainer newcc = new();
                 foreach (Cookie c in ccol)
                 {
                     c.Path = String.Empty;
@@ -1899,7 +1889,7 @@ namespace OnlineVideos.Hoster
             string file = Helpers.StringUtils.GetSubString(webData, "'file','", "'");
             string streamer = Helpers.StringUtils.GetSubString(webData, "'streamer','", "'");
             // not tested, couldn't find a video hosted by xtshare
-            RtmpUrl rtmpUrl = new RtmpUrl(streamer + file)
+            RtmpUrl rtmpUrl = new(streamer + file)
             {
                 SwfVerify = true,
                 SwfUrl = @"http://xtshare.com/player.swf",

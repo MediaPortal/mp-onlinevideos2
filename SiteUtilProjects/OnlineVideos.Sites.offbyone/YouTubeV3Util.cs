@@ -38,7 +38,7 @@ namespace OnlineVideos.Sites
 
             public Task<T> GetAsync<T>(string key)
             {
-                TaskCompletionSource<T> tcs = new TaskCompletionSource<T>();
+                TaskCompletionSource<T> tcs = new();
                 var serialized = OnlineVideoSettings.Instance.UserStore.GetValue(PREFIX + key, true);
                 if (!string.IsNullOrWhiteSpace(serialized))
                 {
@@ -53,7 +53,7 @@ namespace OnlineVideos.Sites
                 }
                 else
                 {
-                    tcs.SetResult(default(T));
+                    tcs.SetResult(default);
                 }
                 return tcs.Task;
             }
@@ -96,8 +96,8 @@ namespace OnlineVideos.Sites
         [Category("OnlineVideosUserConfiguration"), LocalizableDisplayName("Enable Login"), Description("Will popup a browser on first use to select your YouTube account.")]
         bool enableLogin = false;
 
-        string hl = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-        string regionCode = RegionInfo.CurrentRegion.TwoLetterISORegionName;
+        readonly string hl = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        readonly string regionCode = RegionInfo.CurrentRegion.TwoLetterISORegionName;
         YouTubeService service;
         Func<List<VideoInfo>> nextPageVideosQuery;
         SearchResource.ListRequest.OrderEnum currentSearchOrder = SearchResource.ListRequest.OrderEnum.Relevance;
@@ -122,7 +122,7 @@ namespace OnlineVideos.Sites
                 }
                 catch (AggregateException ex)
                 {
-                    StringBuilder sb = new StringBuilder();
+                    StringBuilder sb = new();
                     foreach (var inner in ex.InnerExceptions)
                     {
                         sb.Append(inner.Message);
@@ -139,9 +139,9 @@ namespace OnlineVideos.Sites
 
             foreach (Category link in Settings.Categories)
             {
-                if (link is RssLink && !string.IsNullOrEmpty(((RssLink)link).Url))
+                if (link is RssLink rlink && !string.IsNullOrEmpty(rlink.Url))
                 {
-                    Match m = Regex.Match(((RssLink)link).Url, USER_UPLOADS_FEED);
+                    Match m = Regex.Match(rlink.Url, USER_UPLOADS_FEED);
                     if (m.Success)
                         link.Other = (Func<List<VideoInfo>>)(() => QueryUserUploads(m.Groups["user"].Value));
                 }
@@ -151,8 +151,7 @@ namespace OnlineVideos.Sites
 
         public override int DiscoverSubCategories(Category parentCategory)
         {
-            var method = parentCategory.Other as Func<List<Category>>;
-            if (method != null)
+            if (parentCategory.Other is Func<List<Category>> method)
             {
                 parentCategory.SubCategories = method.Invoke();
                 parentCategory.SubCategoriesDiscovered = true;
@@ -163,8 +162,7 @@ namespace OnlineVideos.Sites
 
         public override int DiscoverNextPageCategories(NextPageCategory category)
         {
-            var method = category.Other as Func<List<Category>>;
-            if (method != null)
+            if (category.Other is Func<List<Category>> method)
             {
                 var newCategories = method.Invoke();
                 category.ParentCategory.SubCategories.Remove(category);
@@ -210,8 +208,7 @@ namespace OnlineVideos.Sites
             currentVideosTitle = null; // use default title for videos retrieved via this method (which is the Category Name)
             base.HasNextPage = false;
             nextPageVideosQuery = null;
-            var method = category.Other as Func<List<VideoInfo>>;
-            if (method != null)
+            if (category.Other is Func<List<VideoInfo>> method)
             {
                 return method.Invoke();
             }
@@ -300,8 +297,7 @@ namespace OnlineVideos.Sites
 
         public override List<ContextMenuEntry> GetContextMenuEntries(Category selectedCategory, VideoInfo selectedItem)
         {
-            List<ContextMenuEntry> result = new List<ContextMenuEntry>();
-            var ytVideo = selectedItem as YouTubeVideo;
+            List<ContextMenuEntry> result = new();
             var ytCategory = selectedCategory as YouTubeCategory;
             if (selectedItem == null && ytCategory != null)
             {
@@ -310,7 +306,7 @@ namespace OnlineVideos.Sites
                     result.Add(new ContextMenuEntry() { DisplayText = Translation.Instance.DeletePlaylist, Action = ContextMenuEntry.UIAction.Execute });
                 }
             }
-            if (ytVideo != null)
+            if (selectedItem is YouTubeVideo ytVideo)
             {
                 if (!string.IsNullOrEmpty(ytVideo.ChannelTitle) && !string.IsNullOrEmpty(ytVideo.ChannelId))
                 {
@@ -349,7 +345,7 @@ namespace OnlineVideos.Sites
 
         public override ContextMenuExecutionResult ExecuteContextMenuEntry(Category selectedCategory, VideoInfo selectedItem, ContextMenuEntry choice)
         {
-            ContextMenuExecutionResult result = new ContextMenuExecutionResult();
+            ContextMenuExecutionResult result = new();
             try
             {
                 if (choice.DisplayText == Translation.Instance.AddToFavourites + " (" + Settings.Name + ")")
@@ -443,7 +439,7 @@ namespace OnlineVideos.Sites
             }
             catch (AggregateException ex)
             {
-                StringBuilder sb = new StringBuilder();
+                StringBuilder sb = new();
                 foreach (var inner in ex.InnerExceptions)
                 {
                     sb.Append(inner.Message);
@@ -590,7 +586,7 @@ namespace OnlineVideos.Sites
                 {
                     Name = item.Snippet.Localized.Title,
                     Description = item.Snippet.Localized.Description,
-                    Thumb = item.Snippet.Thumbnails != null ? item.Snippet.Thumbnails.High.Url : null,
+                    Thumb = item.Snippet.Thumbnails?.High.Url,
                     EstimatedVideoCount = (uint)(item.Statistics.VideoCount ?? 0),
                     HasSubCategories = true,
                     ParentCategory = parentCategory,
@@ -642,7 +638,7 @@ namespace OnlineVideos.Sites
                     {
                         Name = item.Snippet.Localized.Title,
                         Description = item.Snippet.Localized.Description,
-                        Thumb = getThumbnailUrl(item.Snippet.Thumbnails),
+                        Thumb = GetThumbnailUrl(item.Snippet.Thumbnails),
                         EstimatedVideoCount = (uint)(item.ContentDetails.ItemCount ?? 0),
                         ParentCategory = parentCategory,
                         Kind = YouTubeCategory.CategoryKind.Playlist,
@@ -658,7 +654,7 @@ namespace OnlineVideos.Sites
             return results;
         }
 
-        private string getThumbnailUrl(Google.Apis.YouTube.v3.Data.ThumbnailDetails thumbnails)
+        private string GetThumbnailUrl(Google.Apis.YouTube.v3.Data.ThumbnailDetails thumbnails)
         {
             if (thumbnails == null) return null;
             if (thumbnails.High != null) return thumbnails.High.Url;
@@ -675,17 +671,18 @@ namespace OnlineVideos.Sites
             query.MaxResults = pageSize;
             query.PageToken = pageToken;
             var response = query.Execute();
-            var results = new List<Category>();
-
-            // before all channels add a category that will list all uploads
-            results.Add(new YouTubeCategory()
+            var results = new List<Category>
             {
-                Name = "Latest Videos",
-                Thumb = parentCategory.Thumb,
-                ParentCategory = parentCategory,
-                Kind = YouTubeCategory.CategoryKind.Other,
-                Other = (Func<List<VideoInfo>>)(() => QueryNewestSubscriptionVideos())
-            });
+                // before all channels add a category that will list all uploads
+                new YouTubeCategory()
+                {
+                    Name = "Latest Videos",
+                    Thumb = parentCategory.Thumb,
+                    ParentCategory = parentCategory,
+                    Kind = YouTubeCategory.CategoryKind.Other,
+                    Other = (Func<List<VideoInfo>>)(() => QueryNewestSubscriptionVideos())
+                }
+            };
 
             foreach (var item in response.Items)
             {
@@ -693,7 +690,7 @@ namespace OnlineVideos.Sites
                 {
                     Name = item.Snippet.Title,
                     Description = item.Snippet.Description,
-                    Thumb = item.Snippet.Thumbnails != null ? item.Snippet.Thumbnails.High.Url : null,
+                    Thumb = item.Snippet.Thumbnails?.High.Url,
                     EstimatedVideoCount = (uint)(item.ContentDetails.TotalItemCount ?? 0),
                     ParentCategory = parentCategory,
                     HasSubCategories = true,
@@ -767,7 +764,7 @@ namespace OnlineVideos.Sites
             {
                 Title = i.Snippet.Title,
                 Description = i.Snippet.Description,
-                Thumb = i.Snippet.Thumbnails != null ? i.Snippet.Thumbnails.High.Url : null,
+                Thumb = i.Snippet.Thumbnails?.High.Url,
                 Airdate = i.Snippet.PublishedAtDateTimeOffset.HasValue ? i.Snippet.PublishedAtDateTimeOffset.Value.LocalDateTime.ToString("g", OnlineVideoSettings.Instance.Locale) : i.Snippet.PublishedAtRaw,
                 VideoUrl = i.Id.VideoId,
                 ChannelId = i.Snippet.ChannelId,
@@ -798,7 +795,7 @@ namespace OnlineVideos.Sites
             {
                 Title = i.Snippet.Localized.Title,
                 Description = i.Snippet.Localized.Description,
-                Thumb = i.Snippet.Thumbnails != null ? i.Snippet.Thumbnails.High.Url : null,
+                Thumb = i.Snippet.Thumbnails?.High.Url,
                 Airdate = i.Snippet.PublishedAtDateTimeOffset.HasValue ? i.Snippet.PublishedAtDateTimeOffset.Value.LocalDateTime.ToString("g", OnlineVideoSettings.Instance.Locale) : i.Snippet.PublishedAtRaw,
                 Length = System.Xml.XmlConvert.ToTimeSpan(i.ContentDetails.Duration).ToString(),
                 VideoUrl = i.Id,
@@ -826,7 +823,7 @@ namespace OnlineVideos.Sites
             {
                 Title = i.Snippet.Title,
                 Description = i.Snippet.Description,
-                Thumb = i.Snippet.Thumbnails != null ? i.Snippet.Thumbnails.High.Url : null,
+                Thumb = i.Snippet.Thumbnails?.High.Url,
                 Airdate = i.Snippet.PublishedAtDateTimeOffset.HasValue ? i.Snippet.PublishedAtDateTimeOffset.Value.LocalDateTime.ToString("g", OnlineVideoSettings.Instance.Locale) : i.Snippet.PublishedAtRaw,
                 VideoUrl = i.Snippet.ResourceId.VideoId,
                 ChannelId = i.Snippet.ChannelId,
@@ -891,7 +888,7 @@ namespace OnlineVideos.Sites
             {
                 Title = i.Snippet.Title,
                 Description = i.Snippet.Description,
-                Thumb = i.Snippet.Thumbnails != null ? i.Snippet.Thumbnails.High.Url : null,
+                Thumb = i.Snippet.Thumbnails?.High.Url,
                 Airdate = i.Snippet.PublishedAtDateTimeOffset.HasValue ? i.Snippet.PublishedAtDateTimeOffset.Value.LocalDateTime.ToString("g", OnlineVideoSettings.Instance.Locale) : i.Snippet.PublishedAtRaw,
                 VideoUrl = i.Id.VideoId,
                 ChannelId = i.Snippet.ChannelId,
@@ -910,7 +907,7 @@ namespace OnlineVideos.Sites
         /// <param name="videoIDs">VideoIDSs can be a single videoID or multiple separated by ','.</param>
         Dictionary<string, string> QueryVideoInfoDuration(string videoIDs)
         {
-            Dictionary<string, string> videoDurations = new Dictionary<string, string>();
+            Dictionary<string, string> videoDurations = new();
 
             var query = Service.Videos.List("snippet, contentDetails");
             query.Id = videoIDs;

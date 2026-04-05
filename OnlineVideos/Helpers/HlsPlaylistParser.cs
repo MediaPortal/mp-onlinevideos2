@@ -20,7 +20,7 @@ namespace OnlineVideos.Helpers
         private static readonly Regex resolutionReg = new Regex(@"RESOLUTION=(\d+)x(\d+)", RegexOptions.IgnoreCase);
         private static readonly Regex framerateReg = new Regex(@"FRAME-RATE=(\d+)", RegexOptions.IgnoreCase);
 
-        private List<HlsStreamInfo> streamInfos = new List<HlsStreamInfo>();
+        private readonly List<HlsStreamInfo> streamInfos = new List<HlsStreamInfo>();
 
         private HlsPlaylistParser(string playlist, string originalUrl)
         {
@@ -209,7 +209,7 @@ namespace OnlineVideos.Helpers
             VideoDimension = new DelegateHlsStreamInfoFormatter(streamInfo => string.Format("{0}x{1}", streamInfo.Width, streamInfo.Height));
             Bitrate = new DelegateHlsStreamInfoFormatter(streamInfo => string.Format("Bitrate: {0} Kbps", streamInfo.Bandwidth / 1000));
 
-            VideoDimensionAndBitrate  = new DelegateHlsStreamInfoFormatter(streamInfo => string.Format("{0} ({1})", VideoDimension.Format(streamInfo), Bitrate.Format(streamInfo)));
+            VideoDimensionAndBitrate = new DelegateHlsStreamInfoFormatter(streamInfo => string.Format("{0} ({1})", VideoDimension.Format(streamInfo), Bitrate.Format(streamInfo)));
         }
 
         public abstract string Format(HlsStreamInfo streamInfo);
@@ -217,7 +217,7 @@ namespace OnlineVideos.Helpers
 
         public class DelegateHlsStreamInfoFormatter : HlsStreamInfoFormatter
         {
-            private Func<HlsStreamInfo, string> _formatterDelegate;
+            private readonly Func<HlsStreamInfo, string> _formatterDelegate;
             public DelegateHlsStreamInfoFormatter(Func<HlsStreamInfo, string> formatterDelegate)
             {
                 _formatterDelegate = formatterDelegate;

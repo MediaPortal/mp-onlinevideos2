@@ -32,7 +32,7 @@ namespace OnlineVideos.MediaPortal1
         string _CurrentTaskDescription = null;
         Thread backgroundThread = null;
         bool abortedByUser = false;
-        System.Timers.Timer timeoutTimer = new System.Timers.Timer(OnlineVideoSettings.Instance.UtilTimeout * 1000) { AutoReset = false };
+        readonly System.Timers.Timer timeoutTimer = new System.Timers.Timer(OnlineVideoSettings.Instance.UtilTimeout * 1000) { AutoReset = false };
 
         public void StopBackgroundTask()
         {

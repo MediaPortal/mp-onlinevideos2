@@ -16,9 +16,9 @@ namespace OnlineVideos.Sites
         [Category("OnlineVideosConfiguration"), Description("Url of your m3u8")]
         protected string m3u8url = "";
 
-        private static readonly Regex extinfReg = new Regex(@"\#EXTINF[^\s]*\s(?:(?=.*(tvg-name=""(?<tvgname>[^""]*)"")))?(?:(?=.*(tvg-id=""(?<tvgid>[^""]*)"")))?(?=.*(tvg-logo=""(?<tvglogo>[^""]*)""))(?=.*(group-title=""(?<grouptitle>[^""]*)""))", RegexOptions.IgnoreCase);
+        private static readonly Regex extinfReg = new(@"\#EXTINF[^\s]*\s(?:(?=.*(tvg-name=""(?<tvgname>[^""]*)"")))?(?:(?=.*(tvg-id=""(?<tvgid>[^""]*)"")))?(?=.*(tvg-logo=""(?<tvglogo>[^""]*)""))(?=.*(group-title=""(?<grouptitle>[^""]*)""))", RegexOptions.IgnoreCase);
 
-        SortedList<string, SortedList<string, SortedList<string, IPTVStream>>> groups = new SortedList<string, SortedList<string, SortedList<string, IPTVStream>>>();
+        private readonly SortedList<string, SortedList<string, SortedList<string, IPTVStream>>> groups = new();
 
         public override int DiscoverDynamicCategories()
         {
@@ -36,7 +36,7 @@ namespace OnlineVideos.Sites
                 data = GetWebData(m3u8url);
                 File.WriteAllText(cacheFileName, data);
             }
-            using (StringReader sr = new StringReader(data))
+            using (StringReader sr = new(data))
             {
                 string line = sr.ReadLine();
                 if (line != null && line.StartsWith("#EXTM3U"))
@@ -46,7 +46,7 @@ namespace OnlineVideos.Sites
                         Match m = extinfReg.Match(line);
                         if (m.Success)
                         {
-                            IPTVStream stream = new IPTVStream()
+                            IPTVStream stream = new()
                             {
                                 tvgname = (m.Groups["tvgname"].Success ? m.Groups["tvgname"].Value : m.Groups["tvgid"].Value).Replace(" H.265", ""),
                                 grouptitle = m.Groups["grouptitle"].Value.Replace(" Terugkijken + Overig", "").Replace(" KANALEN", "").Replace(" HEVC H.265", "").Replace('|', '∣'),
@@ -56,7 +56,7 @@ namespace OnlineVideos.Sites
                             var nextLine = sr.ReadLine();
                             while (nextLine.StartsWith("#"))
                             {
-                                stream.addOption(nextLine);
+                                stream.AddOption(nextLine);
                                 nextLine = sr.ReadLine();
                             };
                             stream.url = nextLine;
@@ -79,7 +79,7 @@ namespace OnlineVideos.Sites
             if (Settings.Categories == null) Settings.Categories = new BindingList<Category>();
             foreach (var group in groups)
             {
-                Category cat = new Category()
+                Category cat = new()
                 {
                     Name = group.Key,
                     Other = group.Value
@@ -92,7 +92,7 @@ namespace OnlineVideos.Sites
 
         private VideoInfo ConvertToVideo(string key, SortedList<string, IPTVStream> value)
         {
-            VideoInfo video = new VideoInfo()
+            VideoInfo video = new()
             {
                 Title = key,
                 Other = value,
@@ -100,7 +100,7 @@ namespace OnlineVideos.Sites
             };
             foreach (var res in value)
             {
-                HttpUrl httpUrl = new HttpUrl(res.Value.url);
+                HttpUrl httpUrl = new(res.Value.url);
                 if (!String.IsNullOrEmpty(res.Value.useragent))
                     httpUrl.UserAgent = res.Value.useragent;
                 else
@@ -118,7 +118,7 @@ namespace OnlineVideos.Sites
         public override List<VideoInfo> GetVideos(Category category)
         {
             var vids = (SortedList<string, SortedList<string, IPTVStream>>)category.Other;
-            List<VideoInfo> videos = new List<VideoInfo>();
+            List<VideoInfo> videos = new();
             foreach (var vid in vids)
             {
                 try
@@ -177,7 +177,7 @@ namespace OnlineVideos.Sites
             return tvgname + " " + grouptitle;
         }
 
-        public void addOption(string s)
+        public void AddOption(string s)
         {
             if (s.StartsWith("#EXTVLCOPT:"))
             {
