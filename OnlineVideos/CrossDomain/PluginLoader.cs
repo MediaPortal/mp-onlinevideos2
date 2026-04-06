@@ -148,8 +148,7 @@ namespace OnlineVideos.CrossDomain
 
         public SiteUtilBase CreateUtilFromShortName(string name, SiteSettings settings)
         {
-            Type result = null;
-            if (_utils.TryGetValue(name, out result))
+            if (_utils.TryGetValue(name, out Type result))
             {
                 SiteUtilBase util = null;
                 try
@@ -191,8 +190,7 @@ namespace OnlineVideos.CrossDomain
 
         public string GetRequiredDllForUtil(string name)
         {
-            Type result = null;
-            if (_utils.TryGetValue(name, out result))
+            if (_utils.TryGetValue(name, out Type result))
             {
                 string dll = result.Assembly.GetName().Name;
                 return dll != _onlineVideosMainDllName ? dll : null;
@@ -214,8 +212,7 @@ namespace OnlineVideos.CrossDomain
 
         public HosterBase GetHoster(string name)
         {
-            HosterBase hb = null;
-            if (_hostersByName.TryGetValue(name.ToLower(), out hb)) return hb;
+            if (_hostersByName.TryGetValue(name.ToLower(), out HosterBase hb)) return hb;
             return null;
         }
 

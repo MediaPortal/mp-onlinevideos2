@@ -8,10 +8,10 @@ namespace OnlineVideos.Sites
     {
         public override List<VideoInfo> GetVideos(Category category)
         {
-            return parse(((RssLink)category).Url);
+            return Parse(((RssLink)category).Url);
         }
 
-        private  List<VideoInfo> parse(string url)
+        private  List<VideoInfo> Parse(string url)
         {
             string[] parts = url.Split('/');
             int pageInd = parts.Length - 2;
@@ -23,7 +23,7 @@ namespace OnlineVideos.Sites
             var jsonData = GetWebData<JObject>(url);
             var items = jsonData.Value<JArray>("items");
 
-            List<VideoInfo> videoList = new List<VideoInfo>();
+            List<VideoInfo> videoList = new();
 
             foreach (var item in items)
             {
@@ -38,7 +38,7 @@ namespace OnlineVideos.Sites
                 else
                 if (variants.Count > 1)
                 {
-                    Dictionary<string, string> vidUrls = new Dictionary<string, string>();
+                    Dictionary<string, string> vidUrls = new();
                     foreach (var variant in variants)
                         vidUrls.Add(variant.Value<string>("version"), variant.Value<string>("uri"));
                     videoInfo.PlaybackOptions = new Dictionary<string, string>();
@@ -73,7 +73,7 @@ namespace OnlineVideos.Sites
 
         public override List<VideoInfo> GetNextPageVideos()
         {
-            return parse(nextPageUrl);
+            return Parse(nextPageUrl);
         }
 
         public override string GetVideoUrl(VideoInfo video)
