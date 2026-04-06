@@ -43,6 +43,11 @@
   <ItemGroup>
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\OnlineVideos\bin\$(Configuration)\HtmlAgilityPack.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\OnlineVideos\bin\$(Configuration)\Newtonsoft.Json.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
