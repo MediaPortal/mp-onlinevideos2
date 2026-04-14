@@ -1,12 +1,17 @@
 <Project>
 
     <PropertyGroup>
+        <!-- Installation SubPath in program files folder  -->
+        <_MediaPortalSubPath>Team MediaPortal\MediaPortal\</_MediaPortalSubPath>
+
         <!-- Path to locate external references from MP install path -->
-        <MediaPortalInstallPath Condition="Exists('$(MSBuildProgramFiles32)\Team MediaPortal\MediaPortal\MediaPortal.exe')">$(MSBuildProgramFiles32)\Team MediaPortal\MediaPortal</MediaPortalInstallPath>
-        <MediaPortalInstallPath Condition="'$(MediaPortalInstallPath)' == ''">$(ProgramFiles)\Team MediaPortal\MediaPortal</MediaPortalInstallPath>
+        <MediaPortalInstallPath Condition="'$(MediaPortalInstallPath)' == '' and Exists('$(MSBuildProgramFiles32)\$(_MediaPortalSubPath)MediaPortal.exe')">$(MSBuildProgramFiles32)\$(_MediaPortalSubPath)</MediaPortalInstallPath>
+        <MediaPortalInstallPath Condition="'$(MediaPortalInstallPath)' == '' and Exists('$(ProgramFiles)\$(_MediaPortalSubPath)MediaPortal.exe')">$(ProgramFiles)\$(_MediaPortalSubPath)</MediaPortalInstallPath>
+        <MediaPortalInstallPath Condition="'$(MediaPortalInstallPath)' != '' and !HasTrailingSlash('$(MediaPortalInstallPath)')">$(MediaPortalInstallPath)\</MediaPortalInstallPath>
 
         <!-- true, overwrites $(MediaPortalInstallPath) onlinevideo plugin files with build result -->
         <CopyBuildResultToMediaPortalInstallPath>true</CopyBuildResultToMediaPortalInstallPath>
+
     </PropertyGroup>
 
 </Project>

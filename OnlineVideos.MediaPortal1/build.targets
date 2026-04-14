@@ -23,6 +23,10 @@
     <IconFiles Include="$(SolutionDir)SiteImages\**\*.*" />
   </ItemGroup>
 
+  <Target Name="BeforeBuild">
+    <Error Condition="'$(MediaPortalInstallPath)' == ''" Text="MediaPortalInstallPath is not set." />
+  </Target>
+
   <Target Name="AfterBuild" Condition="'$(CopyBuildResultToMediaPortalInstallPath)' == 'True'">
     <Copy SourceFiles="@(PluginFiles)" DestinationFolder="$(PluginDestination)" />
     <Copy SourceFiles="@(APIFiles)" DestinationFolder="$(PluginDestination)OnlineVideos\" />
