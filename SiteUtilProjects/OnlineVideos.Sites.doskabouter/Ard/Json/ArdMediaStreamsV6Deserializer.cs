@@ -21,7 +21,7 @@ namespace OnlineVideos.Sites.Ard.Json
 
             if (mediaCollection is null)
             {
-                return [];
+                return Enumerable.Empty<DownloadDetailsDto>();
             }
 
             var videosStandard = ExtractVideoStreams(mediaCollection, "main", "standard", "video/mp4", "deu");
@@ -60,7 +60,7 @@ namespace OnlineVideos.Sites.Ard.Json
         {
             if (mediaCollection?.Streams is not { Length: > 0 } streams)
             {
-                return [];
+                return new List<Medium>();
             }
 
             var mediums = new List<Medium>();
@@ -97,7 +97,7 @@ namespace OnlineVideos.Sites.Ard.Json
 
             static bool LanguageCodeMatches(string languageCode, string expectedLanguageCode)
             {
-                return languageCode is { } && 
+                return languageCode is { } &&
                     (string.Equals(languageCode, expectedLanguageCode, StringComparison.OrdinalIgnoreCase)
                     || (string.Equals("*", expectedLanguageCode, StringComparison.Ordinal) && !string.Equals(languageCode, "deu", StringComparison.OrdinalIgnoreCase)));
             }
@@ -105,7 +105,7 @@ namespace OnlineVideos.Sites.Ard.Json
 
         private SubtitleSource? ExtractVttSubtitle(Embedded mediaCollection)
         {
-            foreach (var subtitle in mediaCollection.Subtitles ?? [])
+            foreach (var subtitle in mediaCollection.Subtitles ?? Enumerable.Empty<Subtitle>())
             {
                 var source = subtitle.Sources.FirstOrDefault();
                 if (source?.Kind.Contains("vtt") is true)
