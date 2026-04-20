@@ -3,19 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 
-using OnlineVideos.Helpers;
-
 
 namespace OnlineVideos.Sites.Ard
 {
-    public class ArdConstants
-    {
-
-        public static Uri API_URL { get; } = new Uri("https://api.ardmediathek.de");
-        public static string ITEM_URL { get; } = API_URL + "/page-gateway/pages/ard/item/";
-        public static int DAY_PAGE_SIZE { get; } = 100;
-    }
-
     public class ArdMediathekUtil : SiteUtilBase
     {
         public static readonly string PLACEHOLDER_IMAGE_WIDTH = "{width}";
@@ -77,7 +67,9 @@ namespace OnlineVideos.Sites.Ard
                 foreach (var filmInfoDto in result.Value)
                 {
                     if (filmInfoDto != null)
+                    { 
                         list.Add(filmInfoDto.AsVideoInfo(page, result.ContinuationToken, skipPlaybackOptionsDialog: _skipPlayackOptionsDialog));
+                    }
                 }
             }
             return list;
@@ -192,7 +184,7 @@ namespace OnlineVideos.Sites.Ard
             var duration = TimeSpan.FromSeconds(item.Duration ?? 0);
             return duration.TotalMinutes <= 0
                        ? string.Empty
-                       : $"{duration.Minutes} Min.";
+                       : $"{(int)duration.TotalMinutes} Min.";
         }
 
 

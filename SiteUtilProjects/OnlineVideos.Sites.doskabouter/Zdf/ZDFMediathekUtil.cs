@@ -595,6 +595,7 @@ namespace OnlineVideos.Sites.Zdf
 
     public enum Qualities
     {
+        UHD,
         HD,
         High,
         Normal,
