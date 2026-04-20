@@ -184,7 +184,7 @@ namespace OnlineVideos.Sites.Ard
             var duration = TimeSpan.FromSeconds(item.Duration ?? 0);
             return duration.TotalMinutes <= 0
                        ? string.Empty
-                       : $"{duration.Minutes} Min.";
+                       : $"{(int)duration.TotalMinutes} Min.";
         }
 
 
