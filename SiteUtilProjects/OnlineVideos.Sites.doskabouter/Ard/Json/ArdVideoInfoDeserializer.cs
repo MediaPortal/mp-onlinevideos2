@@ -78,10 +78,11 @@ namespace OnlineVideos.Sites.Ard.Json
             return teaserElement[ELEMENT_LINKS]?[ELEMENT_TARGET]?.Value<string>(ATTRIBUTE_HREF);
         }
 
-        private static string GetTeaserImageUrl(JToken teaserElement)
+        private static string GetImageUrl(JToken element)
         {
-            var url = teaserElement[ELEMENT_IMAGES]?[ELEMENT_ASPECT_16X9]?.Value<string>(ATTRIBUTE_SRC)
-                ?? teaserElement[ELEMENT_IMAGES]?[ELEMENT_ASPECT_4X3]?.Value<string>(ATTRIBUTE_SRC);
+            var url = element[ELEMENT_IMAGES]?[ELEMENT_ASPECT_16X9]?.Value<string>(ATTRIBUTE_SRC)
+                ?? element[ELEMENT_IMAGES]?[ELEMENT_ASPECT_4X3]?.Value<string>(ATTRIBUTE_SRC)
+                ?? element[ELEMENT_IMAGE]?.Value<string>(ATTRIBUTE_SRC);
 
             return url?.Replace(ArdMediathekUtil.PLACEHOLDER_IMAGE_WIDTH, ArdMediathekUtil.IMAGE_WIDTH);
         }
@@ -103,7 +104,7 @@ namespace OnlineVideos.Sites.Ard.Json
                 AvailableUntilDate = teaserElement.Value<DateTime?>(ATTRIBUTE_UNTIL_DATETIME),
                 Description = teaserElement.Value<string>(ATTRIBUTE_DESCRIPTION),
                 Duration = teaserElement.Value<int>(ATTRIBUTE_DURATION),
-                ImageUrl = GetTeaserImageUrl(teaserElement)
+                ImageUrl = GetImageUrl(teaserElement)
             };
         }
 
@@ -123,7 +124,7 @@ namespace OnlineVideos.Sites.Ard.Json
                 AvailableUntilDate = itemElement.Value<DateTime?>(ATTRIBUTE_UNTIL_DATETIME),
                 Description = itemElement.Value<string>(ATTRIBUTE_DESCRIPTION),
                 Duration = ArdMediaStreamsV6Deserializer.GetDuration(itemElement),
-                ImageUrl = GetTeaserImageUrl(itemElement)
+                ImageUrl = GetImageUrl(itemElement)
             };
         }
 
@@ -144,7 +145,7 @@ namespace OnlineVideos.Sites.Ard.Json
                 AvailableUntilDate = videoElement.Value<DateTime?>(ATTRIBUTE_UNTIL_DATETIME),
                 Description = timeSlotEntryElement.Value<string>(ATTRIBUTE_DESCRIPTION),
                 Duration = timeSlotEntryElement.Value<int>(ATTRIBUTE_DURATION),
-                ImageUrl = GetTeaserImageUrl(timeSlotEntryElement)
+                ImageUrl = GetImageUrl(timeSlotEntryElement)
             };
         }
     }
