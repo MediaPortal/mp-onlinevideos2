@@ -23,7 +23,7 @@ namespace OnlineVideos.Sites
             {
                 RssLink cat = new RssLink()
                 {
-                    Name = obj.Value<string>("category_name"),
+                    Name = obj.Value<string>("category_name").Replace('|', '∣'),
                     Url = getUrl() + "get_live_streams&category_id=" + obj.Value<string>("category_id")
                 };
                 Settings.Categories.Add(cat);
