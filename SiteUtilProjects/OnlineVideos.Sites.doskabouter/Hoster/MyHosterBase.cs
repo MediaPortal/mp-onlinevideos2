@@ -180,6 +180,19 @@ namespace OnlineVideos.Hoster
                 throw new OnlineVideosException(m.Groups["message"].Value);
         }
 
+        internal static string ProperUrl(string url, string host)
+        {
+            if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
+            {
+                Uri uri = null;
+                if (Uri.TryCreate(new Uri(host), url, out uri))
+                    return uri.ToString();
+                else
+                    return string.Empty;
+            }
+            return url;
+        }
+
     }
 
     public class CertificateIgnorer : IDisposable

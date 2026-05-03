@@ -218,6 +218,36 @@ namespace OnlineVideos.Hoster
         }
     }
 
+    public class DhcPlay : MyHosterBase
+    {
+        public override string GetHosterUrl()
+        {
+            return "dhcplay.com";
+        }
+
+        public override string GetVideoUrl(string url)
+        {
+            url = url.Replace("dhcplay.com", "cavanhabg.com");//from https://dhcplay.com/main.js?v=1.1.2, deobfuscate and pick one of the main array
+            //from here: same as vidhidepro
+            string data = GetWebData(url);
+
+            string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
+            string unpacked = Helpers.StringUtils.UnPack(packed);
+            var m = Regex.Match(unpacked, @"""hls\d+"":""(?<url>[^""]*)""");
+            while (m.Success)
+            {
+                var m3u8url = ProperUrl(m.Groups["url"].Value, url);
+                if (!m3u8url.EndsWith("master.txt")) 
+                {
+                    var m3u8data = GetWebData(m3u8url);
+                    return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value;
+                }
+                m = m.NextMatch();
+            }
+            return null;
+        }
+    }
+
     public class Doodso : Dood
     {
         public override string GetHosterUrl()
@@ -452,26 +482,28 @@ namespace OnlineVideos.Hoster
     {
         public override string GetHosterUrl()
         {
-            return "filelions.to";
+            return "filelions.online";
         }
+
         public override string GetVideoUrl(string url)
         {
+            string newUrl = WebCache.Instance.GetRedirectedUrl(url);
+            string data = WebCache.Instance.GetWebData(newUrl);
 
-            string data = WebCache.Instance.GetWebData(url);
-            Match m = Regex.Match(data, @"sources:\s\[{file:""(?<url>[^""]*)""}");
-            string m3u8url = null;
-            if (m.Success)
-                m3u8url = m.Groups["url"].Value;
-            else
+            string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
+            string unpacked = Helpers.StringUtils.UnPack(packed);
+            var m = Regex.Match(unpacked, @"""hls\d+"":""(?<url>[^""]*)""");
+            while (m.Success)
             {
-                string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
-                string unpacked = Helpers.StringUtils.UnPack(packed);
-                m = Regex.Match(unpacked, @"{""hls\d+"":""(?<url>[^""]*)""");
-                if (m.Success)
-                    m3u8url = m.Groups["url"].Value;
+                var m3u8url = ProperUrl(m.Groups["url"].Value, url);
+                if (!m3u8url.EndsWith("master.txt"))
+                {
+                    var m3u8data = GetWebData(m3u8url);
+                    return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value;
+                }
+                m = m.NextMatch();
             }
-            var m3u8data = GetWebData(m3u8url);
-            return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value;
+            return null;
         }
     }
 
@@ -889,6 +921,37 @@ namespace OnlineVideos.Hoster
             string webData = WebCache.Instance.GetWebData(url);
             url = Helpers.StringUtils.GetSubString(webData, @"flv=", @"&");
             return @"http://www.playmyvid.com/files/videos/" + url;
+        }
+    }
+
+    public class RyderJet : HosterBase
+    {
+        public override string GetHosterUrl()
+        {
+            return "ryderjet.com";
+        }
+
+        public override string GetVideoUrl(string url)
+        {
+            string redirUrl = WebCache.Instance.GetRedirectedUrl(url);
+            string data = GetWebData(redirUrl);
+            string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
+            string unpacked = Helpers.StringUtils.UnPack(packed);
+            var match = Regex.Match(unpacked, @"""hls4""\s*:\s*""(?<url>[^""]*)");
+            if (match.Success)
+            {
+                string result = match.Groups["url"].Value;
+                if (!Uri.IsWellFormedUriString(result, UriKind.Absolute))
+                {
+                    if (Uri.TryCreate(new Uri(redirUrl), result, out Uri uri))
+                        result = uri.ToString();
+                    else
+                        result = string.Empty;
+                }
+                var m3u8Data = GetWebData(result);
+                return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8Data, result).FirstOrDefault().Value;
+            }
+            return null;
         }
     }
 
@@ -1569,6 +1632,58 @@ namespace OnlineVideos.Hoster
             Match m = Regex.Match(data, @"""(?<url>http[^""]*\.mp4)""");
             if (m.Success)
                 return m.Groups["url"].Value;
+            return null;
+        }
+    }
+
+    public class VidHidePro : MyHosterBase
+    {
+        public override string GetHosterUrl()
+        {
+            return "vidhidepro.com";
+        }
+
+        public override string GetVideoUrl(string url)
+        {
+            string data = GetWebData(url);
+
+            string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
+            string unpacked = Helpers.StringUtils.UnPack(packed);
+            var m = Regex.Match(unpacked, @"""hls\d+"":""(?<url>[^""]*)""");
+            while (m.Success)
+            {
+                var m3u8url = ProperUrl(m.Groups["url"].Value, url);
+                if (!m3u8url.EndsWith("master.txt"))
+                {
+                    var m3u8data = GetWebData(m3u8url);
+                    return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value;
+                }
+                m = m.NextMatch();
+            }
+            return null;
+        }
+    }
+
+    public class VidMoly : HosterBase
+    {
+        public override string GetHosterUrl()
+        {
+            return "vidmoly.me";
+        }
+
+        public override string GetVideoUrl(string url)
+        {
+            //In: http://vidmoly.me/w/hco7hsb0bpvi
+            int lastPos = url.LastIndexOf('/');
+            var id = url.Substring(lastPos + 1);
+            string data = webViewHelper.GetHtml(@"https://vidmoly.biz/embed-" + id + ".html", referer: url);
+            Match m = Regex.Match(data, @"{\sfile:\s'(?<url>[^']*)'\s*}");
+            if (m.Success)
+            {
+                var foundUrl = m.Groups["url"].Value;
+                var m3u8Data = GetWebData(foundUrl);
+                return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8Data, foundUrl).FirstOrDefault().Value;
+            }
             return null;
         }
     }
