@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
 
-  <PropertyGroup>  
-    <MSBuildCommunityTasksPath Condition=" '$(MSBuildCommunityTasksPath)' == '' ">$(SolutionDir)\packages\MSBuildTasks.1.4.0.88\tools</MSBuildCommunityTasksPath>
+  <PropertyGroup>
+    <MSBuildCommunityTasksPath Condition=" '$(MSBuildCommunityTasksPath)' == '' ">$(SolutionDir)\packages\MSBuildTasks.1.5.0.235\tools</MSBuildCommunityTasksPath>
     <VersionFile Condition=" '$(VersionFile)' == '' ">$(SolutionDir)\Build\Version.txt</VersionFile>
     <GeneratedAssemblyInfoFile Condition=" '$(GeneratedAssemblyInfoFile)' == '' ">$(SolutionDir)\Build\Version.cs</GeneratedAssemblyInfoFile>
-	
-	<BuildDependsOn>
+    
+    <BuildDependsOn>
          SetAssemblyVersion;
          $(BuildDependsOn)
       </BuildDependsOn>
@@ -31,8 +31,8 @@
     <GitVersion LocalPath="$(SolutionDir)" Short="false">
       <Output TaskParameter="CommitHash" PropertyName="GitHash" />
     </GitVersion>
-	
-	<GitBranch LocalPath="$(SolutionDir)">
+    
+    <GitBranch LocalPath="$(SolutionDir)">
          <Output TaskParameter="Branch" PropertyName="GitBranch" />
       </GitBranch>
  

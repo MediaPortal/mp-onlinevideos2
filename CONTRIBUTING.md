@@ -1,5 +1,21 @@
 # How to contribute
 
+## Building the project
+
+The repository includes a `Directory.Build.props` file in the root that configures build properties. 
+
+If MediaPortal is not installed in the default location on your system, you'll need to specify the correct path by setting the `MediaPortalInstallDir` property.
+You can do this by adapting the `Directory.Build.props`:
+```xml
+<Project>
+  <PropertyGroup>
+    <MediaPortalInstallDir>C:\Path\To\MediaPortal</MediaPortalInstallDir>
+  </PropertyGroup>
+</Project>
+```
+
+## General contribution guidelines
+
 As websites change constantly, keeping it all working requires quite some work, and we can't do this without the help of the community.
 
 There are three basic parts of this plugin, the core, the MediaPortal specific parts and the parts for the sites itself.
