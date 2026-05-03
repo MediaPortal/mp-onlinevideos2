@@ -67,11 +67,24 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Ard\ArdConstants.cs" />
+    <Compile Include="Ard\ArdDayPageDeserializer.cs" />
+    <Compile Include="Ard\ArdHomeDeserializer.cs" />
+    <Compile Include="Ard\ArdLiveStreamsDeserializer.cs" />
+    <Compile Include="Ard\ArdMediaArrayConverter.cs" />
     <Compile Include="Ard\ArdMediathekUtil.cs" />
     <Compile Include="Ard\ArdPartner.cs" />
-    <Compile Include="Ard\ArdWidgetTeaserDeserializerBase.cs" />
+    <Compile Include="Ard\ArdTopicsPageDeserializer.cs" />
     <Compile Include="Ard\CollectionExtensions.cs" />
-    <Compile Include="Ard\Services.cs" />
+    <Compile Include="Ard\ContinuationToken.cs" />
+    <Compile Include="Ard\Json\ArdCategoryDeserializer.cs" />
+    <Compile Include="Ard\Json\ArdMediaStreamsV6Deserializer.cs" />
+    <Compile Include="Ard\Json\ArdVideoInfoDeserializer.cs" />
+    <Compile Include="Ard\Json\ArdWidgetTeaserDeserializerBase.cs" />
+    <Compile Include="Ard\Json\MediumExtensions.cs" />
+    <Compile Include="Ard\Models\MediaCollectionV6.cs" />
+    <Compile Include="Ard\PageDeserializerBase.cs" />
+    <Compile Include="Ard\Result.cs" />
     <Compile Include="Ard\Dto.cs" />
     <Compile Include="DailyMotionUtil.cs" />
     <Compile Include="DumpertUtil.cs" />
