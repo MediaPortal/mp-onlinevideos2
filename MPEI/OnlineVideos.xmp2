@@ -1210,7 +1210,7 @@ public class Script
 {
     public static void Main(PackageClass packageClass, ActionItem actionItem)
     {
-        string satelliteDllsPath = Path.Combine(MpeInstaller.TransformInRealPath("%Plugins%"), "Windows\\OnlineVideos");
+        string satelliteDllsPath = Path.Combine(MpeCore.MpeInstaller.TransformInRealPath("%Plugins%"), "Windows\\OnlineVideos");
 
         // get the SecurityIdentifier object for the current user
         SecurityIdentifier userSid = System.Security.Principal.WindowsIdentity.GetCurrent().User;
@@ -1250,8 +1250,8 @@ public class Script
             string CFG_SECTION = "onlinevideos";
             string CFG_THUMBNAIL_DIR = "thumbDir";
 
-            string mePoConfigFile = Path.Combine(MpeInstaller.TransformInRealPath("%Config%"), "MediaPortal.xml");
-            string ThumbsDir = Path.Combine(MpeInstaller.TransformInRealPath("%Thumbs%"), @"OnlineVideos\");
+            string mePoConfigFile = Path.Combine(MpeCore.MpeInstaller.TransformInRealPath("%Config%"), "MediaPortal.xml");
+            string ThumbsDir = Path.Combine(MpeCore.MpeInstaller.TransformInRealPath("%Thumbs%"), @"OnlineVideos\");
 
             XmlDocument configDoc = new XmlDocument();
             configDoc.Load(mePoConfigFile);
@@ -1272,10 +1272,10 @@ public class Script
             ThumbsDir = ThumbsDir.Replace("/", @"\");
             if (Directory.Exists(ThumbsDir)) try { Directory.Delete(ThumbsDir, true); } catch { }
 
-            string filename = Path.Combine(MpeInstaller.TransformInRealPath("%Config%"), "OnlineVideoSites.xml");
+            string filename = Path.Combine(MpeCore.MpeInstaller.TransformInRealPath("%Config%"), "OnlineVideoSites.xml");
             if (File.Exists(filename)) try { File.Delete(filename); } catch { }
 
-            string satelliteDllsPath = Path.Combine(MpeInstaller.TransformInRealPath("%Plugins%"), "Windows\\OnlineVideos");
+            string satelliteDllsPath = Path.Combine(MpeCore.MpeInstaller.TransformInRealPath("%Plugins%"), "Windows\\OnlineVideos");
             if (Directory.Exists(satelliteDllsPath)) try { Directory.Delete(satelliteDllsPath, true); } catch { }
         }
     }
