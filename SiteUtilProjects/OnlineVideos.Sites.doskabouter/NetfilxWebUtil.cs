@@ -292,12 +292,17 @@ namespace OnlineVideos.Sites
         {
             if (profiles == null || profiles.Count == 0)
             {
+                if (enableVerboseLog)
+                    Log.Debug("LoadProfiles");
                 string data = MyGetWebData(homeUrl);
                 Regex rgx = new Regex(@"netflix\.falcorCache\s*=\s*(.*?);</script>");
                 Match m = rgx.Match(data);
                 if (m.Success)
                 {
-                    string jsonData = m.Groups[1].Value;
+                    string jsonData = Regex.Replace(m.Groups[1].Value, @"\\x([0-9A-Fa-f]{2})", @"\\u00$1");
+                    if (enableVerboseLog)
+                        Log.Debug("LoadProfiles from "+jsonData);
+
                     JObject json = (JObject)JsonConvert.DeserializeObject(jsonData);
                     profiles = new List<JToken>();
                     foreach (JToken profile in json["profiles"])
