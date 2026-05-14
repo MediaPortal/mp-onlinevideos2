@@ -117,7 +117,7 @@ namespace OnlineVideos.MediaPortal1
                         PluginConfiguration.Instance.BuildAutomaticSitesGroups();
                         // reset the GuiOnlineVideos instance
                         GUIOnlineVideos ovGuiInstance = (GUIOnlineVideos)GUIWindowManager.GetWindow(GUIOnlineVideos.WindowId);
-                        if (ovGuiInstance != null) ovGuiInstance.ResetToFirstView();
+                        ovGuiInstance?.ResetToFirstView();
                     }
                     break;
             }
@@ -294,7 +294,7 @@ namespace OnlineVideos.MediaPortal1
                         if (updateResult == true) newDllsDownloaded = true;
                         else if (updateResult == null) newDataSaved = true;
                         if (updateResult != false) SiteImageExistenceCache.ClearCache();
-                        if (dlgPrgrs != null) dlgPrgrs.Close();
+                        dlgPrgrs?.Close();
                         GUIWindowManager.SendThreadCallbackAndWait((p1, p2, data) => { RefreshDisplayedOnlineSites(); return 0; }, 0, 0, null);
                     })
                     { Name = "OVAutoUpdate", IsBackground = true }.Start();
@@ -407,7 +407,7 @@ namespace OnlineVideos.MediaPortal1
                         if (updateResult == true) newDllsDownloaded = true;
                         else if (updateResult == null) newDataSaved = true;
                         if (updateResult != false) SiteImageExistenceCache.ClearCache();
-                        if (dlgPrgrs != null) dlgPrgrs.Close();
+                        dlgPrgrs?.Close();
                         GUIWindowManager.SendThreadCallbackAndWait((p1, p2, data) => { RefreshDisplayedOnlineSites(); return 0; }, 0, 0, null);
                     })
                     { Name = "OVSelectUpdate", IsBackground = true }.Start();
@@ -451,9 +451,7 @@ namespace OnlineVideos.MediaPortal1
                     {
                         if (success)
                         {
-                            WebService.Report[] reports = result as WebService.Report[];
-
-                            if (reports == null || reports.Length == 0)
+                            if (!(result is WebService.Report[] reports) || reports.Length == 0)
                             {
                                 GUIDialogNotify dlg = (GUIDialogNotify)GUIWindowManager.GetWindow((int)GUIWindow.Window.WINDOW_DIALOG_NOTIFY);
                                 if (dlg != null)
@@ -528,8 +526,7 @@ namespace OnlineVideos.MediaPortal1
                             else
                             {
                                 WebService.OnlineVideosService ws = new WebService.OnlineVideosService();
-                                string message = "";
-                                bool success = ws.SubmitReport(site.Name, userReason, WebService.ReportType.Broken, out message);
+                                bool success = ws.SubmitReport(site.Name, userReason, WebService.ReportType.Broken, out string message);
                                 GUIDialogOK dlg = (GUIDialogOK)GUIWindowManager.GetWindow((int)GUIWindow.Window.WINDOW_DIALOG_OK);
                                 if (dlg != null)
                                 {

@@ -18,13 +18,13 @@ namespace OnlineVideos.Sites
 
         static DateTime _lastOnlineVersionCheck = DateTime.MinValue;
         static Version _versionOnline = null;
-        static Version _versionLocal = new AssemblyName(Assembly.GetExecutingAssembly().FullName).Version;
+        static readonly Version _versionLocal = new AssemblyName(Assembly.GetExecutingAssembly().FullName).Version;
 
         static DateTime _lastOverviewsRetrieved = DateTime.MinValue;
         static Site[] _onlineSites;
         static Dll[] _onlineDlls;
 
-        static MD5 _md5Service = new MD5CryptoServiceProvider();
+        static readonly MD5 _md5Service = new MD5CryptoServiceProvider();
 
         /// <summary>
         /// Breaking API changes for Sites/Skin will change at least the minor version. 
@@ -122,9 +122,9 @@ namespace OnlineVideos.Sites
             bool saveRequired = false;
             try
             {
-                if (progressCallback != null) progressCallback.Invoke(Translation.Instance.CheckingForPluginUpdate, 0);
+                progressCallback?.Invoke(Translation.Instance.CheckingForPluginUpdate, 0);
                 if (!VersionCompatible) return false;
-                if (progressCallback != null) progressCallback.Invoke(Translation.Instance.RetrievingRemoteSites, 2);
+                progressCallback?.Invoke(Translation.Instance.RetrievingRemoteSites, 2);
                 GetRemoteOverviews();
                 if (onlineSitesToUpdate == null && _onlineSites != null) onlineSitesToUpdate = _onlineSites.ToList();
                 if (onlineSitesToUpdate == null || onlineSitesToUpdate.Count == 0) return false;
@@ -142,7 +142,7 @@ namespace OnlineVideos.Sites
                         {
                             // remember what dlls are required and check for changed dlls later
                             if (!string.IsNullOrEmpty(onlineSite.RequiredDll)) requiredDlls[onlineSite.RequiredDll] = true;
-                            if (progressCallback != null) progressCallback.Invoke(onlineSite.Name, null);
+                            progressCallback?.Invoke(onlineSite.Name, null);
                             localSite = GetRemoteSite(onlineSite.Name);
                             if (localSite != null)
                             {
@@ -190,7 +190,7 @@ namespace OnlineVideos.Sites
 
                 if (requiredDlls.Count > 0)
                 {
-                    if (progressCallback != null) progressCallback.Invoke(Translation.Instance.RetrievingRemoteDlls, null);
+                    progressCallback?.Invoke(Translation.Instance.RetrievingRemoteDlls, null);
 
                     // temp target directory for dlls (if exists, delete and recreate)
                     string dllTempDir = Path.Combine(Path.GetTempPath(), "OnlineVideos\\");
@@ -200,7 +200,7 @@ namespace OnlineVideos.Sites
                     for (int i = 0; i < _onlineDlls.Length; i++)
                     {
                         Dll anOnlineDll = _onlineDlls[i];
-                        if (progressCallback != null) progressCallback.Invoke(anOnlineDll.Name, null);
+                        progressCallback?.Invoke(anOnlineDll.Name, null);
                         if (requiredDlls.ContainsKey(anOnlineDll.Name))
                         {
                             // update or download dll if needed
@@ -237,13 +237,13 @@ namespace OnlineVideos.Sites
                                 }
                             }
                         }
-                        if (progressCallback != null) progressCallback.Invoke(null, (byte)(80 + (15 * (i + 1) / _onlineDlls.Length)));
+                        progressCallback?.Invoke(null, (byte)(80 + (15 * (i + 1) / _onlineDlls.Length)));
                     }
                     if (dllsToCopy > 0) CopyDlls(dllTempDir, OnlineVideoSettings.Instance.DllsDir);
                 }
                 if (saveRequired)
                 {
-                    if (progressCallback != null) progressCallback.Invoke(Translation.Instance.SavingLocalSiteList, 98);
+                    progressCallback?.Invoke(Translation.Instance.SavingLocalSiteList, 98);
                     OnlineVideoSettings.Instance.SaveSites();
                 }
             }
@@ -253,7 +253,7 @@ namespace OnlineVideos.Sites
             }
             finally
             {
-                if (progressCallback != null) progressCallback.Invoke(Translation.Instance.Done, 100);
+                progressCallback?.Invoke(Translation.Instance.Done, 100);
             }
             if (newDllsDownloaded) return true;
             else if (saveRequired) return null;
@@ -371,14 +371,16 @@ namespace OnlineVideos.Sites
             Log.Info("Copy SiteUtil DLLs from {0} to {1}", sourceDir, targetDir);
 
             // todo : maybe "mkdir" if target dir does not exist?
-            ProcessStartInfo psi = new ProcessStartInfo();
-            psi.WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.System);
-            psi.FileName = "cmd.exe";
-            psi.Arguments = "/c copy /B /V /Y \"" + sourceDir + "OnlineVideos.Sites.*.dll\" \"" + targetDir + "\"";
-            psi.Verb = "runas";
-            psi.CreateNoWindow = true;
-            psi.WindowStyle = ProcessWindowStyle.Hidden;
-            psi.ErrorDialog = false;
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.System),
+                FileName = "cmd.exe",
+                Arguments = "/c copy /B /V /Y \"" + sourceDir + "OnlineVideos.Sites.*.dll\" \"" + targetDir + "\"",
+                Verb = "runas",
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden,
+                ErrorDialog = false
+            };
             try
             {
                 Process p = Process.Start(psi);

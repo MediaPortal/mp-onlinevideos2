@@ -50,8 +50,8 @@ namespace OnlineVideos.MediaPortal1.Player
                 {
                     MediaInfo.MediaInfo mi = new MediaInfo.MediaInfo();
                     mi.Open(cacheFile);
-                    double framerate;
-                    double.TryParse(mi.Get(MediaInfo.StreamKind.Video, 0, "FrameRate"), System.Globalization.NumberStyles.AllowDecimalPoint, new System.Globalization.NumberFormatInfo() { NumberDecimalSeparator = "." }, out framerate);
+                    double.TryParse(mi.Get(MediaInfo.StreamKind.Video, 0, "FrameRate"), NumberStyles.AllowDecimalPoint, new NumberFormatInfo() { NumberDecimalSeparator = "." },
+                        out double framerate);
                     if (framerate > 1)
                     {
                         this._VideoSampleDuration = 1d / framerate;
@@ -353,8 +353,7 @@ namespace OnlineVideos.MediaPortal1.Player
                                 int result = graphBuilder.FindFilterByName(OnlineVideos.MPUrlSourceFilter.Downloader.FilterName, out sourceFilter);
                                 if (result == 0)
                                 {
-                                    long total = 0, current = 0;
-                                    ((IAMOpenProgress)sourceFilter).QueryProgress(out total, out current);
+                                    ((IAMOpenProgress)sourceFilter).QueryProgress(out long total, out long current);
                                     percentageBuffered = (float)current / (float)total * 100.0f;
                                     GUIPropertyManager.SetProperty("#TV.Record.percent3", percentageBuffered.ToString());
                                     GUIPropertyManager.SetProperty("#OnlineVideos.bufferedenough", CalculateBufferedEnough(total, current).ToString());
@@ -598,10 +597,7 @@ namespace OnlineVideos.MediaPortal1.Player
                     }
                 }
 
-
-                MPUrlSourceFilter.IFilterStateEx filterStateEx = sourceFilter as MPUrlSourceFilter.IFilterStateEx;
-
-                if (filterStateEx != null)
+                if (sourceFilter is MPUrlSourceFilter.IFilterStateEx filterStateEx)
                 {
                     // MediaPortal IPTV filter and url source splitter
                     Log.Instance.Info("BufferFile : using 'MediaPortal IPTV filter and url source splitter' as source filter");
@@ -616,9 +612,7 @@ namespace OnlineVideos.MediaPortal1.Player
 
                     while (!this.BufferingStopped)
                     {
-                        Boolean opened = false;
-
-                        result = filterStateEx.IsStreamOpened(out opened);
+                        result = filterStateEx.IsStreamOpened(out Boolean opened);
 
                         if (result < 0)
                         {
@@ -731,7 +725,7 @@ namespace OnlineVideos.MediaPortal1.Player
 
                     Marshal.ThrowExceptionForHR(((IFileSourceFilter)sourceFilter).Load(m_strCurrentFile, null));
 
-                    
+
                     Log.Instance.Info("BufferFile : using unknown filter as source filter");
 
                     if (!UseLAV && sourceFilter is IAMOpenProgress && !m_strCurrentFile.Contains("live=true") && !m_strCurrentFile.Contains("RtmpLive=1"))
@@ -739,7 +733,7 @@ namespace OnlineVideos.MediaPortal1.Player
                         // buffer before starting playback
                         bool filterConnected = false;
                         percentageBuffered = 0.0f;
-                        long total = 0, current = 0, last = 0;      
+                        long total = 0, current = 0, last = 0;
                         do
                         {
                             result = ((IAMOpenProgress)sourceFilter).QueryProgress(out total, out current);
@@ -810,23 +804,18 @@ namespace OnlineVideos.MediaPortal1.Player
 
                         int iVideoOutputPinId = -1;
                         int iOutPinsCounter = 0;
-                        IEnumPins pinEnum;
-                        if (sourceFilter.EnumPins(out pinEnum) == 0)
+                        if (sourceFilter.EnumPins(out IEnumPins pinEnum) == 0)
                         {
                             IPin[] pins = new IPin[1];
-                            int iFetched;
-                            while (iVideoOutputPinId < 0 && pinEnum.Next(1, pins, out iFetched) == 0 && iFetched > 0)
+                            while (iVideoOutputPinId < 0 && pinEnum.Next(1, pins, out int iFetched) == 0 && iFetched > 0)
                             {
                                 IPin pin = pins[0];
-                                PinDirection pinDirection;
-                                if (pin.QueryDirection(out pinDirection) == 0 && pinDirection == PinDirection.Output)
+                                if (pin.QueryDirection(out PinDirection pinDirection) == 0 && pinDirection == PinDirection.Output)
                                 {
-                                    IEnumMediaTypes enumMediaTypesVideo;
-                                    if (pin.EnumMediaTypes(out enumMediaTypesVideo) == 0)
+                                    if (pin.EnumMediaTypes(out IEnumMediaTypes enumMediaTypesVideo) == 0)
                                     {
                                         AMMediaType[] mediaTypes = new AMMediaType[1];
-                                        int iTypesFetched;
-                                        while (iVideoOutputPinId < 0 && enumMediaTypesVideo.Next(1, mediaTypes, out iTypesFetched) == 0 && iTypesFetched > 0)
+                                        while (iVideoOutputPinId < 0 && enumMediaTypesVideo.Next(1, mediaTypes, out int iTypesFetched) == 0 && iTypesFetched > 0)
                                         {
                                             if (mediaTypes[0].majorType == MediaType.Video)
                                                 iVideoOutputPinId = iOutPinsCounter;
@@ -875,7 +864,7 @@ namespace OnlineVideos.MediaPortal1.Player
                     throw new OnlineVideosException(errorText);
                 }
             }
-            
+
             catch (Exception ex)
             {
                 Log.Instance.Warn(ex.ToString());
@@ -898,7 +887,7 @@ namespace OnlineVideos.MediaPortal1.Player
                     {
                         Log.Instance.Info("Buffering was aborted.");
                         if (sourceFilter is IAMOpenProgress) ((IAMOpenProgress)sourceFilter).AbortOperation();
-                        
+
                         Thread.Sleep(100); // give it some time
                         result = graphBuilder.RemoveFilter(sourceFilter); // remove the filter from the graph to prevent lockup later in Dispose
                     }
@@ -917,7 +906,7 @@ namespace OnlineVideos.MediaPortal1.Player
                                 ((IAMOpenProgress)sourceFilterAudio).AbortOperation();
                                 Thread.Sleep(100); // give it some time
                             }
-                                                        
+
                             result = graphBuilder.RemoveFilter(sourceFilterAudio);
 
                             DirectShowUtil.ReleaseComObject(sourceFilterAudio);
@@ -1103,7 +1092,7 @@ namespace OnlineVideos.MediaPortal1.Player
             {
                 if (protocol == "file")
                 {
-                    if (Vmr9 != null) Vmr9.StartMediaCtrl(mediaCtrl);
+                    Vmr9?.StartMediaCtrl(mediaCtrl);
                 }
                 else
                 {
@@ -1114,11 +1103,10 @@ namespace OnlineVideos.MediaPortal1.Player
                     {
                         // wait max. 20 seconds for the graph to transition to the running state
                         DateTime startTime = DateTime.Now;
-                        FilterState filterState;
                         do
                         {
                             Thread.Sleep(100);
-                            hr = mediaCtrl.GetState(100, out filterState);
+                            hr = mediaCtrl.GetState(100, out FilterState filterState);
                             // check with timeout max. 10 times a second if the state changed
                         } while ((hr != 0) && ((DateTime.Now - startTime).TotalSeconds <= 20));
                         if (hr != 0) // S_OK
@@ -1142,14 +1130,13 @@ namespace OnlineVideos.MediaPortal1.Player
                 return false;
             }
 
-            if (basicVideo != null)
-            {
-                basicVideo.GetVideoSize(out m_iVideoWidth, out m_iVideoHeight);
-            }
+            basicVideo?.GetVideoSize(out m_iVideoWidth, out m_iVideoHeight);
 
             if (GoFullscreen) GUIWindowManager.ActivateWindow(GUIOnlineVideoFullscreen.WINDOW_FULLSCREEN_ONLINEVIDEO);
-            GUIMessage msg = new GUIMessage(GUIMessage.MessageType.GUI_MSG_PLAYBACK_STARTED, 0, 0, 0, 0, 0, null);
-            msg.Label = CurrentFile;
+            GUIMessage msg = new GUIMessage(GUIMessage.MessageType.GUI_MSG_PLAYBACK_STARTED, 0, 0, 0, 0, 0, null)
+            {
+                Label = CurrentFile
+            };
             GUIWindowManager.SendThreadMessage(msg);
             m_state = PlayState.Playing;
             m_iPositionX = GUIGraphicsContext.VideoWindow.X;
@@ -1182,7 +1169,7 @@ namespace OnlineVideos.MediaPortal1.Player
             GUIPropertyManager.SetProperty("#OnlineVideos.IsBuffering", "False");
         }
 
-        public override int CurrentAudioStream 
+        public override int CurrentAudioStream
         {
             get
             {
@@ -1225,7 +1212,7 @@ namespace OnlineVideos.MediaPortal1.Player
 
                         if (bResult)
                             this._CurrentAudioStream = value;
-                    log:
+                        log:
                         Log.Instance.Info("OnlineVideosPlayer: CurrentAudioStream:{0} Result:{1}", value, bResult);
                     }
                 }
@@ -1340,23 +1327,18 @@ namespace OnlineVideos.MediaPortal1.Player
                     bool bHevcCodec = false;
 
                     // check the output pins of the splitter for known media types
-                    IEnumPins pinEnum = null;
-                    if (sourceFilter.EnumPins(out pinEnum) == 0)
+                    if (sourceFilter.EnumPins(out IEnumPins pinEnum) == 0)
                     {
-                        int fetched = 0;
                         IPin[] pins = new IPin[1];
-                        while (pinEnum.Next(1, pins, out fetched) == 0 && fetched > 0)
+                        while (pinEnum.Next(1, pins, out int fetched) == 0 && fetched > 0)
                         {
                             IPin pin = pins[0];
-                            PinDirection pinDirection;
-                            if (pin.QueryDirection(out pinDirection) == 0 && pinDirection == PinDirection.Output)
+                            if (pin.QueryDirection(out PinDirection pinDirection) == 0 && pinDirection == PinDirection.Output)
                             {
-                                IEnumMediaTypes enumMediaTypesVideo = null;
-                                if (pin.EnumMediaTypes(out enumMediaTypesVideo) == 0)
+                                if (pin.EnumMediaTypes(out IEnumMediaTypes enumMediaTypesVideo) == 0)
                                 {
                                     AMMediaType[] mediaTypes = new AMMediaType[1];
-                                    int typesFetched;
-                                    while (enumMediaTypesVideo.Next(1, mediaTypes, out typesFetched) == 0 && typesFetched > 0)
+                                    while (enumMediaTypesVideo.Next(1, mediaTypes, out int typesFetched) == 0 && typesFetched > 0)
                                     {
                                         if (mediaTypes[0].majorType == MediaType.Video)
                                         {
@@ -1472,7 +1454,7 @@ namespace OnlineVideos.MediaPortal1.Player
             LogOutputPinsConnectionRecursive(filter, sb, true);
             Log.Instance.Debug(sb.ToString());
         }
-        private static void LogOutputPinsConnectionRecursive(IBaseFilter filter,  StringBuilder sb, bool bIsRoot)
+        private static void LogOutputPinsConnectionRecursive(IBaseFilter filter, StringBuilder sb, bool bIsRoot)
         {
             if (filter.EnumPins(out IEnumPins pinEnum) == 0)
             {
@@ -1777,13 +1759,12 @@ namespace OnlineVideos.MediaPortal1.Player
         private bool _PlaybackDetected = false;
         private bool _PreBufferNeeded = true;
         private DateTime _SeekTimeStamp = DateTime.MinValue;
-        private static System.Globalization.CultureInfo _Culture_EN = new System.Globalization.CultureInfo("en-US");
+        private static readonly CultureInfo _Culture_EN = new CultureInfo("en-US");
 
         [MethodImpl(MethodImplOptions.Synchronized)]
         private void onSeek()
         {
-            if (this.mediaPos != null)
-                this.mediaPos.get_CurrentPosition(out this._LastCurrentPosition);
+            this.mediaPos?.get_CurrentPosition(out this._LastCurrentPosition);
 
             this._PlaybackDetected = false;
             this._PreBufferNeeded = true;
@@ -2114,8 +2095,7 @@ namespace OnlineVideos.MediaPortal1.Player
         private bool MpHasFixedSubs()
         {
             string[] version = System.Windows.Forms.Application.ProductVersion.Split('.');
-            int major, minor;
-            if (version.Length >= 2 && int.TryParse(version[0], out major) && int.TryParse(version[1], out minor))
+            if (version.Length >= 2 && int.TryParse(version[0], out int major) && int.TryParse(version[1], out int minor))
                 return (major > 1) || (major == 1 && minor > 35);
             return false;
         }

@@ -41,8 +41,7 @@ namespace OnlineVideos
 
         public string GetByName(string name)
         {
-            string result = name;
-            Strings.TryGetValue(name, out result);
+            Strings.TryGetValue(name, out string result);
             return result;
         }
 
@@ -295,7 +294,7 @@ namespace OnlineVideos
     /// </summary>
     public static class TranslationLoader
     {
-        static Dictionary<string, string> TranslatedStrings = new Dictionary<string, string>();
+        static readonly Dictionary<string, string> TranslatedStrings = new Dictionary<string, string>();
 
         /// <summary>
         /// Load a localization. If the given <paramref name="language"/> file is not found, it will first try to load en-us.xml as a backup

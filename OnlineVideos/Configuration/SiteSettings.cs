@@ -64,8 +64,7 @@ namespace OnlineVideos
         public static IList<SiteSettings> Deserialize(TextReader reader)
         {
             var ser = new XmlSerializer(typeof(SerializableSettings));
-            SerializableSettings s = ser.Deserialize(reader) as SerializableSettings;
-            if (s != null)
+            if (ser.Deserialize(reader) is SerializableSettings s)
             {
                 var ctx = new StreamingContext();
                 foreach (var site in s.Sites) CallOnDeserializedRecursive(site.Categories, ctx);
@@ -339,9 +338,9 @@ namespace OnlineVideos
             Category c = this;
             while (c != null)
             {
-                if (c is SearchCategory && this is RssLink)
+                if (c is SearchCategory && this is RssLink link)
                 {
-                    result = ((RssLink)this).Url;
+                    result = link.Url;
                     break;
                 }
                 result = c.Name + (result == "" ? "" : divider) + result;
@@ -416,7 +415,7 @@ namespace OnlineVideos
         public event PropertyChangedEventHandler PropertyChanged;
         public void NotifyPropertyChanged(string propertyName)
         {
-            if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
         #endregion
     }
