@@ -147,11 +147,13 @@ namespace OnlineVideos.Helpers
                 int width = 0;
                 int height = 0;
                 int framerate = 0;
+                bool nextLineIsUrl = false;
                 Match m;
                 while ((line = reader.ReadLine()) != null)
                 {
                     if (line.StartsWith(STREAM_INFO_TAG))
                     {
+                        nextLineIsUrl = true;
                         if ((m = bandwidthReg.Match(line)).Success)
                         {
                             bandwidth = int.Parse(m.Groups[1].Value);
@@ -166,13 +168,12 @@ namespace OnlineVideos.Helpers
                             framerate = int.Parse(m.Groups[1].Value);
                         }
                     }
-                    else if (line != string.Empty && !line.StartsWith("#"))
+                    else if (line != string.Empty && !line.StartsWith("#") && nextLineIsUrl)
                     {
                         int p = line.IndexOf('#');
                         if (p >= 0)
                             line = line.Substring(0, p);
-                        Uri streamUrl;
-                        if (!Uri.TryCreate(line, UriKind.RelativeOrAbsolute, out streamUrl) || !streamUrl.IsAbsoluteUri)
+                        if (!Uri.TryCreate(line, UriKind.RelativeOrAbsolute, out Uri streamUrl) || !streamUrl.IsAbsoluteUri)
                         {
                             streamUrl = new Uri(baseUrl, line);
                         }
@@ -181,7 +182,14 @@ namespace OnlineVideos.Helpers
                         bandwidth = 0;
                         width = 0;
                         height = 0;
+                        framerate = 0;
+                        nextLineIsUrl = false;
                     }
+                }
+                if (streamInfos.Count == 0)
+                {
+                    //No stream-inf's found. assuming current file is a regular media playlist and not a master playlist
+                    streamInfos.Add(new HlsStreamInfo(0, 0, 0, 0, originalUrl));
                 }
             }
         }
