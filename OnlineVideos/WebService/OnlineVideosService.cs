@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Diagnostics;
 using System.Collections.Specialized;
 using System.IO;
 using System.Net;
@@ -281,6 +282,7 @@ namespace OnlineVideos.WebService
 
     public enum SiteState : byte { Working, Reported, Broken };
 
+    [DebuggerDisplay("{Name} {State} {LastUpdated}")]
     public class Site
     {
         public string Name { get; set; }
