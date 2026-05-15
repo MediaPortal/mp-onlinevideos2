@@ -667,6 +667,34 @@ namespace OnlineVideos.Hoster
         }
     }
 
+    public class Minochinos : MyHosterBase
+    {
+        public override string GetHosterUrl()
+        {
+            return "minochinos.com";
+        }
+
+        public override string GetVideoUrl(string url)
+        {
+            string data = GetWebData(url);
+
+            string packed = Helpers.StringUtils.GetSubString(data, @"return p}", @"</script>");
+            string unpacked = Helpers.StringUtils.UnPack(packed);
+            var m = Regex.Match(unpacked, @"""hls\d+"":""(?<url>[^""]*)""");
+            while (m.Success)
+            {
+                var m3u8url = ProperUrl(m.Groups["url"].Value, url);
+                if (!m3u8url.EndsWith("master.txt"))
+                {
+                    var m3u8data = GetWebData(m3u8url);
+                    return Helpers.HlsPlaylistParser.GetPlaybackOptions(m3u8data, m3u8url).LastOrDefault().Value;
+                }
+                m = m.NextMatch();
+            }
+            return null;
+        }
+    }
+
     public class Mixdrop : MyHosterBase
     {
 
