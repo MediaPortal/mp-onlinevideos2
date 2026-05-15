@@ -67,7 +67,7 @@ namespace OnlineVideos.Sites.Ard
                 foreach (var filmInfoDto in result.Value)
                 {
                     if (filmInfoDto != null)
-                    { 
+                    {
                         list.Add(filmInfoDto.AsVideoInfo(page, result.ContinuationToken, skipPlaybackOptionsDialog: _skipPlayackOptionsDialog));
                     }
                 }
@@ -92,6 +92,13 @@ namespace OnlineVideos.Sites.Ard
 
 
                 var streamUrl = video.PlaybackOptions.FirstOrDefault().Value;
+
+                if (video.PlaybackOptions.Count == 1 && streamUrl.EndsWith(".m3u8", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    string data = GetWebData(streamUrl);
+                    video.PlaybackOptions = Helpers.HlsPlaylistParser.GetPlaybackOptions(data, streamUrl);
+                    streamUrl = video.PlaybackOptions.FirstOrDefault().Value;
+                }
 
                 return streamUrl;
             }
