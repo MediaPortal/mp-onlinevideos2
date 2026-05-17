@@ -3,7 +3,7 @@
 
   <PropertyGroup>
     <PluginDestination>$(MediaPortalInstallPath)\plugins\Windows\</PluginDestination>
-    <DataDestination>$(ProgramData)$(_MediaPortalSubPath)\</DataDestination>
+    <DataDestination>$(ProgramData)\$(_MediaPortalSubPath)\</DataDestination>
   </PropertyGroup>
 
   <ItemGroup>
