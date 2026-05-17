@@ -86,5 +86,8 @@
     <Site name="Twitch" util="TwitchTV" agecheck="false" enabled="true" lang="en" player="Webview">
       <Description>Twitch is the leading video platform and community for gamers. We want to connect gamers around the world by allowing them to broadcast, watch, and chat from everywhere they play.</Description>
     </Site>
+    <Site name="ARD Mediathek" util="ArdMediathek" agecheck="false" enabled="true" player="Internal_LAV" lang="de">
+      <Description>ARD Mediathek - Videos von Das Erste und den Dritten Programmen: Das Beste aus der ARD per Stream - Filme, Serien, Dokumentationen, Nachrichten, Livestreams und mehr - Videos online anschauen</Description>
+    </Site>
   </Sites>
 </OnlineVideoSites>
