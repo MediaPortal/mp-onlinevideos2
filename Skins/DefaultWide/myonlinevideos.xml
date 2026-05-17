@@ -252,7 +252,7 @@
 			<posX>119</posX>
 			<posY>719</posY>
 			<width>610</width>
-			<height>200</height> 205
+			<height>200</height>
 			<font>TitanLight12</font>
 			<label>#OnlineVideos.desc</label>
 			<lineSpacing>0.92</lineSpacing>
