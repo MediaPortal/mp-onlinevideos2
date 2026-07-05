@@ -297,6 +297,34 @@
               <ZipFileName>Installer{CopyFile}\{00e13a0e-e125-46c6-b630-a484028a02db}-Twitch.png</ZipFileName>
               <DestinationFilename>%Thumbs%\OnlineVideos\Icons\Twitch.png</DestinationFilename>
             </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\SiteImages\Banners\ARD Mediathek.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{547d99a4-497d-49ee-a756-3d33ee1bfdea}-ARD Mediathek.png</ZipFileName>
+              <DestinationFilename>%Thumbs%\OnlineVideos\Banners\ARD Mediathek.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\SiteImages\Banners\ZDF Mediathek.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{7859a4d8-63f4-4ed7-a2a6-a5dc99706e1b}-ZDF Mediathek.png</ZipFileName>
+              <DestinationFilename>%Thumbs%\OnlineVideos\Banners\ZDF Mediathek.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\SiteImages\Icons\ARD Mediathek.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{18b6d599-8b0b-4cd3-bb63-0669f687e3ff}-ARD Mediathek.png</ZipFileName>
+              <DestinationFilename>%Thumbs%\OnlineVideos\Icons\ARD Mediathek.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\SiteImages\Icons\ZDF Mediathek.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{84b9483b-d904-4243-9c10-ca30aefce544}-ZDF Mediathek.png</ZipFileName>
+              <DestinationFilename>%Thumbs%\OnlineVideos\Icons\ZDF Mediathek.png</DestinationFilename>
+            </FileItem>
           </Items>
         </Files>
       </GroupItem>
@@ -1071,6 +1099,69 @@
               <ZipFileName>Installer{CopyFile}\{52bc3578-0301-409c-a389-836b28044cb2}-Working.png</ZipFileName>
               <DestinationFilename>%Skin%\Titan\Media\OnlineVideos\Working.png</DestinationFilename>
             </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\Skins\Titan\Media\hiddenmenu_item_selected2.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{ae40cf1c-6af9-4668-a56a-d029fff3707e}-hiddenmenu_item_selected2.png</ZipFileName>
+              <DestinationFilename>%Skin%\Titan\Media\hiddenmenu_item_selected2.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\Skins\Titan\Media\osd_progress_left_modified.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{ebb9634b-893e-47e7-870d-feeb88b5373f}-osd_progress_left_modified.png</ZipFileName>
+              <DestinationFilename>%Skin%\Titan\Media\osd_progress_left_modified.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\Skins\Titan\Media\osd_progress_mid_1px.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{6c8f8c6f-5cec-418a-8929-926dc29b507e}-osd_progress_mid_1px.png</ZipFileName>
+              <DestinationFilename>%Skin%\Titan\Media\osd_progress_mid_1px.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\Skins\Titan\Media\osd_progress_mid_modified.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{5f71e17f-2855-4577-84ca-93ebd758f5d5}-osd_progress_mid_modified.png</ZipFileName>
+              <DestinationFilename>%Skin%\Titan\Media\osd_progress_mid_modified.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\Skins\Titan\Media\osd_progress_mid_orange_1px.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{3afa0ff0-9e3d-42a2-a49b-4cff40ab5688}-osd_progress_mid_orange_1px.png</ZipFileName>
+              <DestinationFilename>%Skin%\Titan\Media\osd_progress_mid_orange_1px.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\Skins\Titan\Media\osd_progress_right_modified.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{1c38809e-3445-4b53-bdeb-cbb901c82cb1}-osd_progress_right_modified.png</ZipFileName>
+              <DestinationFilename>%Skin%\Titan\Media\osd_progress_right_modified.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\Skins\Titan\Media\OnlineVideos\osd_buffering_button.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{48aa7cf6-2d4f-48b5-aae2-e0b50361ae79}-osd_buffering_button.png</ZipFileName>
+              <DestinationFilename>%Skin%\Titan\Media\OnlineVideos\osd_buffering_button.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\Skins\Titan\Media\buffer_bg.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{bd7328a9-abeb-432a-a2ac-de2232e8ecb8}-buffer_bg.png</ZipFileName>
+              <DestinationFilename>%Skin%\Titan\Media\buffer_bg.png</DestinationFilename>
+            </FileItem>
+            <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+              <Param1 />
+              <UpdateOption>OverwriteIfOlder</UpdateOption>
+              <LocalFileName>..\Skins\Titan\Media\osd_pause_bg2.png</LocalFileName>
+              <ZipFileName>Installer{CopyFile}\{cd81320e-940c-4382-be24-5644f33fc0c5}-osd_pause_bg2.png</ZipFileName>
+              <DestinationFilename>%Skin%\Titan\Media\osd_pause_bg2.png</DestinationFilename>
+            </FileItem>
           </Items>
         </Files>
       </GroupItem>
@@ -1103,7 +1194,7 @@ Click Next to continue or Cancel to exit Setup.</Value>
               <Description />
             </SectionParam>
             <SectionParam Name="Left part image">
-              <Value />
+              <Value>..\OnlineVideos.MediaPortal1\OnlneVideos_cover.png</Value>
               <ValueType>File</ValueType>
               <Description />
             </SectionParam>
@@ -1504,7 +1595,7 @@ public class Script
               <Description />
             </SectionParam>
             <SectionParam Name="Left part image">
-              <Value />
+              <Value>..\OnlineVideos.MediaPortal1\OV-Backcover.png</Value>
               <ValueType>File</ValueType>
               <Description />
             </SectionParam>
@@ -1942,6 +2033,34 @@ public class Script
         <LocalFileName>..\SiteImages\Icons\Twitch.png</LocalFileName>
         <ZipFileName>Installer{CopyFile}\{00e13a0e-e125-46c6-b630-a484028a02db}-Twitch.png</ZipFileName>
         <DestinationFilename>%Thumbs%\OnlineVideos\Icons\Twitch.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\SiteImages\Banners\ARD Mediathek.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{547d99a4-497d-49ee-a756-3d33ee1bfdea}-ARD Mediathek.png</ZipFileName>
+        <DestinationFilename>%Thumbs%\OnlineVideos\Banners\ARD Mediathek.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\SiteImages\Banners\ZDF Mediathek.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{7859a4d8-63f4-4ed7-a2a6-a5dc99706e1b}-ZDF Mediathek.png</ZipFileName>
+        <DestinationFilename>%Thumbs%\OnlineVideos\Banners\ZDF Mediathek.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\SiteImages\Icons\ARD Mediathek.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{18b6d599-8b0b-4cd3-bb63-0669f687e3ff}-ARD Mediathek.png</ZipFileName>
+        <DestinationFilename>%Thumbs%\OnlineVideos\Icons\ARD Mediathek.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\SiteImages\Icons\ZDF Mediathek.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{84b9483b-d904-4243-9c10-ca30aefce544}-ZDF Mediathek.png</ZipFileName>
+        <DestinationFilename>%Thumbs%\OnlineVideos\Icons\ZDF Mediathek.png</DestinationFilename>
       </FileItem>
       <FileItem InstallType="CopyFile" SystemFile="false" Modified="true" Condition="None">
         <Param1 />
@@ -2622,11 +2741,88 @@ public class Script
         <ZipFileName>Installer{CopyFile}\{52bc3578-0301-409c-a389-836b28044cb2}-Working.png</ZipFileName>
         <DestinationFilename>%Skin%\Titan\Media\OnlineVideos\Working.png</DestinationFilename>
       </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\Skins\Titan\Media\hiddenmenu_item_selected2.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{ae40cf1c-6af9-4668-a56a-d029fff3707e}-hiddenmenu_item_selected2.png</ZipFileName>
+        <DestinationFilename>%Skin%\Titan\Media\hiddenmenu_item_selected2.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\Skins\Titan\Media\osd_progress_left_modified.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{ebb9634b-893e-47e7-870d-feeb88b5373f}-osd_progress_left_modified.png</ZipFileName>
+        <DestinationFilename>%Skin%\Titan\Media\osd_progress_left_modified.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\Skins\Titan\Media\osd_progress_mid_1px.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{6c8f8c6f-5cec-418a-8929-926dc29b507e}-osd_progress_mid_1px.png</ZipFileName>
+        <DestinationFilename>%Skin%\Titan\Media\osd_progress_mid_1px.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\Skins\Titan\Media\osd_progress_mid_modified.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{5f71e17f-2855-4577-84ca-93ebd758f5d5}-osd_progress_mid_modified.png</ZipFileName>
+        <DestinationFilename>%Skin%\Titan\Media\osd_progress_mid_modified.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\Skins\Titan\Media\osd_progress_mid_orange_1px.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{3afa0ff0-9e3d-42a2-a49b-4cff40ab5688}-osd_progress_mid_orange_1px.png</ZipFileName>
+        <DestinationFilename>%Skin%\Titan\Media\osd_progress_mid_orange_1px.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\Skins\Titan\Media\osd_progress_right_modified.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{1c38809e-3445-4b53-bdeb-cbb901c82cb1}-osd_progress_right_modified.png</ZipFileName>
+        <DestinationFilename>%Skin%\Titan\Media\osd_progress_right_modified.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\Skins\Titan\Media\OnlineVideos\osd_buffering_button.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{48aa7cf6-2d4f-48b5-aae2-e0b50361ae79}-osd_buffering_button.png</ZipFileName>
+        <DestinationFilename>%Skin%\Titan\Media\OnlineVideos\osd_buffering_button.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\Skins\Titan\Media\buffer_bg.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{bd7328a9-abeb-432a-a2ac-de2232e8ecb8}-buffer_bg.png</ZipFileName>
+        <DestinationFilename>%Skin%\Titan\Media\buffer_bg.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="false" Modified="false" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\Skins\Titan\Media\osd_pause_bg2.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{cd81320e-940c-4382-be24-5644f33fc0c5}-osd_pause_bg2.png</ZipFileName>
+        <DestinationFilename>%Skin%\Titan\Media\osd_pause_bg2.png</DestinationFilename>
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="true" Modified="true" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\OnlineVideos.MediaPortal1\OnlneVideos_cover.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{528de207-01bb-4130-bf75-393225794f9b}-OnlneVideos_cover.png</ZipFileName>
+        <DestinationFilename />
+      </FileItem>
       <FileItem InstallType="CopyFile" SystemFile="true" Modified="true" Condition="None">
         <Param1 />
         <UpdateOption>OverwriteIfOlder</UpdateOption>
         <LocalFileName>..\OnlineVideos.MediaPortal1\OnlineVideos.png</LocalFileName>
         <ZipFileName>Installer{CopyFile}\{8f4690b3-1c99-49df-81a5-50be11a9cf37}-OnlineVideos.png</ZipFileName>
+        <DestinationFilename />
+      </FileItem>
+      <FileItem InstallType="CopyFile" SystemFile="true" Modified="true" Condition="None">
+        <Param1 />
+        <UpdateOption>OverwriteIfOlder</UpdateOption>
+        <LocalFileName>..\OnlineVideos.MediaPortal1\OV-Backcover.png</LocalFileName>
+        <ZipFileName>Installer{CopyFile}\{98f80e0e-a2b7-43c0-9a9f-00ba0f5eb0b0}-OV-Backcover.png</ZipFileName>
         <DestinationFilename />
       </FileItem>
     </Items>

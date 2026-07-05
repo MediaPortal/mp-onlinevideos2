@@ -6,7 +6,7 @@
 		<control>
 			<description>Moviecount</description>
 			<type>label</type>
-			<label>#itemtype: #itemcount</label>
+			<label>#(iif(eq(#itemtype,'items'),'','#itemtype:')) #itemcount</label>  
 			<id>0</id>
 			<posX>96</posX>
 			<posY>998</posY>
@@ -51,7 +51,7 @@
 					<onright>50</onright>
 					<scrollOffset>1</scrollOffset>
 					<posX>745</posX>
-				  <posY>331</posY>
+				    <posY>331</posY>
 					<width>1113</width>
 					<height>700</height>
 					<textXOff>50</textXOff>
@@ -62,8 +62,8 @@
 					<dimColor>ffffffff</dimColor>
 					<textureFocus>listcontrol_item_selected_wide.png</textureFocus>
 					<textureNoFocus>-</textureNoFocus>
-	        <spinPosX>1828</spinPosX>
-	        <spinPosY>1000</spinPosY>
+	                <spinPosX>1828</spinPosX>
+	                <spinPosY>1000</spinPosY>
 				</control>
 				<control>
 					<description>Thumbnail Panel</description>
@@ -89,24 +89,24 @@
 					<frameFocus>onlinevideos_thumb_focus.png</frameFocus>
 					<textureMask></textureMask>
 					<imageFolderFocus>OnlineVideos\thumbbg3.png</imageFolderFocus>
-          <!-- Small Icons -->
-          <itemWidth>173</itemWidth>
-          <itemHeight>128</itemHeight>
-          <textureWidth>174</textureWidth>
-          <textureHeight>128</textureHeight>
-          <thumbWidth>130</thumbWidth>
-          <thumbHeight>98</thumbHeight>
-          <thumbPosX>22</thumbPosX>
-          <thumbPosY>15</thumbPosY>
-          <!-- Large Icons -->
-          <itemWidthBig>260</itemWidthBig>
-          <itemHeightBig>194</itemHeightBig>
-          <textureWidthBig>260</textureWidthBig>
-          <textureHeightBig>194</textureHeightBig>
-          <thumbWidthBig>220</thumbWidthBig>
-          <thumbHeightBig>165</thumbHeightBig>
-          <thumbPosXBig>20</thumbPosXBig>
-          <thumbPosYBig>15</thumbPosYBig>
+                    <!-- Small Icons -->
+                    <itemWidth>173</itemWidth>
+                    <itemHeight>128</itemHeight>
+                    <textureWidth>174</textureWidth>
+                    <textureHeight>128</textureHeight>
+                    <thumbWidth>130</thumbWidth>
+                    <thumbHeight>98</thumbHeight>
+                    <thumbPosX>22</thumbPosX>
+                    <thumbPosY>15</thumbPosY>
+                    <!-- Large Icons -->
+                    <itemWidthBig>260</itemWidthBig>
+                    <itemHeightBig>194</itemHeightBig>
+                    <textureWidthBig>260</textureWidthBig>
+                    <textureHeightBig>194</textureHeightBig>
+                    <thumbWidthBig>220</thumbWidthBig>
+                    <thumbHeightBig>165</thumbHeightBig>
+                    <thumbPosXBig>20</thumbPosXBig>
+                    <thumbPosYBig>15</thumbPosYBig>
 					<zoomXPixels>0</zoomXPixels>
 					<zoomYPixels>0</zoomYPixels>
 					<spinPosX>1828</spinPosX>

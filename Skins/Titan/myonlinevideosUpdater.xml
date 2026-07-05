@@ -250,7 +250,7 @@
 					<animation effect="fade" time="0">hidden</animation>
 					<layout>StackLayout(0, Vertical, true)</layout>
 					<visible>!Control.HasFocus(50)</visible>
-					<posX>53</posX>
+					<posX>68</posX>
 					<posY>155</posY>
 					<control>
 						<type>selectbutton</type>          
@@ -259,9 +259,9 @@
 						<onright>50</onright>
 						<onup>505</onup>
 						<label>#OnlineVideos.Translation.Filter.Label: #OnlineVideos.Translation.State.Label</label>
-						<width>499</width>
+						<width>470</width>
 						<height>69</height>
-						<textXOff>42</textXOff>
+						<textXOff>44</textXOff>
 						<textYOff>16</textYOff>
 						<textXOff2>62</textXOff2>
 						<textYOff2>16</textYOff2>
@@ -269,7 +269,7 @@
 						<textureNoFocus>-</textureNoFocus>
 						<textcolorNoFocus>FF393939</textcolorNoFocus>
 						<textcolor>FFFFFFFF</textcolor>
-						<texturebg>hiddenmenu_item_selected.png</texturebg>
+						<texturebg>hiddenmenu_item_selected2.png</texturebg>
 					</control>
 					<control>
 						<type>selectbutton</type>          
@@ -278,9 +278,9 @@
 						<onright>50</onright>
 						<onup>503</onup>
 						<label>#OnlineVideos.Translation.Filter.Label: #OnlineVideos.Translation.Creator.Label</label>
-						<width>499</width>
+						<width>470</width>
 						<height>69</height>
-						<textXOff>42</textXOff>
+						<textXOff>44</textXOff>
 						<textYOff>16</textYOff>
 						<textXOff2>62</textXOff2>
 						<textYOff2>16</textYOff2>
@@ -288,7 +288,7 @@
 						<textureNoFocus>-</textureNoFocus>
 						<textcolorNoFocus>FF393939</textcolorNoFocus>
 						<textcolor>FFFFFFFF</textcolor>
-						<texturebg>hiddenmenu_item_selected.png</texturebg>
+						<texturebg>hiddenmenu_item_selected2.png</texturebg>
 					</control>
 					<control>
 						<type>selectbutton</type>          
@@ -297,9 +297,9 @@
 						<onright>50</onright>
 						<onup>506</onup>
 						<label>#OnlineVideos.Translation.Filter.Label: #OnlineVideos.Translation.Language.Label</label>
-						<width>499</width>
+						<width>470</width>
 						<height>69</height>
-						<textXOff>42</textXOff>
+						<textXOff>44</textXOff>
 						<textYOff>16</textYOff>
 						<textXOff2>62</textXOff2>
 						<textYOff2>16</textYOff2>
@@ -307,7 +307,7 @@
 						<textureNoFocus>-</textureNoFocus>
 						<textcolorNoFocus>FF393939</textcolorNoFocus>
 						<textcolor>FFFFFFFF</textcolor>
-						<texturebg>hiddenmenu_item_selected.png</texturebg>
+						<texturebg>hiddenmenu_item_selected2.png</texturebg>
 					</control>      
 					<control>
 						<type>selectbutton</type>
@@ -317,9 +317,9 @@
 						<onup>507</onup>
 						<ondown>508</ondown>
 						<label>#OnlineVideos.Translation.SortOptions.Label</label>
-						<width>499</width>
+						<width>470</width>
 						<height>69</height>
-						<textXOff>42</textXOff>
+						<textXOff>44</textXOff>
 						<textYOff>16</textYOff>
 						<textXOff2>62</textXOff2>
 						<textYOff2>16</textYOff2>
@@ -327,7 +327,7 @@
 						<textureNoFocus>-</textureNoFocus>
 						<textcolorNoFocus>FF393939</textcolorNoFocus>
 						<textcolor>FFFFFFFF</textcolor>
-						<texturebg>hiddenmenu_item_selected.png</texturebg>
+						<texturebg>hiddenmenu_item_selected2.png</texturebg>
 					</control>   
 					<control>
 						<type>button</type>
@@ -337,9 +337,9 @@
 						<onup>504</onup>          
 						<ondown>50</ondown>
 						<label>#OnlineVideos.Translation.AutomaticUpdate.Label</label>
-						<textureFocus>hiddenmenu_item_selected.png</textureFocus>
+						<textureFocus>hiddenmenu_item_selected2.png</textureFocus>
 						<textureNoFocus>-</textureNoFocus>
-						<width>499</width>
+						<width>470</width>
 						<height>69</height>
 						<textXOff>62</textXOff>
 						<textYOff>16</textYOff>  
