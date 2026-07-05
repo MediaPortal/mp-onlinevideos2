@@ -2808,21 +2808,21 @@ public class Script
         <Param1 />
         <UpdateOption>OverwriteIfOlder</UpdateOption>
         <LocalFileName>..\OnlineVideos.MediaPortal1\OnlneVideos_cover.png</LocalFileName>
-        <ZipFileName>Installer{CopyFile}\{528de207-01bb-4130-bf75-393225794f9b}-OnlneVideos_cover.png</ZipFileName>
+        <ZipFileName>Installer{CopyFile}\{fa490cc3-149a-4cdc-8e6d-6e94eea28ee5}-OnlneVideos_cover.png</ZipFileName>
         <DestinationFilename />
       </FileItem>
       <FileItem InstallType="CopyFile" SystemFile="true" Modified="true" Condition="None">
         <Param1 />
         <UpdateOption>OverwriteIfOlder</UpdateOption>
         <LocalFileName>..\OnlineVideos.MediaPortal1\OnlineVideos.png</LocalFileName>
-        <ZipFileName>Installer{CopyFile}\{8f4690b3-1c99-49df-81a5-50be11a9cf37}-OnlineVideos.png</ZipFileName>
+        <ZipFileName>Installer{CopyFile}\{3c9b0121-fd0b-47e3-a258-9c48d7c22328}-OnlineVideos.png</ZipFileName>
         <DestinationFilename />
       </FileItem>
       <FileItem InstallType="CopyFile" SystemFile="true" Modified="true" Condition="None">
         <Param1 />
         <UpdateOption>OverwriteIfOlder</UpdateOption>
         <LocalFileName>..\OnlineVideos.MediaPortal1\OV-Backcover.png</LocalFileName>
-        <ZipFileName>Installer{CopyFile}\{98f80e0e-a2b7-43c0-9a9f-00ba0f5eb0b0}-OV-Backcover.png</ZipFileName>
+        <ZipFileName>Installer{CopyFile}\{1fb588f1-212d-4007-aae4-69519c18027a}-OV-Backcover.png</ZipFileName>
         <DestinationFilename />
       </FileItem>
     </Items>
