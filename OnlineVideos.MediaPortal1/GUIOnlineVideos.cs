@@ -2152,8 +2152,20 @@ namespace OnlineVideos.MediaPortal1
             return keyBoard.IsConfirmed;
         }
 
-        void g_Player_PlayBackEnded(g_Player.MediaType type, string filename)
+        private void ResetCurrentPlayingProperties()
         {
+            GUIPropertyManager.SetProperty("#Play.Current.OnlineVideos.SiteIcon", String.Empty);
+            GUIPropertyManager.SetProperty("#Play.Current.OnlineVideos.SiteName", String.Empty);
+        }
+
+        private void g_Player_PlayBackChanged(g_Player.MediaType type, int stoptime, string filename)
+        {
+            ResetCurrentPlayingProperties();
+        }
+
+        private void g_Player_PlayBackEnded(g_Player.MediaType type, string filename)
+        {
+            ResetCurrentPlayingProperties();
             try
             {
                 if (currentPlayingItem != null && currentPlayingItem.Util != null)
@@ -2239,6 +2251,7 @@ namespace OnlineVideos.MediaPortal1
 
         void g_Player_PlayBackStopped(g_Player.MediaType type, int stoptime, string filename)
         {
+            ResetCurrentPlayingProperties();
             try
             {
                 if (currentPlayingItem != null && currentPlayingItem.Util != null)
@@ -3331,19 +3344,22 @@ namespace OnlineVideos.MediaPortal1
 
         internal void SetGuiProperties_PlayingVideo(PlayListItem playItem)
         {
-            // first reset our own properties
-            GUIPropertyManager.SetProperty("#Play.Current.OnlineVideos.SiteIcon", string.Empty);
-            GUIPropertyManager.SetProperty("#Play.Current.OnlineVideos.SiteName", string.Empty);
+            var isValidVideo = playItem != null && playItem.Video != null;
+            var site = playItem?.Util;
+            var hasValidSettings = isValidVideo && site != null;
+
+            GUIPropertyManager.SetProperty("#Play.Current.OnlineVideos.SiteIcon",
+                hasValidSettings ? SiteImageExistenceCache.GetImageForSite(site.Settings.Name, site.Settings.UtilName, "Icon") : String.Empty);
+            GUIPropertyManager.SetProperty("#Play.Current.OnlineVideos.SiteName", hasValidSettings ? site.Settings.Name : String.Empty);
 
             // start a thread that will set the properties in 2 seconds (otherwise MediaPortal core logic would overwrite them)
-            if (playItem == null || playItem.Video == null) return;
+            if (!isValidVideo) return;
             new System.Threading.Thread(delegate (object o)
             {
                 try
                 {
                     VideoInfo video = (o as PlayListItem).Video;
                     string alternativeTitle = (o as PlayListItem).Description;
-                    Sites.SiteUtilBase site = (o as PlayListItem).Util;
 
                     System.Threading.Thread.Sleep(2000);
 
@@ -3362,12 +3378,6 @@ namespace OnlineVideos.MediaPortal1
                     if (!string.IsNullOrEmpty(video.ThumbnailImage)) GUIPropertyManager.SetProperty("#Play.Current.Thumb", video.ThumbnailImage);
                     if (!string.IsNullOrEmpty(video.Airdate)) GUIPropertyManager.SetProperty("#Play.Current.Year", video.Airdate);
                     else if (!string.IsNullOrEmpty(video.Length)) GUIPropertyManager.SetProperty("#Play.Current.Year", Helpers.TimeUtils.TimeFromSeconds(video.Length));
-
-                    if (site != null)
-                    {
-                        GUIPropertyManager.SetProperty("#Play.Current.OnlineVideos.SiteIcon", SiteImageExistenceCache.GetImageForSite(site.Settings.Name, site.Settings.UtilName, "Icon"));
-                        GUIPropertyManager.SetProperty("#Play.Current.OnlineVideos.SiteName", site.Settings.Name);
-                    }
                 }
                 catch (Exception ex)
                 {
