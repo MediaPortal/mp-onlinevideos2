@@ -72,8 +72,6 @@ namespace OnlineVideos.Sites
                     var id = obj.Value<string>("category_id");
                     if (categoryNames.TryGetValue(id, out string catName))
                         vid.Description = catName;
-                    else
-                        search = search;
                     res.Add(vid);
                 }
             }
