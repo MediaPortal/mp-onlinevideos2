@@ -742,20 +742,7 @@ namespace OnlineVideos.Sites
             var response = query.Execute();
 
             // Collect video IDs from response for duration lookup
-            string videoIDs = "";
-
-            foreach (var item in response.Items)
-            {
-
-                if (string.IsNullOrEmpty(videoIDs))
-                {
-                    videoIDs = item.Id.VideoId;
-                }
-                else
-                {
-                    videoIDs = videoIDs + "," + item.Id.VideoId;
-                }
-            }
+            string videoIDs = string.Join(",", response.Items.Select(item => item.Id.VideoId));
 
             // Retrieve Video durations
             Dictionary<string, string> videoDurations = QueryVideoInfoDuration(videoIDs);
@@ -819,6 +806,13 @@ namespace OnlineVideos.Sites
             query.MaxResults = pageSize;
             query.PageToken = pageToken;
             var response = query.Execute();
+
+            // Collect video IDs from response for duration lookup
+            string videoIDs = string.Join(",", response.Items.Select(item => item.Snippet.ResourceId.VideoId));
+
+            // Retrieve Video durations
+            Dictionary<string, string> videoDurations = QueryVideoInfoDuration(videoIDs);
+
             var results = response.Items.Where(i => i.Snippet.ResourceId.Kind == "youtube#video").Select(i => new YouTubeVideo()
             {
                 Title = i.Snippet.Title,
@@ -829,6 +823,7 @@ namespace OnlineVideos.Sites
                 ChannelId = i.Snippet.ChannelId,
                 ChannelTitle = i.Snippet.ChannelTitle,
                 PlaylistItemId = i.Id,
+                Length = videoDurations.FirstOrDefault(x => x.Key == i.Snippet.ResourceId.VideoId).Value
             }).ToList<VideoInfo>();
             if (!string.IsNullOrEmpty(response.NextPageToken))
             {
@@ -867,19 +862,7 @@ namespace OnlineVideos.Sites
             var response = query.Execute();
 
             // Collect video IDs from response for duration lookup
-            string videoIDs = "";
-
-            foreach (var item in response.Items)
-            {
-                if (string.IsNullOrEmpty(videoIDs))
-                {
-                    videoIDs = item.Id.VideoId;
-                }
-                else
-                {
-                    videoIDs = videoIDs + "," + item.Id.VideoId;
-                }
-            }
+            string videoIDs = string.Join(",", response.Items.Select(item => item.Id.VideoId));
 
             // Retrieve Video durations
             Dictionary<string, string> videoDurations = QueryVideoInfoDuration(videoIDs);
