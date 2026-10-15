@@ -1,0 +1,9 @@
+Installed client assembly version: 2.3.1.0
+Test endpoint: http://127.0.0.1:5087/api/OnlineVideos
+Deserialized sites: 16; DLLs: 3
+Site XML parsed: Site
+Site icon: 512x512; 7940 bytes
+Site banner: 1200x400; 169404 bytes
+Reports deserialized: 2
+DLL received as bytes (not executed): 238080
+PASS: original installed MP2 OnlineVideos client API, test-address-only copy

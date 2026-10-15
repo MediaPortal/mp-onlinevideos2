@@ -45,7 +45,7 @@ The HTTP test script is intentionally host-specific: old service port 5000, test
 ## Before production adoption
 
 1. Run these tests on actual Debian 13 after the OS upgrade. Current Linux results are Debian 12 with a private .NET 10 runtime; they are not a Debian 13 execution result.
-2. Test real MP1/MP2 OnlineVideos clients, administrator login, remaining management pages and email delivery in a controlled test environment. HTTP compatibility checks do not substitute for a real OnlineVideos client test.
+2. MP2 GUI catalogue and installed-client API checks have now passed; see `MP2-CLIENT-TEST.md`. Real playback still requires a current compatible plugin: the installed 2.3.1 updater rejects the advertised 2.9.2 version. Test MP1, actual streaming, administrator login, remaining management pages and email delivery before production adoption.
 3. Review existing security debt separately: legacy password storage/email behavior, upload authorization and request-size policy. This migration preserves those behaviors rather than silently changing the client protocol.
 4. Review the SkiaSharp native dependency/license inventory and operational image-processing limits. Test native decoding with representative production uploads.
 5. Back up the SQLite database and files, publish to a new versioned directory, switch the service path only after approval, and retain the prior directory for rollback. Do not replace the live SQLite file. Existing-schema access passed without migrations; any future schema changes require separate review.
