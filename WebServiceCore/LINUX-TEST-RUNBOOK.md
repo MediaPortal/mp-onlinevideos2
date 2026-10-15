@@ -1,3 +1,5 @@
+> **Updated security revision:** This document records the initial migration. The later [SECURITY-HARDENING.md](SECURITY-HARDENING.md) supersedes statements about unchanged authentication/write behavior. Legacy password email, anonymous moderation and automatic DLL publication are no longer enabled.
+
 # Isolated Linux validation runbook
 
 The 2026-10-15 trial used `/srv/onlinevideos-net10-test`, not `/var/www/publish`, and a dedicated `ov-net10-test` user. The existing `kestrel-ov2.service` was never stopped or edited. The new executable includes its own .NET 10 runtime; no system runtime was installed or replaced on the server.

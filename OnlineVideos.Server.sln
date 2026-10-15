@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebServiceCore", "WebServiceCore\WebServiceCore.csproj", "{A1AC74A1-120D-4EA1-8505-32EBDF760F54}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebServiceCore.CompatibilityTests", "WebServiceCore.CompatibilityTests\WebServiceCore.CompatibilityTests.csproj", "{82850E9E-B75D-47DD-A859-62D3E0169942}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebServiceCore.SecurityTests", "WebServiceCore.SecurityTests\WebServiceCore.SecurityTests.csproj", "{A815614E-C213-4554-A76E-A840B91AA2C5}"
+EndProject
+Global
+    GlobalSection(SolutionConfigurationPlatforms) = preSolution
+        Debug|Any CPU = Debug|Any CPU
+        Release|Any CPU = Release|Any CPU
+    EndGlobalSection
+    GlobalSection(ProjectConfigurationPlatforms) = postSolution
+        {A1AC74A1-120D-4EA1-8505-32EBDF760F54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {A1AC74A1-120D-4EA1-8505-32EBDF760F54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {A1AC74A1-120D-4EA1-8505-32EBDF760F54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {A1AC74A1-120D-4EA1-8505-32EBDF760F54}.Release|Any CPU.Build.0 = Release|Any CPU
+        {82850E9E-B75D-47DD-A859-62D3E0169942}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {82850E9E-B75D-47DD-A859-62D3E0169942}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {82850E9E-B75D-47DD-A859-62D3E0169942}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {82850E9E-B75D-47DD-A859-62D3E0169942}.Release|Any CPU.Build.0 = Release|Any CPU
+        {A815614E-C213-4554-A76E-A840B91AA2C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {A815614E-C213-4554-A76E-A840B91AA2C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {A815614E-C213-4554-A76E-A840B91AA2C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {A815614E-C213-4554-A76E-A840B91AA2C5}.Release|Any CPU.Build.0 = Release|Any CPU
+    EndGlobalSection
+EndGlobal

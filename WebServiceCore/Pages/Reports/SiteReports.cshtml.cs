@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
@@ -11,9 +11,9 @@ namespace WebServiceCore.Pages.Reports
     {
         [Required]
         public DateTime Date { get; set; }
-        [Required]
+        [Required, EnumDataType(typeof(ReportType))]
         public ReportType Type { get; set; }
-        [Required]
+        [Required, StringLength(2000, MinimumLength=1)]
         public string Message { get; set; }
     }
 
@@ -83,11 +83,14 @@ namespace WebServiceCore.Pages.Reports
             Report report = new Report()
             {
                 SiteName = Site,
-                Date = NewReport.Date,
+                Date = DateTime.UtcNow,
                 Type = NewReport.Type,
                 Message = NewReport.Message
             };
 
+            if (await _context.Reports.CountAsync() >= 100000 || await _context.Reports.CountAsync(r => r.SiteName == Site) >= 1000) return false;
+            if (report.Type == ReportType.ConfirmedBroken) site.State = SiteState.Broken;
+            else if (report.Type is ReportType.Fixed or ReportType.RejectedBroken) site.State = SiteState.Working;
             _context.Reports.Add(report);
             await _context.SaveChangesAsync();
             return true;
@@ -101,7 +104,7 @@ namespace WebServiceCore.Pages.Reports
         {
             var site = await _context.Sites
                 .AsNoTrackingWithIdentityResolution()
-                .Include(s => s.Reports)
+                .Include(s => s.Reports.OrderByDescending(r => r.Date).Take(1000))
                 .FirstOrDefaultAsync(s => s.Name == Site);
 
             if (site == null)
@@ -109,7 +112,7 @@ namespace WebServiceCore.Pages.Reports
 
             SiteOwner = site.OwnerId;
             CanEdit = User.Identity.Name == site.OwnerId || User.IsInRole("admin");
-            Reports = site.Reports;
+            Reports = site.Reports.OrderByDescending(r => r.Date).Take(1000).ToList();
         }
     }
 }

@@ -1,3 +1,5 @@
+> **Updated security revision:** This document records the initial migration. The later [SECURITY-HARDENING.md](SECURITY-HARDENING.md) supersedes statements about unchanged authentication/write behavior. Legacy password email, anonymous moderation and automatic DLL publication are no longer enabled.
+
 # WebServiceCore .NET 10 migration
 
 ## Status and provenance

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace WebServiceCore.Models.Entities
 {
@@ -6,6 +6,8 @@ namespace WebServiceCore.Models.Entities
 
     public class Site
     {
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public int ReportCount { get; set; }
         /// <summary>
         /// Primary key.
         /// </summary>

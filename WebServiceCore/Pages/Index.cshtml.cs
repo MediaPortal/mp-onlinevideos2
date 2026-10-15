@@ -18,6 +18,9 @@ namespace WebServiceCore.Pages
         public string CurrentSortingProperty { get; set; }
 
         public IList<Site> Sites { get; set; }
+        [BindProperty(SupportsGet = true)]
+        public int PageNumber { get; set; } = 1;
+        public bool HasMore { get; set; }
 
         public async Task OnGet()
         {
@@ -61,10 +64,16 @@ namespace WebServiceCore.Pages
             }
             CurrentSortingProperty = sortingProperty;
 
+            PageNumber = Math.Clamp(PageNumber, 1, 50);
             Sites = await query
                 .AsNoTrackingWithIdentityResolution()
-                .Include(s => s.Reports)
+                .Skip((PageNumber - 1) * 200).Take(201)
+                .Select(s => new Site { Name = s.Name, OwnerId = s.OwnerId, Language = s.Language,
+                    LastUpdated = s.LastUpdated, Description = s.Description, IsAdult = s.IsAdult,
+                    State = s.State, ReportCount = s.Reports.Count })
                 .ToListAsync();
+            HasMore = Sites.Count > 200;
+            if (HasMore) Sites.RemoveAt(200);
         }
     }
 }

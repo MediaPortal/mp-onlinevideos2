@@ -1,4 +1,4 @@
-﻿@using WebServiceCore.Models.Entities
+@using WebServiceCore.Models.Entities
 @{
 }
 @model IndexModel
@@ -46,11 +46,11 @@
                             <a asp-page="/Reports/SiteReports" asp-route-site="@item.Name">
                                 @item.Name
                             </a>
-                            <span title="Reports" style="position:absolute;bottom:0;right:0;font-size:small;font-weight:normal">@(item.Reports?.Count ?? 0)</span>
+                            <span title="Reports" style="position:absolute;bottom:0;right:0;font-size:small;font-weight:normal">@(item.ReportCount)</span>
                         </div>
                     </td>
                     <td>
-                        @item.OwnerId.Substring(0, item.OwnerId.IndexOf('@')).Replace('.', ' ').Replace('_', ' ')
+                        @((item.OwnerId ?? string.Empty).Split('@')[0].Replace('.', ' ').Replace('_', ' '))
                     </td>
                     <td>
                         <img src="~/Langs/@(item.Language).png" height="38px" />
