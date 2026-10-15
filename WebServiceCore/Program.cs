@@ -23,7 +23,8 @@ namespace WebServiceCore
             builder.Services.AddRazorPages();
 
             builder.Services.AddDbContext<OnlineVideosDataContext>(opt =>
-               opt.UseSqlite("Data Source=Onlinevideos.db3"));
+               opt.UseSqlite(builder.Configuration.GetConnectionString("OnlineVideos")
+                   ?? "Data Source=Onlinevideos.db3"));
 
             builder.Services.AddControllers();
             builder.Services.AddSwaggerGen();

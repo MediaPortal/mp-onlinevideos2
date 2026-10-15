@@ -1,0 +1,23 @@
+name: WebService .NET 10 compatibility
+on:
+  push:
+    paths: ['WebServiceCore/**', 'WebServiceCore.CompatibilityTests/**', '.github/workflows/webservice-net10.yml']
+  pull_request:
+    paths: ['WebServiceCore/**', 'WebServiceCore.CompatibilityTests/**', '.github/workflows/webservice-net10.yml']
+permissions:
+  contents: read
+jobs:
+  compatibility:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore WebServiceCore/WebServiceCore.csproj --locked-mode
+      - run: dotnet run --project WebServiceCore.CompatibilityTests -c Release
+      - if: runner.os == 'Linux'
+        run: dotnet publish WebServiceCore/WebServiceCore.csproj -c Release -r linux-x64 --self-contained true -o artifacts/webservice

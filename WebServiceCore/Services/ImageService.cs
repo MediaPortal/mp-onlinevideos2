@@ -1,5 +1,4 @@
-﻿using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Png;
+﻿using SkiaSharp;
 
 namespace WebServiceCore.Services
 {
@@ -9,12 +8,14 @@ namespace WebServiceCore.Services
         {
             try
             {
-                using (MemoryStream ms = new MemoryStream(icon))
+                using (var data = SKData.CreateCopy(icon))
+                using (var imageInfo = SKCodec.Create(data))
                 {
-                    var imageInfo = await Image.IdentifyAsync(ms);
-                    if (!PngFormat.Instance.Equals(imageInfo.Metadata.DecodedImageFormat))
+                    if (imageInfo == null)
+                        return "Icon invalid!";
+                    if (imageInfo.EncodedFormat != SKEncodedImageFormat.Png)
                         return "Icon not saved! Must be PNG!";
-                    if (imageInfo.Width != imageInfo.Height)
+                    if (imageInfo.Info.Width != imageInfo.Info.Height)
                         return "Icon not saved! Height must be equal to width!";
                     await File.WriteAllBytesAsync(savePath, icon);
                     return "Icon saved!";
@@ -30,12 +31,14 @@ namespace WebServiceCore.Services
         {
             try
             {
-                using (MemoryStream ms = new MemoryStream(banner))
+                using (var data = SKData.CreateCopy(banner))
+                using (var imageInfo = SKCodec.Create(data))
                 {
-                    var imageInfo = await Image.IdentifyAsync(ms);
-                    if (!PngFormat.Instance.Equals(imageInfo.Metadata.DecodedImageFormat))
+                    if (imageInfo == null)
+                        return "Banner invalid!";
+                    if (imageInfo.EncodedFormat != SKEncodedImageFormat.Png)
                         return "Banner not saved! Must be PNG!";
-                    if (imageInfo.Width != 3 * imageInfo.Height)
+                    if (imageInfo.Info.Width != 3 * imageInfo.Info.Height)
                         return "Banner not saved! Width must be 3 times height!";
                     await File.WriteAllBytesAsync(savePath, banner);
                     return "Banner saved!";
