@@ -42,10 +42,14 @@ Activation URLs contain one-time secrets: suppress query-string logging for `/Ac
 
 The test frontend uses the LogoManager palette and layout with its own OnlineVideos header. The header was generated using the built-in image tool with only the right-hand LogoManager text treatment as reference: dark blue textured background, white OnlineVideos title, light subtitle, no MP2 logo. Prompt: create a compact sibling-site masthead with the exact text “OnlineVideos” and “Sites, Streams & Community”, omitting all MediaPortal/MP2 branding.
 
-Generic IPTV and Xtream replacement icons are unmodified OpenMoji 15.1.0 television/play symbols, licensed CC BY-SA 4.0. Attribution and the license accompany the PNG files; attribution is also visible in the footer. These are not official provider logos.
+The temporary generic IPTV and Xtream replacement icons were removed at the operator’s request. Missing provider icons remain absent.
 
 ## Validation and deployment — 2026-10-16
 
-62 security/account/mail checks and 15 image/SQLite checks pass. The SMTP test uses an isolated loopback listener, not a real recipient. HTTPS login, Users, Account and Reviews return 200 on the live test deployment; the old HTTP test listener rejects account access. Both replacement icons and the new header return valid PNGs. Real recipient mailbox delivery is not asserted.
+67 security/account/mail checks and 15 image/SQLite checks pass. The SMTP test uses an isolated loopback listener, not a real recipient. HTTPS login, Users, Account and Reviews return 200 on the live test deployment; the old HTTP test listener rejects account access. The new header returns a valid SVG. The temporary replacement icons were subsequently removed. Real recipient mailbox delivery is not asserted.
 
 The test server has a persistent systemd unit definition with loopback binding, filesystem restrictions, resource limits and loopback-only network access. It is started for testing and is not enabled at boot. Existing production services are unchanged. The paired pre-update backup is `/var/backups/onlinevideos-accounts-20261016-164946`. Historical review records are retained.
+
+The original generated header was replaced with native SVG typography on a transparent background for clean edges and seamless integration with the shared CSS header color. The SVG contains only a white title and light subtitle, without embedded scripts, external resources or MP2 branding.
+
+Administrators can change a user’s notification email in Users → Change email. This never renames the legacy login identifier or grants access. A changed address is unverified and old pending account links/messages are invalidated. Active users receive a new confirmation link; disabled accounts remain disabled and do not receive an activation link through email editing.

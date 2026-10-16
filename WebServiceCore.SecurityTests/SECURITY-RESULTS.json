@@ -1,5 +1,5 @@
 {
-  "checks": 62,
+  "checks": 67,
   "results": [
     "Legacy passwords migrated to salted hashes",
     "Anonymous confirmed-broken blocked",
@@ -51,6 +51,11 @@
     "User cannot subscribe to administrator notifications",
     "Reports are grouped into one hourly summary",
     "Disabled mail transport never sends messages",
+    "Ordinary users cannot change another account email",
+    "Administrator email editing rejects header injection",
+    "Administrator email change requires new verification",
+    "Active account receives a new email confirmation link",
+    "Email editing cannot reactivate a disabled account",
     "Password change requires current password",
     "Old password fails after replacement",
     "Site submissions stay private pending review",

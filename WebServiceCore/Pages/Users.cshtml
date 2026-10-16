@@ -14,7 +14,8 @@
 </form>
 <div class="table-responsive"><table class="table"><thead><tr><th>Login</th><th>Email</th><th>Access</th><th>Delete account</th></tr></thead><tbody>
 @foreach(var u in Model.Accounts) {
-<tr><td>@u.Email</td><td>@u.ContactEmail<br />@(u.EmailConfirmed?"Verified":"Not verified")</td><td>
+<tr><td>@u.Email</td><td>@u.ContactEmail<br />@(u.EmailConfirmed?"Verified":"Not verified")
+<details><summary>Change email</summary><form method="post" asp-page-handler="Email"><input type="hidden" name="target" value="@u.Email" /><label>New email for @u.Email <input name="address" type="email" value="@u.ContactEmail" maxlength="254" required /></label><p>The new address requires confirmation. Disabled accounts remain disabled.</p><button class="btn btn-sm btn-primary">Save email</button></form></details></td><td>
 @if(u.Email==User.Identity.Name){<span>Administrator (your account)</span>}
 else {
 <form method="post" asp-page-handler="Edit"><input type="hidden" name="target" value="@u.Email" />

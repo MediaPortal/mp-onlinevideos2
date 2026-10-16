@@ -1,5 +1,0 @@
-IPTV.png: OpenMoji television (1F4FA), Sina Schulz.
-Xtream.png: OpenMoji play button (25B6).
-OpenMoji 15.1.0, https://openmoji.org/
-License: CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/
-Unmodified generic replacement icons, not official provider logos.

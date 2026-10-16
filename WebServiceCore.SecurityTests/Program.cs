@@ -145,6 +145,16 @@ try
             var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();Check(await db.MailJobs.CountAsync(j=>j.Kind=="reports")==1,"Reports are grouped into one hourly summary");
             await mail.Deliver(CancellationToken.None);Check(await db.MailJobs.AnyAsync(j=>j.Kind=="reports"&&j.Status=="pending"),"Disabled mail transport never sends messages");
         }
+        Check(await Denied(a=>a.SetEmail("invited","admin","bad@example.invalid")),"Ordinary users cannot change another account email");
+        Check(await Denied(a=>a.SetEmail("admin","invited","bad\r\nBcc: attack@example.invalid")),"Administrator email editing rejects header injection");
+        await Act(a=>a.SetEmail("admin","invited","changed@example.invalid"));
+        using(var db=new OnlineVideosDataContext(options)) {
+            var u=db.Users.Single(x=>x.Email=="invited");Check(u.ContactEmail=="changed@example.invalid"&&!u.EmailConfirmed,"Administrator email change requires new verification");
+            Check(db.MailJobs.Any(x=>x.UserId=="invited"&&x.Kind=="account"),"Active account receives a new email confirmation link");
+        }
+        await Act(a=>a.Edit("admin","other","user",true));await Act(a=>a.SetEmail("admin","other","disabled@example.invalid"));
+        using(var db=new OnlineVideosDataContext(options)) Check(db.Users.Single(x=>x.Email=="other").IsDisabled&&!db.AccountTokens.Any(x=>x.UserId=="other"),"Email editing cannot reactivate a disabled account");
+        await Act(a=>a.Edit("admin","other","user",false));
         Check(await Denied(a=>a.ChangePassword("invited","wrong",password)),"Password change requires current password");
         await Act(a=>a.ChangePassword("invited",password,"Replacement-Synthetic-Password-2026!"));
         using(var scope=factory.Services.CreateScope()) Check(await scope.ServiceProvider.GetRequiredService<Credentials>().Authenticate("invited",password)==null,"Old password fails after replacement");

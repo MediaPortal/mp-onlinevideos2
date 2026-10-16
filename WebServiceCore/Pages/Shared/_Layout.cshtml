@@ -11,7 +11,7 @@
 <body>
     <header class="portal-header">
         <div class="portal-header-inner">
-            <a class="portal-brand" asp-page="/Index"><img src="~/onlinevideos-header.png" alt="OnlineVideos — Sites, Streams &amp; Community" /></a>
+            <a class="portal-brand" asp-page="/Index"><img src="~/onlinevideos-header.svg" asp-append-version="true" alt="OnlineVideos — Sites, Streams &amp; Community" /></a>
             <div class="portal-account">
             @if(User.Identity.IsAuthenticated){
                 <span>@User.Identity.Name</span><form method="post" asp-page="/Login" asp-page-handler="Logout"><button class="btn btn-sm btn-outline-light">Log out</button></form>
@@ -29,7 +29,6 @@
         </main>
     </div>
 
-    <footer class="container small text-muted">Generic IPTV and Xtream icons: <a href="https://openmoji.org/">OpenMoji</a>, <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.</footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/jquery-ajax-unobtrusive/jquery.unobtrusive-ajax.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

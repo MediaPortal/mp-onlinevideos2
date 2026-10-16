@@ -46,6 +46,18 @@ public sealed class AccountManager(OnlineVideosDataContext db, Notifications mai
   await db.MailJobs.Where(x=>x.UserId==target).ExecuteDeleteAsync();
   db.Users.Remove(u);await db.SaveChangesAsync();await tx.CommitAsync();log.LogInformation("Administrator {Actor} deleted account {Target}; contributions retained",actor,target);
  }
+ public async Task SetEmail(string actor,string target,string address) {
+  if(!ValidAddress(address)) throw new ValidationException("Enter a valid email address.");
+  await using var tx=await db.Database.BeginTransactionAsync();await Admin(actor);
+  var u=await db.Users.FindAsync(target) ?? throw new ValidationException("Account not found.");
+  if(u.Email.StartsWith("__deleted__",StringComparison.Ordinal)) throw new ValidationException("Deleted account.");
+  if(string.Equals(u.ContactEmail,address,StringComparison.OrdinalIgnoreCase)) return;
+  u.ContactEmail=address;u.EmailConfirmed=false;
+  await db.AccountTokens.Where(t=>t.UserId==target).ExecuteDeleteAsync();
+  await db.MailJobs.Where(j=>j.UserId==target&&j.Status=="pending").ExecuteDeleteAsync();
+  if(!u.IsDisabled) await Token(u,address,"verify");
+  await db.SaveChangesAsync();await tx.CommitAsync();log.LogInformation("Administrator {Actor} changed email for account {Target}",actor,target);
+ }
  public async Task ChangePassword(string actor,string oldPassword,string newPassword) {
   Password(newPassword);var u=await db.Users.FindAsync(actor);
   if(u==null || u.IsDisabled || !Credentials.Verify(u,oldPassword)) throw new ValidationException("The current password is incorrect.");

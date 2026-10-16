@@ -4,8 +4,9 @@
   "/Account": 200,
   "/Reviews": 200,
   "/": 200,
-  "/Icons/IPTV.png": 200,
-  "/Icons/Xtream.png": 200,
-  "/onlinevideos-header.png": 200,
+  "/onlinevideos-header.svg": 200,
+  "/Icons/IPTV.png": 404,
+  "/Icons/Xtream.png": 404,
+  "admin_email_editor": true,
   "plaintext_users": 403
 }
