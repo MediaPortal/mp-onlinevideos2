@@ -2,7 +2,7 @@
 @{
 }
 @model IndexModel
-<div id="siteGrid">
+<div id="siteGrid" class="table-responsive">
     <table class="table table-striped">
         <thead>
             <tr>
@@ -39,7 +39,7 @@
             {
                 <tr>
                     <td>
-                        <img src="~/Icons/@(item.Name).png" width="48px" height="48px" />
+                        <img src="~/Icons/@(item.Name).png" width="48px" height="48px" alt="@item.Name" />
                     </td>
                     <td>
                         <div style="position:relative">
@@ -50,7 +50,7 @@
                         </div>
                     </td>
                     <td>
-                        @((item.OwnerId ?? string.Empty).Split('@')[0].Replace('.', ' ').Replace('_', ' '))
+                        @((item.OwnerId?.StartsWith("__deleted__")==true?"Deleted user":item.OwnerId ?? string.Empty).Split('@')[0].Replace('.', ' ').Replace('_', ' '))
                     </td>
                     <td>
                         <img src="~/Langs/@(item.Language).png" height="38px" />

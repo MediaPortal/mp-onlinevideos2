@@ -10,10 +10,10 @@ using Microsoft.EntityFrameworkCore;
 namespace WebServiceCore.Services;
 
 // Remote uploads can only stage packages. Publication requires an explicit local operator command.
-public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config, OnlineVideosDataContext db)
+public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config, OnlineVideosDataContext db, Notifications notifications = null)
 {
     public string Root => Path.GetFullPath(config["Security:PrivateDataPath"] ?? Path.Combine(env.ContentRootPath, "private-data"));
-    public bool IsPublisher(User user) => user.IsAdmin || config.GetSection("Security:Publishers").Get<string[]>()?.Contains(user.Email, StringComparer.Ordinal) == true;
+    public bool IsPublisher(User user) => !user.IsDisabled && (user.IsAdmin || user.IsPublisher);
     public sealed record Pending(string Name, string Owner, string Sha256, DateTime Submitted);
     FileStream Lock()
     {
@@ -104,5 +104,6 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
         File.Delete(backup);
         File.Delete(Path.Combine(Root, id + ".json"));
         File.Delete(Path.Combine(Root, id + ".dll"));
+        if(notifications != null) await notifications.Event("own", id, "Package approved: " + info.Name, owner.Email);
     }
 }

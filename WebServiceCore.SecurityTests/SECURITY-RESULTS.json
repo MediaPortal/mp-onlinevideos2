@@ -1,5 +1,5 @@
 {
-  "checks": 33,
+  "checks": 62,
   "results": [
     "Legacy passwords migrated to salted hashes",
     "Anonymous confirmed-broken blocked",
@@ -33,6 +33,35 @@
     "Executable package download requires HTTPS",
     "Provider configuration download requires HTTPS",
     "Legacy catalogue read compatibility retained",
-    "Account failure budget applies independently of client IP"
+    "Account failure budget applies independently of client IP",
+    "Anonymous account list requires login",
+    "Ordinary users cannot grant administrator access",
+    "Case variant self-demotion cannot bypass checks",
+    "Administrator cannot demote self",
+    "Administrator cannot disable self",
+    "Administrator can grant publisher role",
+    "Disabled account cannot authenticate through API",
+    "Self-deletion blocked",
+    "Deletion requires exact login confirmation",
+    "Invitations start disabled and unprivileged",
+    "Invitation uses random token stored as hash",
+    "Invitation enforces password length",
+    "Invitation token is single use",
+    "Activated user can log in",
+    "User cannot subscribe to administrator notifications",
+    "Reports are grouped into one hourly summary",
+    "Disabled mail transport never sends messages",
+    "Password change requires current password",
+    "Old password fails after replacement",
+    "Site submissions stay private pending review",
+    "Only administrators can approve site changes",
+    "Administrator review publishes site change",
+    "Deletion preserves contributions under disabled anonymous ownership",
+    "Administrator can open user management",
+    "User management retains CSRF protection",
+    "Role change invalidates an existing browser session",
+    "SMTP queue hands off mail and clears delivered body",
+    "SMTP test receives expected recipient and HTTPS review link",
+    "Unsubscribing cancels queued notifications before SMTP"
   ]
 }

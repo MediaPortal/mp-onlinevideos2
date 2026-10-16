@@ -16,6 +16,7 @@ public class Program
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics",LogLevel.Warning);
         builder.WebHost.UseKestrel(opt => {
             opt.Limits.MaxRequestBodySize = InputRules.MaxBodyBytes;
             opt.Limits.MaxConcurrentConnections = 100;
@@ -29,6 +30,10 @@ public class Program
         builder.Services.AddMemoryCache(options => options.SizeLimit = 20000);
         builder.Services.AddScoped<Credentials>();
         builder.Services.AddScoped<PackageReview>();
+        builder.Services.AddScoped<AccountManager>();
+        builder.Services.AddScoped<SiteReviews>();
+        builder.Services.AddScoped<Notifications>();
+        builder.Services.AddHostedService<MailWorker>();
         var privateRoot = Path.GetFullPath(builder.Configuration["Security:PrivateDataPath"] ?? Path.Combine(builder.Environment.ContentRootPath, "private-data"));
         var publicRoot = Path.GetFullPath(builder.Environment.WebRootPath ?? Path.Combine(builder.Environment.ContentRootPath, "wwwroot")).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
         if ((privateRoot + Path.DirectorySeparatorChar).StartsWith(publicRoot, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
@@ -41,6 +46,8 @@ public class Program
             options.ForwardLimit = 1;
         });
         builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(options => {
+            options.LoginPath = "/Login";
+            options.AccessDeniedPath = "/Login";
             options.Cookie.Name = "OnlineVideos.Session";
             options.Cookie.HttpOnly = true;
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
@@ -50,7 +57,7 @@ public class Program
             options.Events.OnValidatePrincipal = async context => {
                 var db = context.HttpContext.RequestServices.GetRequiredService<OnlineVideosDataContext>();
                 var user = await db.Users.FindAsync(context.Principal?.Identity?.Name);
-                if (user == null || context.Principal?.FindFirstValue("credential-stamp") != Credentials.Stamp(user)
+                if (user == null || user.IsDisabled || context.Principal?.FindFirstValue("credential-stamp") != Credentials.Stamp(user)
                     || context.Principal.IsInRole("admin") != user.IsAdmin)
                 { context.RejectPrincipal(); await context.HttpContext.SignOutAsync(); }
             };
@@ -85,6 +92,7 @@ public class Program
                 Console.WriteLine("Database schema initialized. No demo accounts were created.");
                 return;
             }
+            await AccountSchema.Upgrade(db);
             await Credentials.Migrate(db);
             if (args.Length > 0 && args[0] is "--set-password" or "--create-user")
             {
@@ -120,9 +128,14 @@ public class Program
             context.Response.Headers["Referrer-Policy"] = "same-origin";
             context.Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
             var path = context.Request.Path;
+            if(path.StartsWithSegments("/Account")||path.StartsWithSegments("/Users")||path.StartsWithSegments("/Reviews")||path.StartsWithSegments("/Activate")) {
+                context.Response.Headers.CacheControl="no-store";
+                context.Response.Headers["Referrer-Policy"]="no-referrer";
+            }
             // Allow plaintext catalogue reads for legacy clients, never credentials or mutations by default.
             if (!context.Request.IsHttps
                 && ((!HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method)) || path.StartsWithSegments("/Login")
+                    || path.StartsWithSegments("/Account") || path.StartsWithSegments("/Users") || path.StartsWithSegments("/Activate") || path.StartsWithSegments("/Reviews")
                     || path.StartsWithSegments("/api/OnlineVideos/GetDll", StringComparison.OrdinalIgnoreCase)
                     || path.StartsWithSegments("/api/OnlineVideos/GetSiteXml", StringComparison.OrdinalIgnoreCase)))
             { context.Response.StatusCode = 403; await context.Response.WriteAsync("HTTPS is required for authentication and writes."); return; }

@@ -93,6 +93,9 @@ namespace WebServiceCore.Pages.Reports
             else if (report.Type is ReportType.Fixed or ReportType.RejectedBroken) site.State = SiteState.Working;
             _context.Reports.Add(report);
             await _context.SaveChangesAsync();
+            var mail=HttpContext.RequestServices.GetRequiredService<WebServiceCore.Services.Notifications>();
+            if(report.Type is ReportType.Suggestion or ReportType.Broken) await mail.Event("reports",report.Id.ToString(),"New reports");
+            else await mail.Event("own",report.Id.ToString(),"Report decision for " + site.Name + ": " + report.Type,site.OwnerId);
             return true;
         }
 

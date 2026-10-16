@@ -17,15 +17,17 @@ namespace WebServiceCore.Controllers
     {
         private readonly OnlineVideosDataContext _context;
         private readonly Credentials _credentials;
+        private readonly Notifications _notifications;
         private readonly PackageReview _packages;
         private readonly IWebHostEnvironment _environment;
         private readonly IImageService _imageService;
         private readonly IConfiguration _config;
         private readonly ILogger<OnlineVideosController> _logger;
 
-        public OnlineVideosController(OnlineVideosDataContext context, IWebHostEnvironment environment, IImageService imageService, IConfiguration config, ILogger<OnlineVideosController> logger, Credentials credentials, PackageReview packages)
+        public OnlineVideosController(OnlineVideosDataContext context, IWebHostEnvironment environment, IImageService imageService, IConfiguration config, ILogger<OnlineVideosController> logger, Credentials credentials, PackageReview packages, Notifications notifications = null)
         {
             _context = context;
+            _notifications = notifications;
             _credentials = credentials;
             _packages = packages;
             _environment = environment;
@@ -95,47 +97,9 @@ namespace WebServiceCore.Controllers
             if (!string.IsNullOrEmpty(dto.RequiredDll) && !await _context.Dlls.AnyAsync(d => d.Name == dto.RequiredDll))
                 return BadRequest("Required Dll not found on Server!");
 
-            // does the site already exist?
-            Site site = await _context.Sites.Include(s => s.Owner).FirstOrDefaultAsync(s => s.Name == siteName);
-            if (site != null)
-            {
-                // need to update
-                if (site.Owner.Email == user.Email || user.IsAdmin)
-                {
-                    site.Language = lang;
-                    site.Description = desc;
-                    site.IsAdult = isAdult;
-                    site.LastUpdated = updateTime;
-                    if (site.XML != dto.SiteXml) site.XML = xml.OuterXml;
-                    if (site.DllId != dto.RequiredDll) site.DllId = dto.RequiredDll;
-                    site.State = SiteState.Working;
-                    await _context.SaveChangesAsync();
-                    return Ok("Site successfully updated!" + await SaveImages(siteName, dto.Icon, dto.Banner));
-                }
-                else
-                    return Unauthorized("Only the owner or an admin can update existing sites!");
-            }
-            else
-            {
-                if (!_packages.IsPublisher(user)) return StatusCode(403, "An approved publisher must create new sites.");
-                if (await _context.Sites.CountAsync() >= 10000) return StatusCode(429, "Site quota exceeded.");
-                // insert new site
-                site = new Site()
-                {
-                    Name = siteName,
-                    Language = lang,
-                    Description = desc,
-                    IsAdult = isAdult,
-                    LastUpdated = updateTime,
-                    XML = xml.OuterXml,
-                    DllId = dto.RequiredDll,
-                    Owner = user,
-                    State = SiteState.Working
-                };
-                _context.Sites.Add(site);
-                await _context.SaveChangesAsync();
-                return Ok("Site successfully added!" + await SaveImages(siteName, dto.Icon, dto.Banner));
-            }
+            var reviews=HttpContext.RequestServices.GetRequiredService<SiteReviews>();
+            var reviewId=await reviews.Stage(user,siteName,xml.OuterXml,dto.RequiredDll,dto.Icon,dto.Banner);
+            return Accepted(new { ReviewId=reviewId, Message="Site change queued for administrator review." });
         }
 
         [HttpPost]
@@ -149,6 +113,7 @@ namespace WebServiceCore.Controllers
             if (!_packages.IsPublisher(user)) return StatusCode(403, "Publisher approval required.");
             if (!InputRules.SafeName(dto.Name)) return BadRequest("Invalid DLL name.");
             var id = await _packages.Stage(user, dto.Name, dto.Data);
+            if(_notifications != null) await _notifications.Event("packages", id, "Package awaiting review: " + dto.Name);
             return Accepted(new { ReviewId = id, Message = "Package staged privately. Local operator approval is required before publication." });
         }
 
@@ -178,7 +143,10 @@ namespace WebServiceCore.Controllers
             if (moderation) site.State = dto.Type == ReportType.ConfirmedBroken ? SiteState.Broken : SiteState.Working;
             _context.Reports.Add(report);
             await _context.SaveChangesAsync();
-            // Report mail is deliberately disabled: do not turn unauthenticated reports into an email relay.
+            if(_notifications != null) {
+                if(!moderation) await _notifications.Event("reports", report.Id.ToString(), "New reports");
+                else await _notifications.Event("own", report.Id.ToString(), "Report decision for " + site.Name + ": " + dto.Type, site.OwnerId);
+            }
             return Ok("Report successfully submitted!");
         }
 

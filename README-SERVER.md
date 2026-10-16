@@ -66,3 +66,7 @@ Tune limits against real client behavior, maintain upstream network protection a
 Databases, provider binaries, user data, private keys/configuration, Git history and compiled outputs are excluded. Only upstream SMTP placeholders remain in appsettings files; no feature sends password/report email in this revision.
 
 For this source-only ZIP, the project item copying `Onlinevideos.db3` was removed because the database is not included. A root NuGet.Config makes both test projects restore only from nuget.org. These packaging-only changes are not part of the migration patch. Application behavior otherwise matches the tracked revision. Original source and third-party asset licenses continue to apply.
+
+## Account and review extension
+
+See [USER-MANAGEMENT.md](WebServiceCore/USER-MANAGEMENT.md) for browser user management, invitation links, verified notification addresses, role/subscription checks and queued email. Site submissions now require administrator review (HTTP 202); package publication remains a local operator action.

@@ -1,3 +1,5 @@
+> **Account/review extension:** See [USER-MANAGEMENT.md](USER-MANAGEMENT.md) for the newer invitation-based account management, notification preferences, and HTTP 202 site review workflow. Its validation results supersede earlier counts below.
+
 # Server security hardening — 15 October 2026
 
 This revision addresses the application-side findings in the preceding review. It deliberately tightens legacy write workflows. It does not claim that an unchanged desktop client can verify package signatures, or that any software is immune to all attacks.
