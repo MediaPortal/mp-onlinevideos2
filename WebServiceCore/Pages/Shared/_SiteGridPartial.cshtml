@@ -10,23 +10,23 @@
                     Logo
                 </th>
                 <th>
-                    <a asp-page-handler="SiteGrid" asp-route-sortingProperty="@nameof(Site.Name)" data-ajax="true" data-ajax-update="#siteGrid">
-                        Site
+                    <a asp-page="/Index" asp-route-SortingProperty="@nameof(Site.Name)" asp-route-Descending="@(Model.CurrentSortingProperty == nameof(Site.Name) && !Model.Descending)">
+                        Site @(Model.CurrentSortingProperty == nameof(Site.Name) ? (Model.Descending ? "▼" : "▲") : "")
                     </a>
                 </th>
                 <th>
-                    <a asp-page-handler="SiteGrid" asp-route-sortingProperty="@nameof(Site.OwnerId)" data-ajax="true" data-ajax-update="#siteGrid">
-                        Creator
+                    <a asp-page="/Index" asp-route-SortingProperty="@nameof(Site.OwnerId)" asp-route-Descending="@(Model.CurrentSortingProperty == nameof(Site.OwnerId) && !Model.Descending)">
+                        Creator @(Model.CurrentSortingProperty == nameof(Site.OwnerId) ? (Model.Descending ? "▼" : "▲") : "")
                     </a>
                 </th>
                 <th>
-                    <a asp-page-handler="SiteGrid" asp-route-sortingProperty="@nameof(Site.Language)" data-ajax="true" data-ajax-update="#siteGrid">
-                        Language
+                    <a asp-page="/Index" asp-route-SortingProperty="@nameof(Site.Language)" asp-route-Descending="@(Model.CurrentSortingProperty == nameof(Site.Language) && !Model.Descending)">
+                        Language @(Model.CurrentSortingProperty == nameof(Site.Language) ? (Model.Descending ? "▼" : "▲") : "")
                     </a>
                 </th>
                 <th>
-                    <a asp-page-handler="SiteGrid" asp-route-sortingProperty="@nameof(Site.LastUpdated)" data-ajax="true" data-ajax-update="#siteGrid">
-                        Updated
+                    <a asp-page="/Index" asp-route-SortingProperty="@nameof(Site.LastUpdated)" asp-route-Descending="@(Model.CurrentSortingProperty == nameof(Site.LastUpdated) && !Model.Descending)">
+                        Updated @(Model.CurrentSortingProperty == nameof(Site.LastUpdated) ? (Model.Descending ? "▼" : "▲") : "")
                     </a>
                 </th>
                 <th>

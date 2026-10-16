@@ -53,3 +53,5 @@ The test server has a persistent systemd unit definition with loopback binding, 
 The original generated header was replaced with native SVG typography on a transparent background for clean edges and seamless integration with the shared CSS header color. The SVG contains only a white title and light subtitle, without embedded scripts, external resources or MP2 branding.
 
 Administrators can change a user’s notification email in Users → Change email. This never renames the legacy login identifier or grants access. A changed address is unverified and old pending account links/messages are invalidated. Active users receive a new confirmation link; disabled accounts remain disabled and do not receive an activation link through email editing.
+
+Catalogue sorting uses regular GET links compatible with the content security policy. Site, Creator, Language and Updated toggle ascending/descending order; pagination preserves the selection. Legacy SiteGrid URLs render a complete page for direct navigation and retain partial responses for explicit AJAX requests. Eleven live comparison checks passed against the original site, including all columns/directions and legacy URLs.
