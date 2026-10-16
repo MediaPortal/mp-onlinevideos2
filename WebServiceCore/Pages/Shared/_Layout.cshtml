@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -9,27 +9,19 @@
     <link rel="stylesheet" href="~/WebServiceCore.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">OnlineVideos</a>
-
-
-                @if (User.Identity.IsAuthenticated)
-                {
-                    <form class="d-flex" method="post">
-                        <div class="me-3"><span class="align-middle">@User.Identity.Name</span></div>
-                        <button type="submit" class="btn btn-outline-primary btn-sm" asp-page="/Login" asp-page-handler="Logout">Log out</button>
-                    </form>
-                }
-                else
-                {
-                    <form class="d-flex">
-                        <button type="submit" class="btn btn-outline-primary btn-sm" asp-page="/Login">Log in</button>
-                    </form>
-                }
+    <header class="portal-header">
+        <div class="portal-header-inner">
+            <a class="portal-brand" asp-page="/Index"><img src="~/onlinevideos-header.svg" asp-append-version="true" alt="OnlineVideos — Sites, Streams &amp; Community" /></a>
+            <div class="portal-account">
+            @if(User.Identity.IsAuthenticated){
+                <span>@User.Identity.Name</span><form method="post" asp-page="/Login" asp-page-handler="Logout"><button class="btn btn-sm btn-outline-light">Log out</button></form>
+            }else{<a asp-page="/Login">Log in</a>}
             </div>
-        </nav>
+            <nav class="portal-nav" aria-label="Main navigation"><a asp-page="/Index">Sites</a>
+            @if(User.Identity.IsAuthenticated){<a asp-page="/Account">Account settings</a>}
+            @if(User.IsInRole("admin")){<a asp-page="/Reviews">Reviews</a><a asp-page="/Users">Users</a>}
+            </nav>
+        </div>
     </header>
     <div class="container">
         <main role="main" class="pb-3">
@@ -38,7 +30,6 @@
     </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/jquery-ajax-unobtrusive/jquery.unobtrusive-ajax.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 

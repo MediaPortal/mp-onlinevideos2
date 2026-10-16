@@ -1,0 +1,65 @@
+[
+  {
+    "test": "Public homepage",
+    "status": 200
+  },
+  {
+    "test": "HTTP login blocked",
+    "status": 403
+  },
+  {
+    "test": "HTTP writes blocked",
+    "status": 403
+  },
+  {
+    "test": "Forged HTTPS header cannot bypass nginx transport enforcement",
+    "status": 403
+  },
+  {
+    "test": "Anonymous moderation blocked over trusted TLS-proxy simulation",
+    "status": 401
+  },
+  {
+    "test": "Ordinary account publishing blocked",
+    "status": 403
+  },
+  {
+    "test": "Administrator fake DLL rejected",
+    "status": 400
+  },
+  {
+    "test": "Null payload rejected",
+    "status": 400
+  },
+  {
+    "test": "Undefined report type rejected",
+    "status": 400
+  },
+  {
+    "test": "Owner moderation accepted",
+    "status": 200
+  },
+  {
+    "test": "Anonymous unverified report accepted",
+    "status": 200
+  },
+  {
+    "test": "Provider state unchanged by anonymous report; all active passwords hashed",
+    "status": "PASS"
+  },
+  {
+    "test": "Traversal rejected without server error",
+    "status": 400
+  },
+  {
+    "test": "Password email disabled",
+    "status": 410
+  }
+]
+Synthetic Linux fixtures removed.
+Production binary unchanged.
+active
+active
+
+
+EXIT 0

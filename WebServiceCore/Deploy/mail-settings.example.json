@@ -1,0 +1,9 @@
+{
+  "Mail": {
+    "Enabled": false,
+    "Host": "mail.example.invalid",
+    "Port": 25,
+    "From": "onlinevideos@example.invalid",
+    "PublicUrl": "https://onlinevideos.example.invalid"
+  }
+}

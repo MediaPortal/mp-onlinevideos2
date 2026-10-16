@@ -16,13 +16,20 @@ namespace WebServiceCore.Pages
         }
 
         public string CurrentSortingProperty { get; set; }
+        [BindProperty(SupportsGet = true)]
+        public string SortingProperty { get; set; } = nameof(Site.Name);
+        [BindProperty(SupportsGet = true)]
+        public bool Descending { get; set; }
 
         public IList<Site> Sites { get; set; }
+        [BindProperty(SupportsGet = true)]
+        public int PageNumber { get; set; } = 1;
+        public bool HasMore { get; set; }
 
         public async Task OnGet()
         {
             // Populate the model with the list of sites using the default sorting
-            await SetSites(null);
+            await SetSites(SortingProperty);
         }
 
         /// <summary>
@@ -36,7 +43,9 @@ namespace WebServiceCore.Pages
             // ToDo: Make use of Razor TempData to persist the retrieved sites across requests
             await SetSites(sortingProperty);
             // Return the partial generated using this model.
-            return Partial("_SiteGridPartial", this);
+            if (string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase))
+                return Partial("_SiteGridPartial", this);
+            return Page();
         }
 
         /// <summary>
@@ -50,21 +59,27 @@ namespace WebServiceCore.Pages
 
             switch (sortingProperty)
             {
-                case nameof(Site.OwnerId): query = query.OrderBy(s => s.OwnerId); break;
-                case nameof(Site.Language): query = query.OrderBy(s => s.Language); break;
-                case nameof(Site.LastUpdated): query = query.OrderBy(s => s.LastUpdated); break;
-                // default to sorting by name
+                case nameof(Site.OwnerId): query = Descending ? query.OrderByDescending(s => s.OwnerId).ThenBy(s => s.Name) : query.OrderBy(s => s.OwnerId).ThenBy(s => s.Name); break;
+                case nameof(Site.Language): query = Descending ? query.OrderByDescending(s => s.Language).ThenBy(s => s.Name) : query.OrderBy(s => s.Language).ThenBy(s => s.Name); break;
+                case nameof(Site.LastUpdated): query = Descending ? query.OrderByDescending(s => s.LastUpdated).ThenBy(s => s.Name) : query.OrderBy(s => s.LastUpdated).ThenBy(s => s.Name); break;
                 default:
-                    query = query.OrderBy(s => s.Name);
+                    query = Descending ? query.OrderByDescending(s => s.Name) : query.OrderBy(s => s.Name);
                     sortingProperty = nameof(Site.Name);
                     break;
             }
+            SortingProperty = sortingProperty;
             CurrentSortingProperty = sortingProperty;
 
+            PageNumber = Math.Clamp(PageNumber, 1, 50);
             Sites = await query
                 .AsNoTrackingWithIdentityResolution()
-                .Include(s => s.Reports)
+                .Skip((PageNumber - 1) * 200).Take(201)
+                .Select(s => new Site { Name = s.Name, OwnerId = s.OwnerId, Language = s.Language,
+                    LastUpdated = s.LastUpdated, Description = s.Description, IsAdult = s.IsAdult,
+                    State = s.State, ReportCount = s.Reports.Count })
                 .ToListAsync();
+            HasMore = Sites.Count > 200;
+            if (HasMore) Sites.RemoveAt(200);
         }
     }
 }

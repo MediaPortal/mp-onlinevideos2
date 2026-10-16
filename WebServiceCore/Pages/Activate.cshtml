@@ -1,0 +1,13 @@
+@page
+@model WebServiceCore.Pages.ActivateModel
+@{ViewData["Title"]="Activate account or verify email";}
+<h1>Activate account or verify email</h1>
+@if(Model.Done){<p>Your email address is verified. If this was an invitation, your account is now active.</p><a asp-page="/Login">Log in</a>}
+else {
+<div asp-validation-summary="All" class="text-danger"></div>
+<form method="post"><input asp-for="Token" type="hidden" />
+<p>For an invitation, choose a password of at least 14 characters. For email verification only, leave the password fields empty.</p>
+<div><label>New password <input name="password" type="password" autocomplete="new-password" minlength="14" maxlength="256" /></label></div>
+<div><label>Repeat password <input name="repeatPassword" type="password" autocomplete="new-password" minlength="14" maxlength="256" /></label></div>
+<button class="btn btn-primary">Confirm</button></form>
+}

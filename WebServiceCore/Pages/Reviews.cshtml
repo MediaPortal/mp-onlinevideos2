@@ -1,0 +1,10 @@
+@page
+@model WebServiceCore.Pages.ReviewsModel
+@{ViewData["Title"]="Pending reviews";}
+<h1>Pending reviews</h1><div asp-validation-summary="All" class="text-danger"></div>
+<h2>Site changes</h2>
+@if(Model.Changes.Count==0){<p>No pending site changes.</p>}
+@foreach(var c in Model.Changes){<section class="card mb-3"><div class="card-body"><h3>@c.Name</h3><p>Submitted by @c.OwnerId at @c.Created.ToString("u")</p><details><summary>Review submitted XML</summary><pre>@c.Xml</pre></details><form method="post" asp-page-handler="Decide"><input type="hidden" name="id" value="@c.Id" /><button name="decision" value="approve" class="btn btn-primary">Approve</button> <button name="decision" value="reject" class="btn btn-outline-danger">Reject</button></form></div></section>}
+<h2>Packages awaiting administrator review</h2><p>Any administrator can approve or reject pending packages here. Approval publishes executable code to clients; verify the publisher and package hash before approving.</p>
+@if(Model.Packages.Count==0){<p>No pending packages.</p>}
+@foreach(var p in Model.Packages){<section class="card mb-3"><div class="card-body"><h3>@p.Metadata.Name</h3><p>Submitted by @p.Metadata.Owner at @p.Metadata.Submitted.ToString("u")</p><p>SHA-256: <code style="overflow-wrap:anywhere">@p.Metadata.Sha256</code></p><p><a class="btn btn-outline-secondary" asp-page-handler="DownloadPackage" asp-route-id="@p.Id" asp-route-sha256="@p.Metadata.Sha256">Download for inspection</a></p><form method="post" asp-page-handler="ApprovePackage"><input type="hidden" name="id" value="@p.Id" /><input type="hidden" name="sha256" value="@p.Metadata.Sha256" /><button class="btn btn-primary">Approve and publish package</button> <button asp-page-handler="RejectPackage" class="btn btn-outline-danger">Reject</button></form></div></section>}
