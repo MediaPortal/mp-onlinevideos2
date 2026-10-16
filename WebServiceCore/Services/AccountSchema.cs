@@ -11,8 +11,17 @@ public static class AccountSchema {
    cmd.Transaction=tx.GetDbTransaction(); cmd.CommandText="PRAGMA table_info(Users)";
    using var reader=await cmd.ExecuteReaderAsync(); while(await reader.ReadAsync()) columns.Add(reader.GetString(1));
   }
-  foreach(var name in new[]{"IsPublisher","IsDisabled","EmailConfirmed","NotifyChanges","NotifyPackages","NotifyReports","NotifyOwn"})
-   if(!columns.Contains(name)) await db.Database.ExecuteSqlRawAsync($"ALTER TABLE Users ADD COLUMN {name} INTEGER NOT NULL DEFAULT 0");
+  // SQL identifiers cannot be parameters; keep every migration statement a fixed literal.
+  foreach(var (name, statement) in new[] {
+   ("IsPublisher", "ALTER TABLE Users ADD COLUMN IsPublisher INTEGER NOT NULL DEFAULT 0"),
+   ("IsDisabled", "ALTER TABLE Users ADD COLUMN IsDisabled INTEGER NOT NULL DEFAULT 0"),
+   ("EmailConfirmed", "ALTER TABLE Users ADD COLUMN EmailConfirmed INTEGER NOT NULL DEFAULT 0"),
+   ("NotifyChanges", "ALTER TABLE Users ADD COLUMN NotifyChanges INTEGER NOT NULL DEFAULT 0"),
+   ("NotifyPackages", "ALTER TABLE Users ADD COLUMN NotifyPackages INTEGER NOT NULL DEFAULT 0"),
+   ("NotifyReports", "ALTER TABLE Users ADD COLUMN NotifyReports INTEGER NOT NULL DEFAULT 0"),
+   ("NotifyOwn", "ALTER TABLE Users ADD COLUMN NotifyOwn INTEGER NOT NULL DEFAULT 0")
+  })
+   if(!columns.Contains(name)) await db.Database.ExecuteSqlRawAsync(statement);
   if(!columns.Contains("ContactEmail")) await db.Database.ExecuteSqlRawAsync("ALTER TABLE Users ADD COLUMN ContactEmail TEXT NOT NULL DEFAULT ''");
   if(!columns.Contains("SecurityVersion")) await db.Database.ExecuteSqlRawAsync("ALTER TABLE Users ADD COLUMN SecurityVersion TEXT NOT NULL DEFAULT ''");
   await db.Database.ExecuteSqlRawAsync("CREATE TABLE IF NOT EXISTS AccountTokens (Id TEXT NOT NULL PRIMARY KEY, UserId TEXT NOT NULL, Address TEXT NOT NULL, Kind TEXT NOT NULL, Expires TEXT NOT NULL)");

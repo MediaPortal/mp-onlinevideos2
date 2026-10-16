@@ -1,3 +1,4 @@
+#nullable enable
 using System.ComponentModel.DataAnnotations;
 namespace WebServiceCore.Services;
 public static class InputRules
