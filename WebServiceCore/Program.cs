@@ -48,6 +48,7 @@ public class Program
         builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(options => {
             options.LoginPath = "/Login";
             options.AccessDeniedPath = "/Login";
+            options.Cookie.Path = "/";
             options.Cookie.Name = "OnlineVideos.Session";
             options.Cookie.HttpOnly = true;
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
@@ -70,6 +71,10 @@ public class Program
             };
             options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
                 PartitionedRateLimiter.Create<HttpContext, string>(_ => RateLimitPartition.GetConcurrencyLimiter("global", _ => new ConcurrencyLimiterOptions { PermitLimit = 16, QueueLimit = 0 })),
+                PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                    context.Request.Path.StartsWithSegments("/api/OnlineVideos/SubmitDll",StringComparison.OrdinalIgnoreCase) || context.Request.Path.StartsWithSegments("/api/OnlineVideos/SubmitSite",StringComparison.OrdinalIgnoreCase)
+                    ? RateLimitPartition.GetConcurrencyLimiter("large-uploads",_=>new ConcurrencyLimiterOptions {PermitLimit=2,QueueLimit=0})
+                    : RateLimitPartition.GetNoLimiter("other-requests")),
                 PartitionedRateLimiter.Create<HttpContext, string>(context => {
                     var path = context.Request.Path.Value ?? "";
                     var login = path.Equals("/Login", StringComparison.OrdinalIgnoreCase) && HttpMethods.IsPost(context.Request.Method);
@@ -128,6 +133,14 @@ public class Program
             context.Response.Headers["Referrer-Policy"] = "same-origin";
             context.Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
             var path = context.Request.Path;
+            if(!HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method)
+                && !path.StartsWithSegments("/api/OnlineVideos/SubmitDll",StringComparison.OrdinalIgnoreCase)
+                && !path.StartsWithSegments("/api/OnlineVideos/SubmitSite",StringComparison.OrdinalIgnoreCase)) {
+                const long formLimit=32*1024;
+                if(context.Request.ContentLength>formLimit) {context.Response.StatusCode=413;return;}
+                var bodyLimit=context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>();
+                if(bodyLimit is {IsReadOnly:false}) bodyLimit.MaxRequestBodySize=formLimit;
+            }
             if(path.StartsWithSegments("/Account")||path.StartsWithSegments("/Users")||path.StartsWithSegments("/Reviews")||path.StartsWithSegments("/Activate")) {
                 context.Response.Headers.CacheControl="no-store";
                 context.Response.Headers["Referrer-Policy"]="no-referrer";
@@ -153,7 +166,7 @@ public class Program
         });
         app.UseExceptionHandler(handler => handler.Run(async context => {
             var error = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
-            context.Response.StatusCode = error is ValidationException ? 400 : error is IOException ? 503 : 500;
+            context.Response.StatusCode = error is BadHttpRequestException bad ? bad.StatusCode : error is ValidationException ? 400 : error is IOException ? 503 : 500;
             await context.Response.WriteAsync(context.Response.StatusCode == 400 ? "Invalid request." : "Request could not be completed.");
         }));
         if (!app.Environment.IsDevelopment()) app.UseHsts();

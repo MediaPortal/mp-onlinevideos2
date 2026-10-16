@@ -37,11 +37,11 @@ The supplied `WebServiceCore/Deploy/nginx-test-http.conf` is a **read-only HTTP 
 
 For a brand-new empty database, use the explicit `--initialize-empty` command described in the hardening notes. It creates no demo accounts. Existing passwords are converted to salted hashes at startup. Keep a protected pre-upgrade backup; an old plaintext-password service must not be pointed at the converted database. Historical backups may still contain plaintext passwords and need protected retention.
 
-Account provisioning and password replacement are local operator operations using `--create-user` and `--set-password`, with a strong password supplied through `OV_NEW_PASSWORD`. DLL publication uses `--approve-package REVIEW_ID` after inspecting the exact staged package. Detailed commands and safeguards are in the hardening notes. There are no production secrets or default administrator credentials in this archive.
+Administrators can provision invited users and manage roles in the browser. Local operator alternatives use `--create-user` and `--set-password`, with a strong password supplied through `OV_NEW_PASSWORD`. DLL publication uses `--approve-package REVIEW_ID` after inspecting the exact staged package. Detailed commands and safeguards are in the hardening notes. There are no production secrets or default administrator credentials in this archive.
 
 ## What was tested
 
-- 33 automated HTTP/security regression checks passed on Windows, including the fake-client attack scenarios, password migration, staging/approval and session protections.
+- 82 automated HTTP/security/account/SMTP regression checks passed on Windows, including the fake-client attack scenarios, password migration, staging/approval and session protections.
 - 15 native PNG/image and SQLite compatibility checks passed on Windows.
 - 14 smoke assertions passed against the hardened Debian 12 test deployment, including nginx header spoofing, permission checks and hashed-password verification. Synthetic Linux fixtures were removed afterwards.
 - Release build and self-contained Linux publish succeeded. Production executable checksum remained unchanged and the production service stayed active.
@@ -60,10 +60,12 @@ Tune limits against real client behavior, maintain upstream network protection a
 - [Migration notes and historical validation](WebServiceCore/NET10-MIGRATION.md)
 - [Linux test runbook](WebServiceCore/LINUX-TEST-RUNBOOK.md)
 - [GitHub pull request draft](WebServiceCore/GITHUB-PR-DRAFT.md)
-- `docs/onlinevideos-net10-security.patch`: local migration and hardening commits, suitable for review against the stated upstream base. No GitHub push or PR has been made.
+- `docs/onlinevideos-net10-security.patch`: local migration and hardening commits, suitable for review against the stated upstream base. The current branch is proposed in https://github.com/MediaPortal/mp-onlinevideos2/pull/4.
 - `MANIFEST-SHA256.json`: checksums for all other archive files.
+- [Follow-up review and corrected findings](WebServiceCore/SECURITY-AUDIT-20261016.md)
+- [MP2 HTTPS client test and playback blocker](WebServiceCore/MP2-CLIENT-TEST-20261016.md)
 
-Databases, provider binaries, user data, private keys/configuration, Git history and compiled outputs are excluded. Only upstream SMTP placeholders remain in appsettings files; no feature sends password/report email in this revision.
+Databases, provider binaries, user data, private keys/configuration, Git history and compiled outputs are excluded. Only upstream SMTP placeholders remain in appsettings files; account verification and opt-in notification email are configured through private deployment settings. Passwords are never emailed.
 
 For this source-only ZIP, the project item copying `Onlinevideos.db3` was removed because the database is not included. A root NuGet.Config makes both test projects restore only from nuget.org. These packaging-only changes are not part of the migration patch. Application behavior otherwise matches the tracked revision. Original source and third-party asset licenses continue to apply.
 

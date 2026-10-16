@@ -1,5 +1,5 @@
 {
-  "checks": 67,
+  "checks": 82,
   "results": [
     "Legacy passwords migrated to salted hashes",
     "Anonymous confirmed-broken blocked",
@@ -67,6 +67,21 @@
     "Role change invalidates an existing browser session",
     "SMTP queue hands off mail and clears delivered body",
     "SMTP test receives expected recipient and HTTPS review link",
-    "Unsubscribing cancels queued notifications before SMTP"
+    "Unsubscribing cancels queued notifications before SMTP",
+    "Disable/re-enable rotates the session security version",
+    "Old browser session stays invalid after an account is re-enabled",
+    "Cached administrator entity cannot bypass concurrent revocation",
+    "Oversized report body is rejected before JSON allocation",
+    "Oversized account form is rejected before model binding",
+    "Missing report page returns 404 instead of a rendering error",
+    "Report form works without CSP-incompatible AJAX execution",
+    "Unneeded dynamic-code AJAX library is no longer loaded",
+    "Concurrent heavy uploads share a two-request limit",
+    "Failed banner publication restores the previous icon",
+    "Failed image publication leaves catalogue and review unchanged",
+    "Shared administrator mailbox is deduplicated",
+    "One administrator opting out does not suppress another subscriber sharing the address",
+    "Obsolete queued account link is cancelled even when a newer token exists",
+    "Interrupted final mail attempt cannot remain pending forever"
   ]
 }

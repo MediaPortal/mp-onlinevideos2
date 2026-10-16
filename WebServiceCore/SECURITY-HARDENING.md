@@ -1,3 +1,5 @@
+> **Follow-up review:** [16 October audit](SECURITY-AUDIT-20261016.md) documents the current fixes and 82 regression checks. [MP2 client validation](MP2-CLIENT-TEST-20261016.md) documents successful HTTPS reads and the outstanding plugin version/playback blocker.
+
 > **Account/review extension:** See [USER-MANAGEMENT.md](USER-MANAGEMENT.md) for the newer invitation-based account management, notification preferences, and HTTP 202 site review workflow. Its validation results supersede earlier counts below.
 
 # Server security hardening — 15 October 2026
@@ -9,7 +11,7 @@ This revision addresses the application-side findings in the preceding review. I
 ### Authentication and transport
 
 - Legacy plaintext passwords are converted transactionally at startup to ASP.NET Core Identity password hashes using PBKDF2, a random salt and 210,000 iterations. The existing SQLite password column is reused; no schema change or plaintext authentication fallback is required. Existing clients can continue sending their existing credentials over HTTPS.
-- The GET `RegisterEmail` route now returns HTTP 410. It neither creates accounts nor sends passwords. Public self-registration and automatic password recovery are intentionally disabled until an independently reviewed token-based workflow is available. Report mail is disabled, so fake clients cannot turn reports into a mail relay.
+- The GET `RegisterEmail` route now returns HTTP 410. It neither creates accounts nor sends passwords. Public self-registration and automatic password recovery are intentionally disabled until an independently reviewed token-based workflow is available. Opt-in report summaries are deduplicated hourly; anonymous reports do not directly send arbitrary mail.
 - Login and all mutations require HTTPS. Executable DLL and provider XML downloads also require HTTPS. Public catalogue metadata and frontend views can still be read over HTTP. There is no insecure-transport configuration switch.
 - Cookies are Secure, HttpOnly and SameSite=Lax, expire after two hours and do not slide indefinitely. Password replacement or a changed administrator flag invalidates existing sessions. Cookie-protection keys persist in the private data directory; filesystem permissions must protect them.
 - Unknown users and wrong passwords receive the same authentication response. A shared per-account failure budget applies to browser and API authentication: five failed attempts result in a temporary lockout. A successful attempt clears the failure count. This in-memory budget resets at restart; multi-instance deployments need shared abuse-control state.
@@ -101,7 +103,7 @@ proxy_read_timeout 60s;
 
 Configure nginx rate/connection limits as an additional layer and enforce HTTPS at the public edge. A distributed attack can bypass per-IP application limits; upstream network protection remains necessary.
 
-Use a dedicated service account and systemd limits such as `MemoryMax=512M`, `CPUQuota=100%`, `TasksMax=128`, `UMask=0077`, `ProtectSystem=strict`, `ProtectHome=true`, `PrivateTmp=true` and `NoNewPrivileges=true`. Grant write access only to the application data paths. The separate test deployment retains outbound network restrictions and does not send mail.
+Use a dedicated service account and systemd limits such as `MemoryMax=512M`, `CPUQuota=100%`, `TasksMax=128`, `UMask=0077`, `ProtectSystem=strict`, `ProtectHome=true`, `PrivateTmp=true` and `NoNewPrivileges=true`. Grant write access only to the application data paths. The separate test deployment retains outbound network restrictions and uses the loopback SMTP relay for configured opt-in notifications.
 
 ## Compatibility and remaining client work
 

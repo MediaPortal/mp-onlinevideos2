@@ -1,0 +1,49 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Drawing;
+using System.Xml;
+class OnlineVideosClientTest {
+ static string root;
+ static int Main(string[] args) {
+  root=args[0]; System.Net.ServicePointManager.SecurityProtocol=System.Net.SecurityProtocolType.Tls12;
+  AppDomain.CurrentDomain.AssemblyResolve+=(s,e)=>{
+   var name=new AssemblyName(e.Name).Name+".dll";
+   var path=Directory.GetFiles(root,name,SearchOption.AllDirectories).FirstOrDefault();
+   return path==null?null:Assembly.LoadFrom(path);
+  };
+  try {return Run();} catch(Exception ex){Console.WriteLine(ex);return 1;}
+ }
+ static object Call(object service,string method,params object[] args){return service.GetType().GetMethod(method).Invoke(service,args);}
+ static string Name(object value){var t=value.GetType();var p=t.GetProperty("Name");return p!=null?(string)p.GetValue(value,null):(string)t.GetField("Name").GetValue(value);}
+ static void Png(byte[] data,string label){using(var ms=new MemoryStream(data))using(var image=Image.FromStream(ms))Console.WriteLine(label+": "+image.Width+"x"+image.Height+"; "+data.Length+" bytes");}
+ static int Run(){
+  var assembly=Assembly.LoadFrom(Path.Combine(root,"Plugins","OnlineVideos","OnlineVideos.dll"));
+  var integration=Assembly.LoadFrom(Path.Combine(root,"Plugins","OnlineVideos","OnlineVideos.MediaPortal2.dll")); Console.WriteLine("MP2 integration types loaded: "+integration.GetTypes().Length); Console.WriteLine("Resources: "+string.Join(",",assembly.GetManifestResourceNames())); var res=new System.Resources.ResourceManager("OnlineVideos.Properties.Resources",assembly); using(var bitmap=(Bitmap)res.GetObject("Up")) Console.WriteLine("Embedded bitmap loaded: "+bitmap.Width+"x"+bitmap.Height); var service=Activator.CreateInstance(assembly.GetType("OnlineVideos.WebService.OnlineVideosService",true));
+  var endpointField=service.GetType().GetField("<Url>k__BackingField",BindingFlags.Instance|BindingFlags.NonPublic); if(endpointField==null)throw new Exception("Endpoint backing field not found"); endpointField.SetValue(service,"https://ovtest.team-mediaportal.com/api/OnlineVideos");
+  Console.WriteLine("Installed client assembly version: "+assembly.GetName().Version);
+  Console.WriteLine("Test endpoint: "+service.GetType().GetProperty("Url").GetValue(service,null));
+  var sites=(Array)Call(service,"GetSitesOverview");
+  var dlls=(Array)Call(service,"GetDllsOverview");
+  if(sites.Length==0||dlls.Length==0)throw new Exception("Empty catalogue");
+  Console.WriteLine("Deserialized sites: "+sites.Length+"; DLLs: "+dlls.Length);
+  string name="ARD Mediathek";
+  var xml=(string)Call(service,"GetSiteXml",name);var doc=new XmlDocument();doc.LoadXml(xml);
+  Console.WriteLine("Site XML parsed: "+doc.DocumentElement.Name);
+  Png((byte[])Call(service,"GetSiteIcon",name),"Site icon");
+  Png((byte[])Call(service,"GetSiteBanner",name),"Site banner");
+  var reports=(Array)Call(service,"GetReports",name);Console.WriteLine("Reports deserialized: "+reports.Length);
+  string dllName=Name(dlls.GetValue(0));
+  var dll=(byte[])Call(service,"GetDll",dllName);
+  if(dll.Length<2||dll[0]!='M'||dll[1]!='Z')throw new Exception("Downloaded DLL is not PE data");
+  Console.WriteLine("DLL received as bytes (not executed): "+dll.Length);
+  var updater=assembly.GetType("OnlineVideos.Sites.Updater",true); Console.WriteLine("Updater online version: "+updater.GetProperty("VersionOnline").GetValue(null,null)); Console.WriteLine("Updater compatible: "+updater.GetProperty("VersionCompatible").GetValue(null,null));
+  Console.WriteLine("PASS: installed MP2 2.4.0.1 integration against HTTPS test server, instance endpoint overridden in memory");
+  return 0;
+ }
+}
+
+
+
+

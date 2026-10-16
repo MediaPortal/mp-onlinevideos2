@@ -42,7 +42,8 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
     }
     public async Task<string> Stage(User owner, string name, byte[] data)
     {
-        if (!IsPublisher(owner)) throw new ValidationException("Publisher approval required.");
+        owner=await db.Users.AsNoTracking().SingleOrDefaultAsync(u=>u.Email==owner.Email);
+        if (owner==null || !IsPublisher(owner)) throw new ValidationException("Publisher approval required.");
         Validate(data, name);
         using var gate = Lock();
         if (new DirectoryInfo(Root).EnumerateFiles().Sum(f => f.Length) + data.Length > 128L * 1024 * 1024)
@@ -70,13 +71,13 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
         var bytes = await File.ReadAllBytesAsync(Path.Combine(Root, id + ".dll"));
         Validate(bytes, info.Name);
         if (Convert.ToHexString(SHA256.HashData(bytes)) != info.Sha256) throw new ValidationException("Package hash changed.");
-        var owner = await db.Users.FindAsync(info.Owner);
-        if (owner == null || !IsPublisher(owner)) throw new ValidationException("Publisher approval has been revoked.");
         var destination = InputRules.AssetPath(env.WebRootPath, "Dlls", info.Name, ".dll");
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
         if (new DirectoryInfo(Path.GetDirectoryName(destination)!).EnumerateFiles().Sum(f => f.Length) + bytes.Length > 512L * 1024 * 1024)
             throw new ValidationException("Published package quota exceeded.");
         await using var transaction = await db.Database.BeginTransactionAsync();
+        var owner=await db.Users.AsNoTracking().SingleOrDefaultAsync(u=>u.Email==info.Owner);
+        if(owner==null || !IsPublisher(owner)) throw new ValidationException("Publisher approval has been revoked.");
         var dll = await db.Dlls.FindAsync(info.Name);
         if (dll != null && dll.OwnerId != owner.Email && !owner.IsAdmin) throw new ValidationException("Package ownership changed.");
         if (dll == null) { dll = new Dll { Name = info.Name, OwnerId = owner.Email }; db.Dlls.Add(dll); }

@@ -8,6 +8,7 @@ namespace WebServiceCore.Models.Entities
         public string Email { get; set; }
         public string Password { get; set; }
         public bool IsAdmin { get; set; }
+        public string SecurityVersion { get; set; } = "";
         public bool IsPublisher { get; set; }
         public bool IsDisabled { get; set; }
         public string ContactEmail { get; set; } = "";

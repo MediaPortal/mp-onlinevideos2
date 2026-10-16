@@ -54,12 +54,12 @@
                         <input form="submitReportForm" type="hidden" name="NewReport.Date" value="@DateTime.Now" />
                     </td>
                     <td>
-                        <input form="submitReportForm" type="text" name="NewReport.Message" />
+                        <input form="submitReportForm" type="text" name="NewReport.Message" maxlength="2000" required />
                         <span asp-validation-for="NewReport.Message" class="text-danger"></span>
                     </td>
                     <td>
                         
-                        <form id="submitReportForm" method="post" data-ajax="true" data-ajax-method="post" data-ajax-update="#reportGrid" asp-page-handler="SubmitReport">
+                        <form id="submitReportForm" method="post" asp-page-handler="SubmitReport">
                             <input type="submit" value="Add" />
                         </form>
                     </td>

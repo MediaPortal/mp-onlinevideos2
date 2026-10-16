@@ -194,6 +194,63 @@ try
         await mail.Event("changes","2","Do not send");u.NotifyChanges=false;await db.SaveChangesAsync();await mail.Deliver(CancellationToken.None);
         Check(await db.MailJobs.AnyAsync(j=>j.EventKey=="changes:2"&&j.Status=="cancelled"),"Unsubscribing cancels queued notifications before SMTP");
     }
+    using(var factory=new TestFactory(root,dbpath)) {
+        using(var db=new OnlineVideosDataContext(options)){var u=new User{Email="revivable",Password="",IsPublisher=true};u.Password=Credentials.Hash(u,password);db.Users.Add(u);await db.SaveChangesAsync();}
+        using var browser=factory.CreateClient(new(){BaseAddress=new Uri("https://localhost"),AllowAutoRedirect=false});
+        var page=await browser.GetStringAsync("/Login");var token=Regex.Match(page,"name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
+        await browser.PostAsync("/Login?handler=Login",new FormUrlEncodedContent(new Dictionary<string,string>{{"username","revivable"},{"password",password},{"__RequestVerificationToken",token}}));
+        string initialStamp;
+        using(var db=new OnlineVideosDataContext(options))initialStamp=Credentials.Stamp(await db.Users.FindAsync("revivable"));
+        foreach(var disabled in new[]{true,false}){using var scope=factory.Services.CreateScope();await scope.ServiceProvider.GetRequiredService<AccountManager>().Edit("other","revivable","publisher",disabled);}
+        using(var db=new OnlineVideosDataContext(options))Check(Credentials.Stamp(await db.Users.FindAsync("revivable"))!=initialStamp,"Disable/re-enable rotates the session security version");
+        Check(!(await browser.GetStringAsync("/Login")).Contains("Log out"),"Old browser session stays invalid after an account is re-enabled");
+        using(var scope=factory.Services.CreateScope()) {
+            var trackedDb=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();await trackedDb.Users.FindAsync("other");
+            using(var external=new OnlineVideosDataContext(options)){var admin=await external.Users.FindAsync("other");admin.IsAdmin=false;await external.SaveChangesAsync();}
+            bool rejected=false;try{await scope.ServiceProvider.GetRequiredService<AccountManager>().Edit("other","revivable","admin",false);}catch(UnauthorizedAccessException){rejected=true;}
+            Check(rejected,"Cached administrator entity cannot bypass concurrent revocation");
+            using(var external=new OnlineVideosDataContext(options)){var admin=await external.Users.FindAsync("other");admin.IsAdmin=true;await external.SaveChangesAsync();}
+        }
+        Check((int)(await browser.PostAsync("/api/OnlineVideos/SubmitReport",new StringContent(new string('x',40000),System.Text.Encoding.UTF8,"application/json"))).StatusCode==413,"Oversized report body is rejected before JSON allocation");
+        Check((int)(await browser.PostAsync("/Account?handler=Password",new StringContent(new string('x',40000)))).StatusCode==413,"Oversized account form is rejected before model binding");
+        Check((int)(await browser.GetAsync("/Reports/SiteReports/does-not-exist")).StatusCode==404,"Missing report page returns 404 instead of a rendering error");
+        page=await browser.GetStringAsync("/Login");token=Regex.Match(page,"name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
+        await browser.PostAsync("/Login?handler=Login",new FormUrlEncodedContent(new Dictionary<string,string>{{"username","other"},{"password",password},{"__RequestVerificationToken",token}}));
+        page=await browser.GetStringAsync("/Reports/SiteReports/Fixture");token=Regex.Match(page,"name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
+        var reportResponse=await browser.PostAsync("/Reports/SiteReports/Fixture?handler=SubmitReport",new FormUrlEncodedContent(new Dictionary<string,string>{{"NewReport.Type","Suggestion"},{"NewReport.Date",DateTime.UtcNow.ToString("o")},{"NewReport.Message","Synthetic plain form report"},{"__RequestVerificationToken",token}}));
+        Check((int)reportResponse.StatusCode==302,"Report form works without CSP-incompatible AJAX execution");
+        Check(!page.Contains("data-ajax=\"true\"")&&!page.Contains("jquery.unobtrusive-ajax.js"),"Unneeded dynamic-code AJAX library is no longer loaded");
+        var release=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);using var first=new HeldBody(release.Task);using var second=new HeldBody(release.Task);
+        var a=browser.PostAsync("/api/OnlineVideos/SubmitDll",first);var b=browser.PostAsync("/api/OnlineVideos/SubmitDll",second);
+        await Task.WhenAll(first.Started.Task,second.Started.Task).WaitAsync(TimeSpan.FromSeconds(10));await Task.Delay(150);
+        try{Check((int)(await browser.PostAsync("/api/OnlineVideos/SubmitSite",new StringContent("{}",System.Text.Encoding.UTF8,"application/json"))).StatusCode==429,"Concurrent heavy uploads share a two-request limit");}
+        finally{release.SetResult();await Task.WhenAll(a,b);}
+        using(var scope=factory.Services.CreateScope()){
+            var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();var env=scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();var owner=await db.Users.FindAsync("revivable");
+            db.Sites.Add(new Site{Name="Rollback fixture",OwnerId=owner.Email,Description="Original",Language="en",XML="<Site />",LastUpdated=DateTime.UtcNow});await db.SaveChangesAsync();
+            byte[] Png(int width){using var bmp=new SkiaSharp.SKBitmap(width,1);bmp.Erase(SkiaSharp.SKColors.Red);using var encoded=bmp.Encode(SkiaSharp.SKEncodedImageFormat.Png,100);return encoded.ToArray();}
+            var iconPath=Path.Combine(env.WebRootPath,"Icons","Rollback fixture.png");var original=new byte[]{1,2,3,4};await File.WriteAllBytesAsync(iconPath,original);
+            var review=scope.ServiceProvider.GetRequiredService<SiteReviews>();var id=await review.Stage(owner,"Rollback fixture","<Site name=\"Rollback fixture\" lang=\"en\"><Description>Replacement</Description></Site>",null,Png(1),Png(3));
+            var failing=new SiteReviews(db,scope.ServiceProvider.GetRequiredService<AccountManager>(),scope.ServiceProvider.GetRequiredService<PackageReview>(),scope.ServiceProvider.GetRequiredService<Notifications>(),env,new RejectBannerImages());
+            bool failed=false;try{await failing.Decide("other",id,true);}catch(System.ComponentModel.DataAnnotations.ValidationException){failed=true;}
+            Check(failed&&(await File.ReadAllBytesAsync(iconPath)).SequenceEqual(original),"Failed banner publication restores the previous icon");
+            db.ChangeTracker.Clear();Check((await db.Sites.FindAsync("Rollback fixture")).Description=="Original"&&(await db.SiteChanges.FindAsync(id)).Status=="pending","Failed image publication leaves catalogue and review unchanged");
+        }
+    }
+    {
+        var opts=new DbContextOptionsBuilder<OnlineVideosDataContext>().UseSqlite("Data Source="+Path.Combine(root,"mail-audit.db3")).Options;
+        await using var db=new OnlineVideosDataContext(opts);await db.Database.EnsureCreatedAsync();
+        var first=new User{Email="first",Password="unused",IsAdmin=true,EmailConfirmed=true,ContactEmail="shared@example.invalid",NotifyChanges=true};var second=new User{Email="second",Password="unused",IsAdmin=true,EmailConfirmed=true,ContactEmail="shared@example.invalid",NotifyChanges=true};db.Users.AddRange(first,second);db.SiteChanges.Add(new SiteChange{Name="Shared",OwnerId="first",Xml="<Site />",Created=DateTime.UtcNow});await db.SaveChangesAsync();
+        using var smtp=new AuditSmtp();var config=new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string>{{"Mail:Enabled","true"},{"Mail:From","sender@example.invalid"},{"Mail:PublicUrl","https://localhost"},{"Mail:Host","127.0.0.1"},{"Mail:Port",smtp.Port.ToString()}}).Build();var mail=new Notifications(db,config);
+        await mail.Event("changes","1","Shared fixture");Check(await db.MailJobs.CountAsync()==1,"Shared administrator mailbox is deduplicated");
+        var recipient=await db.Users.FindAsync((await db.MailJobs.SingleAsync()).UserId);recipient.NotifyChanges=false;await db.SaveChangesAsync();await mail.Deliver(CancellationToken.None);await smtp.Completed.WaitAsync(TimeSpan.FromSeconds(10));
+        Check((await db.MailJobs.SingleAsync()).Status=="sent","One administrator opting out does not suppress another subscriber sharing the address");
+        var expiredLink=new string('A',64);var currentLink=new string('B',64);db.AccountTokens.Add(new AccountToken{Id=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(currentLink))),UserId="first",Address=first.ContactEmail,Kind="verify",Expires=DateTime.UtcNow.AddHours(1)});
+        db.MailJobs.Add(new MailJob{UserId="first",Address=first.ContactEmail,Kind="account",EventKey="obsolete",Subject="Confirm",Body="https://localhost/Activate?token="+expiredLink,Due=DateTime.UtcNow});
+        db.MailJobs.Add(new MailJob{UserId="first",Address=first.ContactEmail,Kind="changes",EventKey="interrupted",Subject="Old",Body="old",Due=DateTime.UtcNow,Attempts=5});await db.SaveChangesAsync();
+        await mail.Deliver(CancellationToken.None);Check((await db.MailJobs.SingleAsync(j=>j.EventKey=="obsolete")).Status=="cancelled","Obsolete queued account link is cancelled even when a newer token exists");
+        Check((await db.MailJobs.AsNoTracking().SingleAsync(j=>j.EventKey=="interrupted")).Status=="failed","Interrupted final mail attempt cannot remain pending forever");
+    }
     Console.WriteLine($"PASS: {results.Count} security regression checks");
     var output = Environment.GetEnvironmentVariable("OV_SECURITY_RESULTS");
     if (!string.IsNullOrEmpty(output)) File.WriteAllText(output, JsonSerializer.Serialize(new { checks = results.Count, results }, new JsonSerializerOptions { WriteIndented = true }));
@@ -218,4 +275,23 @@ sealed class TestFactory(string root, string dbpath) : WebApplicationFactory<Web
             ["Logging:LogLevel:Default"] = "Warning"
         }));
     }
+}
+
+sealed class HeldBody:HttpContent {
+ readonly Task release;
+ public HeldBody(Task release){this.release=release;Headers.ContentType=new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");}
+ public TaskCompletionSource Started {get;}=new(TaskCreationOptions.RunContinuationsAsynchronously);
+ protected override bool TryComputeLength(out long length){length=0;return false;}
+ protected override async Task SerializeToStreamAsync(Stream stream,TransportContext context){await stream.WriteAsync(new byte[]{123});await stream.FlushAsync();Started.TrySetResult();await release;await stream.WriteAsync(new byte[]{125});}
+}
+sealed class RejectBannerImages:IImageService {
+ public async Task<string> TrySaveIcon(byte[] data,string path){await File.WriteAllBytesAsync(path,data);return "Icon saved!";}
+ public Task<string> TrySaveBanner(byte[] data,string path)=>Task.FromResult("Banner invalid!");
+}
+sealed class AuditSmtp:IDisposable {
+ readonly System.Net.Sockets.TcpListener listener=new(IPAddress.Loopback,0);
+ public int Port=>((IPEndPoint)listener.LocalEndpoint).Port;
+ public Task Completed {get;}
+ public AuditSmtp(){listener.Start();Completed=Task.Run(async()=>{using var socket=await listener.AcceptTcpClientAsync();using var stream=socket.GetStream();using var reader=new StreamReader(stream);using var writer=new StreamWriter(stream){AutoFlush=true,NewLine="\r\n"};await writer.WriteLineAsync("220 localhost test");bool data=false;while(await reader.ReadLineAsync() is string line){if(data){if(line=="."){data=false;await writer.WriteLineAsync("250 accepted");}continue;}if(line.StartsWith("EHLO")||line.StartsWith("HELO"))await writer.WriteLineAsync("250 localhost");else if(line.StartsWith("DATA")){data=true;await writer.WriteLineAsync("354 continue");}else if(line.StartsWith("QUIT")){await writer.WriteLineAsync("221 bye");break;}else await writer.WriteLineAsync("250 ok");}});}
+ public void Dispose()=>listener.Stop();
 }
