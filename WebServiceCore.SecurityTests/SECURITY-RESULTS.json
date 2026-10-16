@@ -1,5 +1,5 @@
 {
-  "checks": 82,
+  "checks": 90,
   "results": [
     "Legacy passwords migrated to salted hashes",
     "Anonymous confirmed-broken blocked",
@@ -82,6 +82,14 @@
     "Shared administrator mailbox is deduplicated",
     "One administrator opting out does not suppress another subscriber sharing the address",
     "Obsolete queued account link is cancelled even when a newer token exists",
-    "Interrupted final mail attempt cannot remain pending forever"
+    "Interrupted final mail attempt cannot remain pending forever",
+    "Administrators can inspect the exact pending package and hash",
+    "Anonymous clients cannot open package approval",
+    "Ordinary users cannot open package approval",
+    "Package approval requires an antiforgery token",
+    "Package approval rejects a stale or mismatched displayed hash",
+    "Package approval rechecks revoked administrator rights in the transaction",
+    "Administrator browser approval publishes and clears private staging",
+    "Administrator approval preserves the published catalogue entry"
   ]
 }

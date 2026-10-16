@@ -251,6 +251,28 @@ try
         await mail.Deliver(CancellationToken.None);Check((await db.MailJobs.SingleAsync(j=>j.EventKey=="obsolete")).Status=="cancelled","Obsolete queued account link is cancelled even when a newer token exists");
         Check((await db.MailJobs.AsNoTracking().SingleAsync(j=>j.EventKey=="interrupted")).Status=="failed","Interrupted final mail attempt cannot remain pending forever");
     }
+
+    using(var factory=new TestFactory(root,dbpath)) {
+        using(var fixtureDb=new OnlineVideosDataContext(options)){var administrator=await fixtureDb.Users.FindAsync("admin");administrator.IsAdmin=true;administrator.IsDisabled=false;var ordinary=await fixtureDb.Users.FindAsync("other");ordinary.IsAdmin=false;ordinary.IsPublisher=false;await fixtureDb.SaveChangesAsync();}
+        using var adminBrowser=factory.CreateClient(new(){BaseAddress=new Uri("https://localhost"),AllowAutoRedirect=false});
+        using var ordinaryBrowser=factory.CreateClient(new(){BaseAddress=new Uri("https://localhost"),AllowAutoRedirect=false});
+        using var anonymous=factory.CreateClient(new(){BaseAddress=new Uri("https://localhost"),AllowAutoRedirect=false});
+        async Task LoginAs(HttpClient browser,string name,string pass){var html=await browser.GetStringAsync("/Login");var csrf=Regex.Match(html,"name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;var response=await browser.PostAsync("/Login?handler=Login",new FormUrlEncodedContent(new Dictionary<string,string>{{"username",name},{"password",pass},{"__RequestVerificationToken",csrf}}));if((int)response.StatusCode!=302)throw new Exception("Fixture login failed");}
+        await LoginAs(adminBrowser,"admin","Changed-Password-Test-Only");await LoginAs(ordinaryBrowser,"other",password);
+        string id,sha;using(var scope=factory.Services.CreateScope()){var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();id=await scope.ServiceProvider.GetRequiredService<PackageReview>().Stage(await db.Users.FindAsync("admin"),"Microsoft.Data.Sqlite",File.ReadAllBytes(typeof(Microsoft.Data.Sqlite.SqliteConnection).Assembly.Location));sha=JsonSerializer.Deserialize<PackageReview.Pending>(await File.ReadAllTextAsync(Path.Combine(root,"private",id+".json"))).Sha256;}
+        var page=await adminBrowser.GetStringAsync("/Reviews");var token=Regex.Match(page,"name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
+        Check(page.Contains(id)&&page.Contains(sha)&&page.Contains("Approve and publish package"),"Administrators can inspect the exact pending package and hash");
+        Check((int)(await anonymous.GetAsync("/Reviews")).StatusCode==302,"Anonymous clients cannot open package approval");
+        Check((int)(await ordinaryBrowser.GetAsync("/Reviews")).StatusCode==302,"Ordinary users cannot open package approval");
+        var form=new Dictionary<string,string>{{"id",id},{"sha256",sha}};
+        Check((int)(await adminBrowser.PostAsync("/Reviews?handler=ApprovePackage",new FormUrlEncodedContent(form))).StatusCode==400,"Package approval requires an antiforgery token");
+        form["__RequestVerificationToken"]=token;form["sha256"]=new string('0',64);
+        var mismatch=await adminBrowser.PostAsync("/Reviews?handler=ApprovePackage",new FormUrlEncodedContent(form));Check((await mismatch.Content.ReadAsStringAsync()).Contains("package has changed")&&File.Exists(Path.Combine(root,"private",id+".dll")),"Package approval rejects a stale or mismatched displayed hash");
+        using(var scope=factory.Services.CreateScope()){var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();var actor=await db.Users.FindAsync("admin");actor.IsAdmin=false;await db.SaveChangesAsync();bool denied=false;try{await scope.ServiceProvider.GetRequiredService<PackageReview>().Approve(id,"admin",sha);}catch(UnauthorizedAccessException){denied=true;}Check(denied,"Package approval rechecks revoked administrator rights in the transaction");actor.IsAdmin=true;await db.SaveChangesAsync();}
+        form["sha256"]=sha;var approved=await adminBrowser.PostAsync("/Reviews?handler=ApprovePackage",new FormUrlEncodedContent(form));
+        Check((int)approved.StatusCode==302&&!File.Exists(Path.Combine(root,"private",id+".dll")),"Administrator browser approval publishes and clears private staging");
+        using(var db=new OnlineVideosDataContext(options))Check(await db.Dlls.AnyAsync(x=>x.Name=="Microsoft.Data.Sqlite"),"Administrator approval preserves the published catalogue entry");
+    }
     Console.WriteLine($"PASS: {results.Count} security regression checks");
     var output = Environment.GetEnvironmentVariable("OV_SECURITY_RESULTS");
     if (!string.IsNullOrEmpty(output)) File.WriteAllText(output, JsonSerializer.Serialize(new { checks = results.Count, results }, new JsonSerializerOptions { WriteIndented = true }));

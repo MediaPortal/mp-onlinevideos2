@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace WebServiceCore.Services;
 
-// Remote uploads can only stage packages. Publication requires an explicit local operator command.
+// Remote uploads only stage packages. Publication requires explicit administrator or local operator approval.
 public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config, OnlineVideosDataContext db, Notifications notifications = null)
 {
     public string Root => Path.GetFullPath(config["Security:PrivateDataPath"] ?? Path.Combine(env.ContentRootPath, "private-data"));
@@ -62,7 +62,7 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
         catch { File.Delete(binary); throw; }
         return id;
     }
-    public async Task Approve(string id)
+    public async Task Approve(string id, string administrator = null, string expectedSha256 = null)
     {
         if (!Guid.TryParseExact(id, "N", out _)) throw new ValidationException("Invalid review identifier.");
         using var gate = Lock();
@@ -76,6 +76,13 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
         if (new DirectoryInfo(Path.GetDirectoryName(destination)!).EnumerateFiles().Sum(f => f.Length) + bytes.Length > 512L * 1024 * 1024)
             throw new ValidationException("Published package quota exceeded.");
         await using var transaction = await db.Database.BeginTransactionAsync();
+        if (administrator != null)
+        {
+            var actor = await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Email == administrator);
+            if (actor == null || !actor.IsAdmin || actor.IsDisabled) throw new UnauthorizedAccessException();
+            if (!string.Equals(info.Sha256, expectedSha256, StringComparison.Ordinal))
+                throw new ValidationException("The package has changed. Reload the review before approving it.");
+        }
         var owner=await db.Users.AsNoTracking().SingleOrDefaultAsync(u=>u.Email==info.Owner);
         if(owner==null || !IsPublisher(owner)) throw new ValidationException("Publisher approval has been revoked.");
         var dll = await db.Dlls.FindAsync(info.Name);

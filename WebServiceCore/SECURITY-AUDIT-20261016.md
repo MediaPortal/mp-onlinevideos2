@@ -1,3 +1,5 @@
+> **Package approval update:** All active Administrators can now explicitly approve private staged packages from Reviews. Current permissions, publisher status, ownership, managed DLL structure and SHA-256 are rechecked; the form requires antiforgery protection and binds approval to the displayed hash. The local command remains available. Validation: 90 security regression checks passed. Earlier references to operator-only publication describe the superseded policy.
+
 # Follow-up security and performance review — 16 October 2026
 
 The invitation, account, review, notification and client-facing paths were reviewed after the .NET 10 port. Confirmed issues below were corrected and deployed to the isolated HTTPS test service. The original production service was not replaced.

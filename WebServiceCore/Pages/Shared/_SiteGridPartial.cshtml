@@ -42,11 +42,11 @@
                         <img src="~/Icons/@(item.Name).png" width="48px" height="48px" alt="@item.Name" />
                     </td>
                     <td>
-                        <div style="position:relative">
+                        <div class="site-label">
                             <a asp-page="/Reports/SiteReports" asp-route-site="@item.Name">
                                 @item.Name
                             </a>
-                            <span title="Reports" style="position:absolute;bottom:0;right:0;font-size:small;font-weight:normal">@(item.ReportCount)</span>
+                            <span class="site-report-count" title="Reports">@(item.ReportCount)</span>
                         </div>
                     </td>
                     <td>

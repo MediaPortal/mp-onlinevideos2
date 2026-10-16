@@ -12,7 +12,7 @@ Administrators cannot disable, demote or delete their own account. The last acti
 
 ## Reviews and compatibility
 
-Site submissions now return HTTP 202 with a review identifier instead of publishing immediately. Owners may propose updates to their existing sites; Publishers and Administrators may propose new sites. **Reviews** lets Administrators inspect escaped XML and approve/reject site changes. Sender ownership and current permissions are checked again at approval. Packages remain private until the existing **local operator** approval command is used; web administrators cannot publish executable code. Publication generates an opt-in notification to the submitter.
+Site submissions now return HTTP 202 with a review identifier instead of publishing immediately. Owners may propose updates to their existing sites; Publishers and Administrators may propose new sites. **Reviews** lets Administrators inspect escaped XML and approve/reject site changes. Sender ownership and current permissions are checked again at approval. Packages remain private until an **Administrator** explicitly approves them in Reviews, or the local operator uses the existing approval command. All active Administrators may approve packages. The page displays the submitter and SHA-256 hash; approval rechecks current administrator and publisher permissions, ownership, package structure and the exact displayed hash. Browser approval requires an antiforgery token. Publication generates an opt-in notification to the submitter.
 
 This intentionally changes the server publication workflow. Existing read DTOs and download checksums remain unchanged. Existing clients may need to handle HTTP 202 as a pending submission rather than immediate publication.
 

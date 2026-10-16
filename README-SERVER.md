@@ -41,7 +41,7 @@ Administrators can provision invited users and manage roles in the browser. Loca
 
 ## What was tested
 
-- 82 automated HTTP/security/account/SMTP regression checks passed on Windows, including the fake-client attack scenarios, password migration, staging/approval and session protections.
+- 90 automated HTTP/security/account/SMTP regression checks passed on Windows, including the fake-client attack scenarios, password migration, staging/approval and session protections.
 - 15 native PNG/image and SQLite compatibility checks passed on Windows.
 - 14 smoke assertions passed against the hardened Debian 12 test deployment, including nginx header spoofing, permission checks and hashed-password verification. Synthetic Linux fixtures were removed afterwards.
 - Release build and self-contained Linux publish succeeded. Production executable checksum remained unchanged and the production service stayed active.
@@ -71,4 +71,4 @@ For this source-only ZIP, the project item copying `Onlinevideos.db3` was remove
 
 ## Account and review extension
 
-See [USER-MANAGEMENT.md](WebServiceCore/USER-MANAGEMENT.md) for browser user management, invitation links, verified notification addresses, role/subscription checks and queued email. Site submissions now require administrator review (HTTP 202); package publication remains a local operator action.
+See [USER-MANAGEMENT.md](WebServiceCore/USER-MANAGEMENT.md) for browser user management, invitation links, verified notification addresses, role/subscription checks and queued email. Site submissions now require administrator review (HTTP 202); package publication requires explicit Administrator approval in Reviews or the local operator command.

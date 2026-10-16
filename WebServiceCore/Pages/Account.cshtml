@@ -10,7 +10,7 @@
 <p>@(Model.Account.EmailConfirmed?"Email verified.":"Verify your email address before notifications can be sent.")</p>
 @if(Model.Account.IsAdmin){
 <div><label><input type="checkbox" name="changes" value="true" checked="@Model.Account.NotifyChanges" /> New site changes</label></div>
-<div><label><input type="checkbox" name="packages" value="true" checked="@Model.Account.NotifyPackages" /> New packages awaiting operator review</label></div>
+<div><label><input type="checkbox" name="packages" value="true" checked="@Model.Account.NotifyPackages" /> New packages awaiting administrator review</label></div>
 <div><label><input type="checkbox" name="reports" value="true" checked="@Model.Account.NotifyReports" /> New reports (hourly summary)</label></div>
 }
 <div><label><input type="checkbox" name="own" value="true" checked="@Model.Account.NotifyOwn" /> Decisions about my contributions</label></div>

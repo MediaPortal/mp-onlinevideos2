@@ -1,3 +1,5 @@
+> **Package approval update:** All active Administrators can now explicitly approve private staged packages from Reviews. Current permissions, publisher status, ownership, managed DLL structure and SHA-256 are rechecked; the form requires antiforgery protection and binds approval to the displayed hash. The local command remains available. Validation: 90 security regression checks passed. Earlier references to operator-only publication describe the superseded policy.
+
 > **Follow-up review:** [16 October audit](SECURITY-AUDIT-20261016.md) documents the current fixes and 82 regression checks. [MP2 client validation](MP2-CLIENT-TEST-20261016.md) documents successful HTTPS reads and the outstanding plugin version/playback blocker.
 
 > **Account/review extension:** See [USER-MANAGEMENT.md](USER-MANAGEMENT.md) for the newer invitation-based account management, notification preferences, and HTTP 202 site review workflow. Its validation results supersede earlier counts below.
@@ -28,7 +30,7 @@ This revision addresses the application-side findings in the preceding review. I
 
 - New provider creation and DLL staging require an administrator or an account explicitly listed in `Security:Publishers`. Existing owners may still update their own sites.
 - `SubmitDll` never publishes an upload immediately. It validates bounded size and managed assembly metadata without loading or executing the assembly. The assembly name must match the package name. The route stages the bytes and metadata privately and returns HTTP 202 with a review identifier.
-- Publication requires a separate local operator command after reviewing the package. The operator must inspect the exact SHA-256 identified bytes; format validation is not malware detection. Approval rechecks the hash, publisher authorization and existing ownership before publishing.
+- Publication requires explicit approval by an active Administrator in Reviews or a local operator command after reviewing the package. The reviewer must inspect the exact SHA-256 identified bytes; format validation is not malware detection. Approval rechecks the hash, publisher authorization and existing ownership before publishing.
 - A filesystem lock serializes staging/approval across processes. File replacement uses a temporary file, a backup and rollback if the database update fails. A hard power loss between the filesystem and database operations still needs operator reconciliation; they are not one distributed transaction. Stop the test service for planned approvals and retain a backup.
 - Direct static `/Dlls/...` access is denied. Packages are served through the bounded API. Legacy MD5 fields remain protocol change checksums only; they are not security signatures. SHA-256 protects the private review workflow.
 - Existing deployed DLLs remain trusted legacy inventory. Review that inventory before production promotion. This change does not retroactively establish its provenance.
