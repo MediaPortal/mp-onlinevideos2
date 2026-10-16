@@ -273,6 +273,40 @@ try
         Check((int)approved.StatusCode==302&&!File.Exists(Path.Combine(root,"private",id+".dll")),"Administrator browser approval publishes and clears private staging");
         using(var db=new OnlineVideosDataContext(options))Check(await db.Dlls.AnyAsync(x=>x.Name=="Microsoft.Data.Sqlite"),"Administrator approval preserves the published catalogue entry");
     }
+
+    using(var factory=new TestFactory(root,dbpath)) {
+        using var admin=factory.CreateClient(new(){BaseAddress=new Uri("https://localhost"),AllowAutoRedirect=false});
+        using var ordinary=factory.CreateClient(new(){BaseAddress=new Uri("https://localhost"),AllowAutoRedirect=false});
+        using var anonymous=factory.CreateClient(new(){BaseAddress=new Uri("https://localhost"),AllowAutoRedirect=false});
+        async Task LoginReview(HttpClient browser,string name,string pass){var html=await browser.GetStringAsync("/Login");var csrf=Regex.Match(html,"name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;await browser.PostAsync("/Login?handler=Login",new FormUrlEncodedContent(new Dictionary<string,string>{{"username",name},{"password",pass},{"__RequestVerificationToken",csrf}}));}
+        await LoginReview(admin,"admin","Changed-Password-Test-Only");await LoginReview(ordinary,"other",password);
+        var binary=File.ReadAllBytes(typeof(Microsoft.Data.Sqlite.SqliteConnection).Assembly.Location);string id;
+        using(var scope=factory.Services.CreateScope()){var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();id=await scope.ServiceProvider.GetRequiredService<PackageReview>().Stage(await db.Users.FindAsync("admin"),"Microsoft.Data.Sqlite",binary);}
+        var sha=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(binary));var download="/Reviews?handler=DownloadPackage&id="+id+"&sha256="+sha;
+        var result=await admin.GetAsync(download);
+        Check(result.IsSuccessStatusCode&&(await result.Content.ReadAsByteArrayAsync()).SequenceEqual(binary),"Administrator inspection download returns the exact staged bytes");
+        Check(result.Content.Headers.ContentDisposition?.DispositionType=="attachment"&&result.Headers.CacheControl?.NoStore==true&&result.Headers.GetValues("X-Content-Type-Options").Contains("nosniff"),"Inspection download is an attachment with no-store and nosniff");
+        Check((int)(await anonymous.GetAsync(download)).StatusCode==302,"Anonymous inspection download blocked");
+        Check((int)(await ordinary.GetAsync(download)).StatusCode==302,"Ordinary user inspection download blocked");
+        Check((int)(await admin.GetAsync(download.Replace(sha,new string('0',64)))).StatusCode==400,"Inspection download rejects a mismatched displayed hash");
+        Check((int)(await admin.GetAsync("/Reviews?handler=DownloadPackage&id=../outside&sha256="+sha)).StatusCode==400,"Inspection download rejects path traversal identifiers");
+        var staged=Path.Combine(root,"private",id+".dll");await File.WriteAllBytesAsync(staged,[1,2,3]);
+        Check((int)(await admin.GetAsync(download)).StatusCode==400,"Inspection download rejects modified staged bytes");await File.WriteAllBytesAsync(staged,binary);
+        var page=await admin.GetStringAsync("/Reviews");var token=Regex.Match(page,"name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
+        Check(page.Contains("Download for inspection")&&page.Contains("RejectPackage"),"Package review offers inspection and rejection actions");
+        var form=new Dictionary<string,string>{{"id",id},{"sha256",sha}};
+        Check((int)(await admin.PostAsync("/Reviews?handler=RejectPackage",new FormUrlEncodedContent(form))).StatusCode==400,"Package rejection requires antiforgery protection");
+        Check((int)(await ordinary.PostAsync("/Reviews?handler=RejectPackage",new FormUrlEncodedContent(form))).StatusCode==302,"Ordinary users cannot reject packages");
+        form["__RequestVerificationToken"]=token;form["sha256"]=new string('0',64);
+        result=await admin.PostAsync("/Reviews?handler=RejectPackage",new FormUrlEncodedContent(form));Check((await result.Content.ReadAsStringAsync()).Contains("package has changed")&&File.Exists(staged),"Rejection binds to the displayed package hash");form["sha256"]=sha;
+        using(var scope=factory.Services.CreateScope()){var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();var actor=await db.Users.FindAsync("admin");actor.IsAdmin=false;await db.SaveChangesAsync();var service=scope.ServiceProvider.GetRequiredService<PackageReview>();bool deniedDownload=false,deniedReject=false;try{await service.ReadForReview(id,"admin",sha);}catch(UnauthorizedAccessException){deniedDownload=true;}try{await service.Reject(id,"admin",sha);}catch(UnauthorizedAccessException){deniedReject=true;}Check(deniedDownload&&deniedReject,"Inspection and rejection recheck revoked administrator permissions");actor.IsAdmin=true;await db.SaveChangesAsync();}
+        var published=Path.Combine(root,"wwwroot","Dlls","Microsoft.Data.Sqlite.dll");var oldPublished=await File.ReadAllBytesAsync(published);
+        result=await admin.PostAsync("/Reviews?handler=RejectPackage",new FormUrlEncodedContent(form));
+        Check((int)result.StatusCode==302&&!File.Exists(staged)&&!File.Exists(Path.Combine(root,"private",id+".json")),"Administrator rejection removes only private pending package files");
+        Check(File.Exists(Path.Combine(root,"private",id+".rejected"))&&(await File.ReadAllTextAsync(Path.Combine(root,"private",id+".rejected"))).Contains("RejectedBy"),"Rejection retains private reviewer and package audit metadata");
+        Check((await File.ReadAllBytesAsync(published)).SequenceEqual(oldPublished),"Rejecting an update leaves the published package unchanged");
+        Check((int)(await admin.GetAsync(download)).StatusCode==404,"Rejected packages can no longer be downloaded for inspection");
+    }
     Console.WriteLine($"PASS: {results.Count} security regression checks");
     var output = Environment.GetEnvironmentVariable("OV_SECURITY_RESULTS");
     if (!string.IsNullOrEmpty(output)) File.WriteAllText(output, JsonSerializer.Serialize(new { checks = results.Count, results }, new JsonSerializerOptions { WriteIndented = true }));

@@ -62,6 +62,53 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
         catch { File.Delete(binary); throw; }
         return id;
     }
+    public async Task<(string Name, byte[] Bytes)> ReadForReview(string id, string administrator, string expectedSha256)
+    {
+        if (!Guid.TryParseExact(id, "N", out _)) throw new ValidationException("Invalid review identifier.");
+        using var gate = Lock();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var actor = await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Email == administrator);
+        if (actor == null || !actor.IsAdmin || actor.IsDisabled) throw new UnauthorizedAccessException();
+        var info = JsonSerializer.Deserialize<Pending>(await File.ReadAllTextAsync(Path.Combine(Root, id + ".json")))
+            ?? throw new ValidationException("Missing review metadata.");
+        if (!InputRules.SafeName(info.Name) || !string.Equals(info.Sha256, expectedSha256, StringComparison.Ordinal))
+            throw new ValidationException("The package has changed. Reload the review before downloading it.");
+        var path = Path.Combine(Root, id + ".dll");
+        if (new FileInfo(path).Length > InputRules.MaxDllBytes) throw new ValidationException("Package exceeds review size limit.");
+        var bytes = await File.ReadAllBytesAsync(path);
+        if (Convert.ToHexString(SHA256.HashData(bytes)) != info.Sha256) throw new ValidationException("Package hash changed.");
+        return (info.Name, bytes);
+    }
+    public async Task Reject(string id, string administrator, string expectedSha256)
+    {
+        if (!Guid.TryParseExact(id, "N", out _)) throw new ValidationException("Invalid review identifier.");
+        using var gate = Lock();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var actor = await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Email == administrator);
+        if (actor == null || !actor.IsAdmin || actor.IsDisabled) throw new UnauthorizedAccessException();
+        var metadata = Path.Combine(Root, id + ".json");
+        var info = JsonSerializer.Deserialize<Pending>(await File.ReadAllTextAsync(metadata))
+            ?? throw new ValidationException("Missing review metadata.");
+        if (!string.Equals(info.Sha256, expectedSha256, StringComparison.Ordinal))
+            throw new ValidationException("The package has changed. Reload the review before rejecting it.");
+        var backup = Path.Combine(Root, id + ".rejecting");
+        var audit = Path.Combine(Root, id + ".rejected");
+        File.Move(metadata, backup);
+        try
+        {
+            if (notifications != null) await notifications.Event("own", "rejected:" + id, "Package rejected: " + info.Name, info.Owner);
+            await File.WriteAllTextAsync(audit, JsonSerializer.Serialize(new { Package = info, RejectedBy = administrator, RejectedAt = DateTime.UtcNow }));
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            File.Move(backup, metadata);
+            File.Delete(audit);
+            throw;
+        }
+        File.Delete(backup);
+        File.Delete(Path.Combine(Root, id + ".dll"));
+    }
     public async Task Approve(string id, string administrator = null, string expectedSha256 = null)
     {
         if (!Guid.TryParseExact(id, "N", out _)) throw new ValidationException("Invalid review identifier.");

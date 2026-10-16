@@ -1,5 +1,5 @@
 {
-  "checks": 90,
+  "checks": 106,
   "results": [
     "Legacy passwords migrated to salted hashes",
     "Anonymous confirmed-broken blocked",
@@ -90,6 +90,22 @@
     "Package approval rejects a stale or mismatched displayed hash",
     "Package approval rechecks revoked administrator rights in the transaction",
     "Administrator browser approval publishes and clears private staging",
-    "Administrator approval preserves the published catalogue entry"
+    "Administrator approval preserves the published catalogue entry",
+    "Administrator inspection download returns the exact staged bytes",
+    "Inspection download is an attachment with no-store and nosniff",
+    "Anonymous inspection download blocked",
+    "Ordinary user inspection download blocked",
+    "Inspection download rejects a mismatched displayed hash",
+    "Inspection download rejects path traversal identifiers",
+    "Inspection download rejects modified staged bytes",
+    "Package review offers inspection and rejection actions",
+    "Package rejection requires antiforgery protection",
+    "Ordinary users cannot reject packages",
+    "Rejection binds to the displayed package hash",
+    "Inspection and rejection recheck revoked administrator permissions",
+    "Administrator rejection removes only private pending package files",
+    "Rejection retains private reviewer and package audit metadata",
+    "Rejecting an update leaves the published package unchanged",
+    "Rejected packages can no longer be downloaded for inspection"
   ]
 }

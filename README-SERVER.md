@@ -41,7 +41,7 @@ Administrators can provision invited users and manage roles in the browser. Loca
 
 ## What was tested
 
-- 90 automated HTTP/security/account/SMTP regression checks passed on Windows, including the fake-client attack scenarios, password migration, staging/approval and session protections.
+- 106 automated HTTP/security/account/SMTP regression checks passed on Windows, including the fake-client attack scenarios, password migration, staging/approval and session protections.
 - 15 native PNG/image and SQLite compatibility checks passed on Windows.
 - 14 smoke assertions passed against the hardened Debian 12 test deployment, including nginx header spoofing, permission checks and hashed-password verification. Synthetic Linux fixtures were removed afterwards.
 - Release build and self-contained Linux publish succeeded. Production executable checksum remained unchanged and the production service stayed active.

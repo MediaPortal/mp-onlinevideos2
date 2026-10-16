@@ -1,3 +1,5 @@
+> **Inspection and rejection:** Active Administrators can download exact SHA-256-checked staged bytes as private no-store attachments and reject pending packages. Rejection requires CSRF protection, preserves published versions and retains private reviewer/hash/time metadata. Validation: 106 regression checks passed.
+
 > **Package approval update:** All active Administrators can now explicitly approve private staged packages from Reviews. Current permissions, publisher status, ownership, managed DLL structure and SHA-256 are rechecked; the form requires antiforgery protection and binds approval to the displayed hash. The local command remains available. Validation: 90 security regression checks passed. Earlier references to operator-only publication describe the superseded policy.
 
 > **Follow-up review:** [16 October audit](SECURITY-AUDIT-20261016.md) documents the current fixes and 82 regression checks. [MP2 client validation](MP2-CLIENT-TEST-20261016.md) documents successful HTTPS reads and the outstanding plugin version/playback blocker.
