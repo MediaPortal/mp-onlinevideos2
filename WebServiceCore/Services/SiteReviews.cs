@@ -22,12 +22,13 @@ public sealed class SiteReviews(OnlineVideosDataContext db,AccountManager accoun
   var originals=new Dictionary<string,byte[]>();
   try {
    if(packageId!=null){
-    if(!approve)throw new ValidationException("Combined review requires approval.");
-    await packages.Approve(packageId,actor,packageSha256,async package=>{
+    async Task ApplyRelated(PackageReview.Pending package){
      var linked=await db.SiteChanges.FindAsync(id);
      if(linked==null||linked.Status!="pending"||linked.RequiredDll!=package.Name||linked.OwnerId!=package.Owner)throw new ValidationException("This package does not belong to the selected site change.");
      await Apply();
-    });
+    }
+    if(approve)await packages.Approve(packageId,actor,packageSha256,ApplyRelated);
+    else await packages.Reject(packageId,actor,packageSha256,ApplyRelated);
    }else{await using var tx=await db.Database.BeginTransactionAsync();await Apply();await tx.CommitAsync();}
   }catch {
    foreach(var original in originals){

@@ -1,5 +1,5 @@
 {
-  "checks": 110,
+  "checks": 112,
   "results": [
     "Legacy passwords migrated to salted hashes",
     "Anonymous confirmed-broken blocked",
@@ -110,6 +110,8 @@
     "Combined approval rejects a mismatched displayed DLL hash",
     "Combined approval rejects unrelated DLLs and retains the review",
     "Combined approval publishes XML and DLL together",
-    "Combined approval consumes the exact package review"
+    "Combined approval consumes the exact package review",
+    "Combined rejection rejects both XML and DLL in one action",
+    "Combined rejection preserves published files and creates no site"
   ]
 }

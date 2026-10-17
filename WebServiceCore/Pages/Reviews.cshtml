@@ -1,16 +1,16 @@
-@page
-@model WebServiceCore.Pages.ReviewsModel
-@{ViewData["Title"]="Pending reviews"; var standalonePackages=Model.Packages.Where(p=>!Model.Changes.Any(c=>c.RequiredDll==p.Metadata.Name && c.OwnerId==p.Metadata.Owner)).ToList();}
-<h1>Pending reviews</h1><div asp-validation-summary="All" class="text-danger"></div>
-<h2>Site changes</h2>
-@if(Model.Changes.Count==0){<p>No pending site changes.</p>}
-@foreach(var c in Model.Changes){<section class="card mb-3"><div class="card-body"><h3>@c.Name</h3><p>Submitted by @c.OwnerId at @c.Created.ToString("u")</p><details><summary>Review submitted XML</summary><pre>@c.Xml</pre></details>@foreach(var linked in Model.Packages.Where(p=>p.Metadata.Name==c.RequiredDll && p.Metadata.Owner==c.OwnerId)){
-<p>Related package: @linked.Metadata.Name — SHA-256: <code style="overflow-wrap:anywhere">@linked.Metadata.Sha256</code></p>
-<p><a asp-page-handler="DownloadPackage" asp-route-id="@linked.Id" asp-route-sha256="@linked.Metadata.Sha256">Download related DLL for inspection</a></p>
-<form method="post" asp-page-handler="ApproveTogether"><input type="hidden" name="siteId" value="@c.Id" /><input type="hidden" name="packageId" value="@linked.Id" /><input type="hidden" name="sha256" value="@linked.Metadata.Sha256" /><button class="btn btn-primary mb-2">Approve XML and DLL</button></form>
-<form method="post" asp-page-handler="ApprovePackage"><input type="hidden" name="id" value="@linked.Id" /><input type="hidden" name="sha256" value="@linked.Metadata.Sha256" /><button class="btn btn-outline-secondary">Approve DLL only</button> <button asp-page-handler="RejectPackage" class="btn btn-outline-danger">Reject DLL</button></form>
+@page
+@model WebServiceCore.Pages.ReviewsModel
+@{ViewData["Title"]="Pending reviews"; var standalonePackages=Model.Packages.Where(p=>!Model.Changes.Any(c=>c.RequiredDll==p.Metadata.Name && c.OwnerId==p.Metadata.Owner)).ToList();}
+<h1>Pending reviews</h1><div asp-validation-summary="All" class="text-danger"></div>
+<h2>Site changes</h2>
+@if(Model.Changes.Count==0){<p>No pending site changes.</p>}
+@foreach(var c in Model.Changes){var related=Model.Packages.Where(p=>p.Metadata.Name==c.RequiredDll && p.Metadata.Owner==c.OwnerId).ToList();<section class="card mb-3"><div class="card-body"><h3>@c.Name</h3><p>Submitted by @c.OwnerId at @c.Created.ToString("u")</p><details><summary>Review submitted XML</summary><pre>@c.Xml</pre></details>@foreach(var linked in related){
+<p>Related package: @linked.Metadata.Name - SHA-256: <code style="overflow-wrap:anywhere">@linked.Metadata.Sha256</code></p>
+<p><a asp-page-handler="DownloadPackage" asp-route-id="@linked.Id" asp-route-sha256="@linked.Metadata.Sha256">Download related DLL for inspection</a></p>
+<form method="post" asp-page-handler="ApproveTogether"><input type="hidden" name="siteId" value="@c.Id" /><input type="hidden" name="packageId" value="@linked.Id" /><input type="hidden" name="sha256" value="@linked.Metadata.Sha256" /><button class="btn btn-primary">Approve</button> <button asp-page-handler="RejectTogether" class="btn btn-outline-danger">Reject</button></form>
+}
+@if(related.Count==0){<form method="post" asp-page-handler="Decide"><input type="hidden" name="id" value="@c.Id" /><button name="decision" value="approve" class="btn btn-primary">Approve</button> <button name="decision" value="reject" class="btn btn-outline-danger">Reject</button></form>}</div></section>}
 }
-<form method="post" asp-page-handler="Decide"><input type="hidden" name="id" value="@c.Id" /><button name="decision" value="approve" class="btn btn-primary">Approve</button> <button name="decision" value="reject" class="btn btn-outline-danger">Reject</button></form></div></section>}
-<h2>Packages awaiting administrator review</h2><p>Any administrator can approve or reject pending packages here. Approval publishes executable code to clients; verify the publisher and package hash before approving.</p>
-@if(standalonePackages.Count==0){<p>No standalone pending packages. Related packages are shown with their site changes above.</p>}
-@foreach(var p in standalonePackages){<section class="card mb-3"><div class="card-body"><h3>@p.Metadata.Name</h3><p>Submitted by @p.Metadata.Owner at @p.Metadata.Submitted.ToString("u")</p><p>SHA-256: <code style="overflow-wrap:anywhere">@p.Metadata.Sha256</code></p><p><a class="btn btn-outline-secondary" asp-page-handler="DownloadPackage" asp-route-id="@p.Id" asp-route-sha256="@p.Metadata.Sha256">Download for inspection</a></p><form method="post" asp-page-handler="ApprovePackage"><input type="hidden" name="id" value="@p.Id" /><input type="hidden" name="sha256" value="@p.Metadata.Sha256" /><button class="btn btn-primary">Approve and publish package</button> <button asp-page-handler="RejectPackage" class="btn btn-outline-danger">Reject</button></form></div></section>}
+<h2>DLL-only</h2><p>Any administrator can approve or reject pending packages here. Approval publishes executable code to clients; verify the publisher and package hash before approving.</p>
+@if(standalonePackages.Count==0){<p>No standalone pending packages. Related packages are shown with their site changes above.</p>}
+@foreach(var p in standalonePackages){<section class="card mb-3"><div class="card-body"><h3>@p.Metadata.Name</h3><p>Submitted by @p.Metadata.Owner at @p.Metadata.Submitted.ToString("u")</p><p>SHA-256: <code style="overflow-wrap:anywhere">@p.Metadata.Sha256</code></p><p><a class="btn btn-outline-secondary" asp-page-handler="DownloadPackage" asp-route-id="@p.Id" asp-route-sha256="@p.Metadata.Sha256">Download for inspection</a></p><form method="post" asp-page-handler="ApprovePackage"><input type="hidden" name="id" value="@p.Id" /><input type="hidden" name="sha256" value="@p.Metadata.Sha256" /><button class="btn btn-primary">Approve</button> <button asp-page-handler="RejectPackage" class="btn btn-outline-danger">Reject</button></form></div></section>}

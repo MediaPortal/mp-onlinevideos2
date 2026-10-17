@@ -333,6 +333,17 @@ try
             Check(!File.Exists(Path.Combine(root,"private",packageId+".json")),"Combined approval consumes the exact package review");
         }
     }
+    {
+        using var factory=new TestFactory(root,dbpath);using var startup=factory.CreateClient();
+        using var scope=factory.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();var packages=scope.ServiceProvider.GetRequiredService<PackageReview>();var reviews=scope.ServiceProvider.GetRequiredService<SiteReviews>();
+        var owner=await db.Users.FindAsync("admin");var id=await packages.Stage(owner,"Microsoft.Data.Sqlite",File.ReadAllBytes(typeof(Microsoft.Data.Sqlite.SqliteConnection).Assembly.Location));
+        var sha=JsonSerializer.Deserialize<PackageReview.Pending>(await File.ReadAllTextAsync(Path.Combine(root,"private",id+".json"))).Sha256;
+        var site=await reviews.Stage(owner,"Combined rejection","<Site name=\"Combined rejection\" />","Microsoft.Data.Sqlite",null,null);
+        var published=Path.Combine(root,"wwwroot","Dlls","Microsoft.Data.Sqlite.dll");var bytes=await File.ReadAllBytesAsync(published);
+        await reviews.Decide("admin",site,false,id,sha);
+        Check((await db.SiteChanges.FindAsync(site)).Status=="rejected"&&!File.Exists(Path.Combine(root,"private",id+".json")),"Combined rejection rejects both XML and DLL in one action");
+        Check((await File.ReadAllBytesAsync(published)).SequenceEqual(bytes)&&!await db.Sites.AnyAsync(x=>x.Name=="Combined rejection"),"Combined rejection preserves published files and creates no site");
+    }
     Console.WriteLine($"PASS: {results.Count} security regression checks");
     var output = Environment.GetEnvironmentVariable("OV_SECURITY_RESULTS");
     if (!string.IsNullOrEmpty(output)) File.WriteAllText(output, JsonSerializer.Serialize(new { checks = results.Count, results }, new JsonSerializerOptions { WriteIndented = true }));
