@@ -61,3 +61,5 @@ Pending packages also offer **Download for inspection** and **Reject** to active
 
 ### Combined XML and DLL review
 Pending site changes show matching package submissions from the same account with the exact required assembly name. Administrators can inspect the DLL and select **Approve XML and DLL**. The submitted package ID and displayed SHA-256 are checked again; current administrator, publisher and ownership permissions are revalidated. Package publication and site approval share one database transaction, with restoration of DLL and image files if publication fails. Each DLL version remains an explicit choice when several versions are pending. Separate XML/package approval and rejection remain available. Sites may now enter review before their required DLL is published; standalone site approval still requires a published dependency. Existing clients need no changes.
+
+Related DLL submissions appear only inside their matching site review, with download, combined approval and separate DLL actions. The package list below contains only submissions without a matching pending site change.
