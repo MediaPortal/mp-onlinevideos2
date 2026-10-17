@@ -14,7 +14,7 @@ var group=Model.Changes.Where(c=>Model.Packages.Any(p=>p.Metadata.Name==c.Requir
 
 <p>Related package: @linked.Metadata.Name - SHA-256: <code style="overflow-wrap:anywhere">@linked.Metadata.Sha256</code></p>
 
-<p><a asp-page-handler="DownloadPackage" asp-route-id="@linked.Id" asp-route-sha256="@linked.Metadata.Sha256">Download related DLL for inspection</a></p>
+<p><a class="btn btn-outline-secondary" asp-page-handler="DownloadPackage" asp-route-id="@linked.Id" asp-route-sha256="@linked.Metadata.Sha256">Download for inspection</a></p>
 
 <form method="post" asp-page-handler="ApproveTogether"><input type="hidden" name="siteId" value="@c.Id" /><input type="hidden" name="packageId" value="@linked.Id" /><input type="hidden" name="sha256" value="@linked.Metadata.Sha256" /><button class="btn btn-primary">Approve</button> <button asp-page-handler="RejectTogether" class="btn btn-outline-danger">Reject</button></form>
 
@@ -28,4 +28,3 @@ var group=Model.Changes.Where(c=>Model.Packages.Any(p=>p.Metadata.Name==c.Requir
 @if(standalonePackages.Count==0){<p>No standalone pending packages. Related packages are shown with their site changes above.</p>}
 
 @foreach(var p in standalonePackages){<section class="card mb-3"><div class="card-body"><h3>@p.Metadata.Name</h3><p>Submitted by @p.Metadata.Owner at @p.Metadata.Submitted.ToString("u")</p><p>SHA-256: <code style="overflow-wrap:anywhere">@p.Metadata.Sha256</code></p><p><a class="btn btn-outline-secondary" asp-page-handler="DownloadPackage" asp-route-id="@p.Id" asp-route-sha256="@p.Metadata.Sha256">Download for inspection</a></p><form method="post" asp-page-handler="ApprovePackage"><input type="hidden" name="id" value="@p.Id" /><input type="hidden" name="sha256" value="@p.Metadata.Sha256" /><button class="btn btn-primary">Approve</button> <button asp-page-handler="RejectPackage" class="btn btn-outline-danger">Reject</button></form></div></section>}
-
