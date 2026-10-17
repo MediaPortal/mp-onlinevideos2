@@ -94,8 +94,7 @@ namespace WebServiceCore.Controllers
                 return BadRequest("Invalid site metadata.");
             if (dto.RequiredDll != null && !InputRules.SafeName(dto.RequiredDll)) return BadRequest("Invalid DLL name.");
             // is the requiredDll available on the server?
-            if (!string.IsNullOrEmpty(dto.RequiredDll) && !await _context.Dlls.AnyAsync(d => d.Name == dto.RequiredDll))
-                return BadRequest("Required Dll not found on Server!");
+            // An unpublished dependency may be submitted for joint administrator review.
 
             var reviews=HttpContext.RequestServices.GetRequiredService<SiteReviews>();
             var reviewId=await reviews.Stage(user,siteName,xml.OuterXml,dto.RequiredDll,dto.Icon,dto.Banner);

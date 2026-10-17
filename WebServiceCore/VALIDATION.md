@@ -19,3 +19,7 @@ Historical deployment checks do not establish Debian 13 compatibility. NuGet aud
 ## Clean branch rerun
 
 The sanitized review branch passed all 106 security/account/SMTP checks and all 15 image/SQLite checks again. A self-contained linux-x64 Release publish also succeeded. The security suite required normal access to its temporary package fixtures. A new online vulnerability query was unavailable during restore; the earlier NuGet audit remains historical evidence. The build still reports pre-existing compiler/analyzer warnings; a successful build is not claimed to be warning-free.
+
+
+## Combined review follow-up
+Six additional security checks cover combined approval hash binding, dependency mismatch, successful joint publication, package consumption, joint rejection and preservation of published data (112 checks total). The standalone-package UI test now checks the approval form action rather than obsolete button wording. The updated cleaned branch passed all 112 security/account/SMTP checks on Windows. GitHub Actions validation of this follow-up is pending.

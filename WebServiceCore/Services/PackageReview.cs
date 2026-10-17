@@ -79,7 +79,7 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
         if (Convert.ToHexString(SHA256.HashData(bytes)) != info.Sha256) throw new ValidationException("Package hash changed.");
         return (info.Name, bytes);
     }
-    public async Task Reject(string id, string administrator, string expectedSha256)
+    public async Task Reject(string id, string administrator, string expectedSha256, Func<Pending, Task> rejectRelatedSite = null)
     {
         if (!Guid.TryParseExact(id, "N", out _)) throw new ValidationException("Invalid review identifier.");
         using var gate = Lock();
@@ -96,6 +96,7 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
         File.Move(metadata, backup);
         try
         {
+            if (rejectRelatedSite != null) await rejectRelatedSite(info);
             if (notifications != null) await notifications.Event("own", "rejected:" + id, "Package rejected: " + info.Name, info.Owner);
             await File.WriteAllTextAsync(audit, JsonSerializer.Serialize(new { Package = info, RejectedBy = administrator, RejectedAt = DateTime.UtcNow }));
             await transaction.CommitAsync();
@@ -109,7 +110,7 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
         File.Delete(backup);
         File.Delete(Path.Combine(Root, id + ".dll"));
     }
-    public async Task Approve(string id, string administrator = null, string expectedSha256 = null)
+    public async Task Approve(string id, string administrator = null, string expectedSha256 = null, Func<Pending, Task> publishRelatedSite = null)
     {
         if (!Guid.TryParseExact(id, "N", out _)) throw new ValidationException("Invalid review identifier.");
         using var gate = Lock();
@@ -148,6 +149,8 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
             File.Move(temporary, destination, true);
             replaced = true;
             await db.SaveChangesAsync();
+            if (publishRelatedSite != null) await publishRelatedSite(info);
+            if(notifications != null) await notifications.Event("own", id, "Package approved: " + info.Name, owner.Email);
             await transaction.CommitAsync();
         }
         catch
@@ -159,6 +162,5 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
         File.Delete(backup);
         File.Delete(Path.Combine(Root, id + ".json"));
         File.Delete(Path.Combine(Root, id + ".dll"));
-        if(notifications != null) await notifications.Event("own", id, "Package approved: " + info.Name, owner.Email);
     }
 }

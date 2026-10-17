@@ -18,17 +18,34 @@ public sealed class SiteReviews(OnlineVideosDataContext db,AccountManager accoun
   var change=new SiteChange{Name=name,OwnerId=u.Email,Xml=xml,RequiredDll=dll,Icon=icon,Banner=banner,Created=DateTime.UtcNow};db.SiteChanges.Add(change);await db.SaveChangesAsync();
   await mail.Event("changes",change.Id.ToString(),"Site change awaiting review: "+name);await tx.CommitAsync();return change.Id;
  }
- public async Task Decide(string actor,int id,bool approve){
-  await using var tx=await db.Database.BeginTransactionAsync();await accounts.Admin(actor);
-  var change=await db.SiteChanges.FindAsync(id);if(change==null||change.Status!="pending")throw new ValidationException("Change is no longer pending.");
+ public async Task Decide(string actor,int id,bool approve,string packageId=null,string packageSha256=null){
   var originals=new Dictionary<string,byte[]>();
+  try {
+   if(packageId!=null){
+    async Task ApplyRelated(PackageReview.Pending package){
+     var linked=await db.SiteChanges.FindAsync(id);
+     if(linked==null||linked.Status!="pending"||linked.RequiredDll!=package.Name||linked.OwnerId!=package.Owner)throw new ValidationException("This package does not belong to the selected site change.");
+     await Apply();
+    }
+    if(approve)await packages.Approve(packageId,actor,packageSha256,ApplyRelated);
+    else await packages.Reject(packageId,actor,packageSha256,ApplyRelated);
+   }else{await using var tx=await db.Database.BeginTransactionAsync();await Apply();await tx.CommitAsync();}
+  }catch {
+   foreach(var original in originals){
+    if(original.Value==null){if(File.Exists(original.Key))File.Delete(original.Key);}
+    else{var temporary=original.Key+"."+Guid.NewGuid().ToString("N")+".tmp";await File.WriteAllBytesAsync(temporary,original.Value);File.Move(temporary,original.Key,true);}
+   }
+   throw;
+  }
+  async Task Apply(){
+  await accounts.Admin(actor);
+  var change=await db.SiteChanges.FindAsync(id);if(change==null||change.Status!="pending")throw new ValidationException("Change is no longer pending.");
   async Task Remember(string directory,byte[] replacement){
    if(replacement?.Length>0){var path=InputRules.AssetPath(env.WebRootPath,directory,change.Name,".png");
     if(File.Exists(path)&&new FileInfo(path).Length>InputRules.MaxDllBytes)throw new ValidationException("Existing image exceeds rollback limit.");
     originals[path]=File.Exists(path)?await File.ReadAllBytesAsync(path):null;
    }
   }
-  try {
   if(approve){
    var owner=await db.Users.FindAsync(change.OwnerId);if(owner==null||owner.IsDisabled)throw new ValidationException("The submitting account is unavailable.");
    var site=await db.Sites.FindAsync(change.Name);
@@ -44,13 +61,7 @@ public sealed class SiteReviews(OnlineVideosDataContext db,AccountManager accoun
    if(change.Banner?.Length>0&&!((await images.TrySaveBanner(change.Banner,InputRules.AssetPath(env.WebRootPath,"Banners",change.Name,".png"))).StartsWith("Banner saved!",StringComparison.Ordinal)))throw new ValidationException("Banner could not be saved.");
   }
   change.Status=approve?"approved":"rejected";change.Icon=null;change.Banner=null;
-  await db.SaveChangesAsync();await mail.Event("own","site:"+id,"Site change "+change.Status+": "+change.Name,change.OwnerId);await tx.CommitAsync();
-  }catch {
-   foreach(var original in originals){
-    if(original.Value==null){if(File.Exists(original.Key))File.Delete(original.Key);}
-    else{var temporary=original.Key+"."+Guid.NewGuid().ToString("N")+".tmp";await File.WriteAllBytesAsync(temporary,original.Value);File.Move(temporary,original.Key,true);}
-   }
-   throw;
+  await db.SaveChangesAsync();await mail.Event("own","site:"+id,"Site change "+change.Status+": "+change.Name,change.OwnerId);
   }
  }
 }

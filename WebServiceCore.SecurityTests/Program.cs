@@ -262,7 +262,7 @@ try
         await LoginAs(adminBrowser,"admin",changedPassword);await LoginAs(ordinaryBrowser,"other",password);
         string id,sha;using(var scope=factory.Services.CreateScope()){var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();id=await scope.ServiceProvider.GetRequiredService<PackageReview>().Stage(await db.Users.FindAsync("admin"),"Microsoft.Data.Sqlite",File.ReadAllBytes(typeof(Microsoft.Data.Sqlite.SqliteConnection).Assembly.Location));sha=JsonSerializer.Deserialize<PackageReview.Pending>(await File.ReadAllTextAsync(Path.Combine(root,"private",id+".json"))).Sha256;}
         var page=await adminBrowser.GetStringAsync("/Reviews");var token=Regex.Match(page,"name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
-        Check(page.Contains(id)&&page.Contains(sha)&&page.Contains("Approve and publish package"),"Administrators can inspect the exact pending package and hash");
+        Check(page.Contains(id)&&page.Contains(sha)&&Regex.IsMatch(page, "<form[^>]*action=\"[^\"]*handler=ApprovePackage[^\"]*\""),"Administrators can inspect the exact pending package and hash");
         Check((int)(await anonymous.GetAsync("/Reviews")).StatusCode==302,"Anonymous clients cannot open package approval");
         Check((int)(await ordinaryBrowser.GetAsync("/Reviews")).StatusCode==302,"Ordinary users cannot open package approval");
         var form=new Dictionary<string,string>{{"id",id},{"sha256",sha}};
@@ -307,6 +307,43 @@ try
         Check(File.Exists(Path.Combine(root,"private",id+".rejected"))&&(await File.ReadAllTextAsync(Path.Combine(root,"private",id+".rejected"))).Contains("RejectedBy"),"Rejection retains private reviewer and package audit metadata");
         Check((await File.ReadAllBytesAsync(published)).SequenceEqual(oldPublished),"Rejecting an update leaves the published package unchanged");
         Check((int)(await admin.GetAsync(download)).StatusCode==404,"Rejected packages can no longer be downloaded for inspection");
+    }
+    {
+        using var factory=new TestFactory(root,dbpath); using var startup=factory.CreateClient();
+        string packageId,sha;int siteId;
+        using(var scope=factory.Services.CreateScope()){
+            var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();var owner=await db.Users.FindAsync("admin");
+            packageId=await scope.ServiceProvider.GetRequiredService<PackageReview>().Stage(owner,"Microsoft.Data.Sqlite",File.ReadAllBytes(typeof(Microsoft.Data.Sqlite.SqliteConnection).Assembly.Location));
+            sha=JsonSerializer.Deserialize<PackageReview.Pending>(await File.ReadAllTextAsync(Path.Combine(root,"private",packageId+".json"))).Sha256;
+            siteId=await scope.ServiceProvider.GetRequiredService<SiteReviews>().Stage(owner,"Combined fixture","<Site name=\"Combined fixture\" lang=\"en\" />","Microsoft.Data.Sqlite",null,null);
+        }
+        using(var scope=factory.Services.CreateScope()){
+            var review=scope.ServiceProvider.GetRequiredService<SiteReviews>();bool denied=false;
+            try{await review.Decide("admin",siteId,true,packageId,new string('0',64));}catch(System.ComponentModel.DataAnnotations.ValidationException){denied=true;}
+            Check(denied&&File.Exists(Path.Combine(root,"private",packageId+".json")),"Combined approval rejects a mismatched displayed DLL hash");
+        }
+        using(var scope=factory.Services.CreateScope()){
+            var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();var change=await db.SiteChanges.FindAsync(siteId);change.RequiredDll="Unrelated";await db.SaveChangesAsync();
+            bool denied=false;try{await scope.ServiceProvider.GetRequiredService<SiteReviews>().Decide("admin",siteId,true,packageId,sha);}catch(System.ComponentModel.DataAnnotations.ValidationException){denied=true;}
+            Check(denied&&File.Exists(Path.Combine(root,"private",packageId+".json")),"Combined approval rejects unrelated DLLs and retains the review");
+        }
+        using(var scope=factory.Services.CreateScope()){
+            var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();var change=await db.SiteChanges.FindAsync(siteId);change.RequiredDll="Microsoft.Data.Sqlite";await db.SaveChangesAsync();
+            await scope.ServiceProvider.GetRequiredService<SiteReviews>().Decide("admin",siteId,true,packageId,sha);
+            Check((await db.SiteChanges.FindAsync(siteId)).Status=="approved"&&await db.Sites.AnyAsync(x=>x.Name=="Combined fixture"),"Combined approval publishes XML and DLL together");
+            Check(!File.Exists(Path.Combine(root,"private",packageId+".json")),"Combined approval consumes the exact package review");
+        }
+    }
+    {
+        using var factory=new TestFactory(root,dbpath);using var startup=factory.CreateClient();
+        using var scope=factory.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();var packages=scope.ServiceProvider.GetRequiredService<PackageReview>();var reviews=scope.ServiceProvider.GetRequiredService<SiteReviews>();
+        var owner=await db.Users.FindAsync("admin");var id=await packages.Stage(owner,"Microsoft.Data.Sqlite",File.ReadAllBytes(typeof(Microsoft.Data.Sqlite.SqliteConnection).Assembly.Location));
+        var sha=JsonSerializer.Deserialize<PackageReview.Pending>(await File.ReadAllTextAsync(Path.Combine(root,"private",id+".json"))).Sha256;
+        var site=await reviews.Stage(owner,"Combined rejection","<Site name=\"Combined rejection\" />","Microsoft.Data.Sqlite",null,null);
+        var published=Path.Combine(root,"wwwroot","Dlls","Microsoft.Data.Sqlite.dll");var bytes=await File.ReadAllBytesAsync(published);
+        await reviews.Decide("admin",site,false,id,sha);
+        Check((await db.SiteChanges.FindAsync(site)).Status=="rejected"&&!File.Exists(Path.Combine(root,"private",id+".json")),"Combined rejection rejects both XML and DLL in one action");
+        Check((await File.ReadAllBytesAsync(published)).SequenceEqual(bytes)&&!await db.Sites.AnyAsync(x=>x.Name=="Combined rejection"),"Combined rejection preserves published files and creates no site");
     }
     Console.WriteLine($"PASS: {results.Count} security regression checks");
     var output = Environment.GetEnvironmentVariable("OV_SECURITY_RESULTS");

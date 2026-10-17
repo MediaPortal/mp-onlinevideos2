@@ -114,3 +114,7 @@ Cryptographic verification of downloaded package signatures still requires clien
 The accompanying security regression executable exercises password migration, owner/admin authorization, fake DLL rejection, private staging, explicit approval, modified-byte rejection, DTD rejection, HTML escaping, HTTPS restrictions, cookie flags, session invalidation, rate limiting and per-account failure budgets. Results are in `../WebServiceCore.SecurityTests/SECURITY-RESULTS.json`.
 
 The older 33-check HTTP comparison predates these intentional write-policy changes and is retained only as historical evidence. It is not expected to pass unchanged against this revision. Read compatibility and the new security expectations are checked separately. Actual MP2 video playback, Debian 13 execution and client signature verification remain outside the completed validation.
+
+
+### Combined review decisions
+Reviews are grouped into Combined XML and DLL, XML-only and DLL-only. Related packages are shown only with the matching site change, using the exact required DLL name and submitting account. Each combined review offers an inspection download and one Approve / Reject action pair for both submissions. Package ID, displayed SHA-256, fresh administrator permissions and the relationship are rechecked. Both decisions share one database transaction; failed publication restores DLL/image files. XML may enter review before its DLL is published; separate XML approval still requires a published dependency. Existing clients need no protocol changes for this pairing.
