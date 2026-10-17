@@ -110,6 +110,17 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
         File.Delete(backup);
         File.Delete(Path.Combine(Root, id + ".dll"));
     }
+    // Windows scanners can briefly deny replacement of a freshly written DLL.
+    // Keep the backup until restoration succeeds; never discard it on retry exhaustion.
+    static async Task RestorePublishedPackage(string backup, string destination)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try { File.Move(backup, destination, true); return; }
+            catch (Exception ex) when (attempt < 6 && (ex is IOException || ex is UnauthorizedAccessException))
+            { await Task.Delay(100 << attempt); }
+        }
+    }
     public async Task Approve(string id, string administrator = null, string expectedSha256 = null, Func<Pending, Task> publishRelatedSite = null)
     {
         if (!Guid.TryParseExact(id, "N", out _)) throw new ValidationException("Invalid review identifier.");
@@ -155,7 +166,7 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
         }
         catch
         {
-            if (replaced) { if (hadOriginal) File.Move(backup, destination, true); else File.Delete(destination); }
+            if (replaced) { if (hadOriginal) await RestorePublishedPackage(backup, destination); else File.Delete(destination); }
             throw;
         }
         finally { File.Delete(temporary); }

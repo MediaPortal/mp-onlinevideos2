@@ -22,4 +22,6 @@ The sanitized review branch passed all 106 security/account/SMTP checks and all 
 
 
 ## Combined review follow-up
-Six additional security checks cover combined approval hash binding, dependency mismatch, successful joint publication, package consumption, joint rejection and preservation of published data (112 checks total). The standalone-package UI test now checks the approval form action rather than obsolete button wording. The updated cleaned branch passed all 112 security/account/SMTP checks on Windows. GitHub Actions validation of this follow-up is pending.
+Seven additional security checks cover combined approval hash binding, dependency mismatch, successful joint publication, package consumption, joint rejection and preservation of published data (113 checks total). The standalone-package UI test now checks the approval form action rather than obsolete button wording. The updated cleaned branch passed all 113 security/account/SMTP checks on Windows. GitHub Actions validation of this follow-up is pending.
+
+A Windows-specific regression exercises a temporary file lock during package rollback. Restoration retries transient sharing/access failures with a bounded delay and keeps the backup if restoration cannot complete.

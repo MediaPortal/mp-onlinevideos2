@@ -16,7 +16,7 @@ The server moves from .NET 6 to .NET 10 and adds reviewed publishing, account ad
 
 ## Validation
 
-The cleaned branch passed 112 security/account/SMTP checks and 15 image/SQLite checks on Windows; see VALIDATION.md. Release builds and a self-contained Linux publish succeeded; earlier isolated Debian 12 smoke checks and sorting checks are recorded alongside the regression results. A fresh GitHub Actions run is pending for this follow-up. The older development-branch run exposed an obsolete button-label assertion, now replaced by an approval-form check.
+The cleaned branch passed 113 security/account/SMTP checks and 15 image/SQLite checks on Windows; see VALIDATION.md. Release builds and a self-contained Linux publish succeeded; earlier isolated Debian 12 smoke checks and sorting checks are recorded alongside the regression results. A fresh GitHub Actions run is pending for this follow-up. The older development-branch run exposed an obsolete button-label assertion, now replaced by an approval-form check.
 
 MP1 API checks passed and an installed MP1 client played a live stream using its bundled providers. That playback is separate from the HTTPS API checks and does not prove a complete provider installation from this server. MP2 API reads and GUI catalogue browsing passed; full MP2 playback remains unverified because the installed integration cannot complete its normal provider update. Version or certificate safeguards were not bypassed.
 

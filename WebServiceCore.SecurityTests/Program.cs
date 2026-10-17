@@ -345,6 +345,22 @@ try
         Check((await db.SiteChanges.FindAsync(site)).Status=="rejected"&&!File.Exists(Path.Combine(root,"private",id+".json")),"Combined rejection rejects both XML and DLL in one action");
         Check((await File.ReadAllBytesAsync(published)).SequenceEqual(bytes)&&!await db.Sites.AnyAsync(x=>x.Name=="Combined rejection"),"Combined rejection preserves published files and creates no site");
     }
+    {
+        using var factory=new TestFactory(root,dbpath);using var startup=factory.CreateClient();using var scope=factory.Services.CreateScope();
+        var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();var packages=scope.ServiceProvider.GetRequiredService<PackageReview>();
+        var binary=File.ReadAllBytes(typeof(Microsoft.Data.Sqlite.SqliteConnection).Assembly.Location);
+        var id=await packages.Stage(await db.Users.FindAsync("admin"),"Microsoft.Data.Sqlite",binary);
+        var sha=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(binary));
+        var destination=Path.Combine(root,"wwwroot","Dlls","Microsoft.Data.Sqlite.dll");var original=await File.ReadAllBytesAsync(destination);
+        Task release=Task.CompletedTask;bool rejected=false;
+        try{await packages.Approve(id,"admin",sha,_=>{
+            var held=new FileStream(destination,FileMode.Open,FileAccess.Read,FileShare.Read);
+            release=Task.Run(async()=>{await Task.Delay(250);held.Dispose();});
+            throw new System.ComponentModel.DataAnnotations.ValidationException("Simulated related-site failure while Windows holds the package.");
+        });}catch(System.ComponentModel.DataAnnotations.ValidationException){rejected=true;}
+        await release;
+        Check(rejected&&(await File.ReadAllBytesAsync(destination)).SequenceEqual(original)&&File.Exists(Path.Combine(root,"private",id+".json")),"Package rollback survives a temporary Windows file lock and retains the pending review");
+    }
     Console.WriteLine($"PASS: {results.Count} security regression checks");
     var output = Environment.GetEnvironmentVariable("OV_SECURITY_RESULTS");
     if (!string.IsNullOrEmpty(output)) File.WriteAllText(output, JsonSerializer.Serialize(new { checks = results.Count, results }, new JsonSerializerOptions { WriteIndented = true }));
