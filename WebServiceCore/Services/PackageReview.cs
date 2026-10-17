@@ -109,7 +109,7 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
         File.Delete(backup);
         File.Delete(Path.Combine(Root, id + ".dll"));
     }
-    public async Task Approve(string id, string administrator = null, string expectedSha256 = null)
+    public async Task Approve(string id, string administrator = null, string expectedSha256 = null, Func<Pending, Task> publishRelatedSite = null)
     {
         if (!Guid.TryParseExact(id, "N", out _)) throw new ValidationException("Invalid review identifier.");
         using var gate = Lock();
@@ -148,6 +148,8 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
             File.Move(temporary, destination, true);
             replaced = true;
             await db.SaveChangesAsync();
+            if (publishRelatedSite != null) await publishRelatedSite(info);
+            if(notifications != null) await notifications.Event("own", id, "Package approved: " + info.Name, owner.Email);
             await transaction.CommitAsync();
         }
         catch
@@ -159,6 +161,5 @@ public sealed class PackageReview(IWebHostEnvironment env, IConfiguration config
         File.Delete(backup);
         File.Delete(Path.Combine(Root, id + ".json"));
         File.Delete(Path.Combine(Root, id + ".dll"));
-        if(notifications != null) await notifications.Event("own", id, "Package approved: " + info.Name, owner.Email);
     }
 }

@@ -307,6 +307,32 @@ try
         Check((await File.ReadAllBytesAsync(published)).SequenceEqual(oldPublished),"Rejecting an update leaves the published package unchanged");
         Check((int)(await admin.GetAsync(download)).StatusCode==404,"Rejected packages can no longer be downloaded for inspection");
     }
+    {
+        using var factory=new TestFactory(root,dbpath); using var startup=factory.CreateClient();
+        string packageId,sha;int siteId;
+        using(var scope=factory.Services.CreateScope()){
+            var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();var owner=await db.Users.FindAsync("admin");
+            packageId=await scope.ServiceProvider.GetRequiredService<PackageReview>().Stage(owner,"Microsoft.Data.Sqlite",File.ReadAllBytes(typeof(Microsoft.Data.Sqlite.SqliteConnection).Assembly.Location));
+            sha=JsonSerializer.Deserialize<PackageReview.Pending>(await File.ReadAllTextAsync(Path.Combine(root,"private",packageId+".json"))).Sha256;
+            siteId=await scope.ServiceProvider.GetRequiredService<SiteReviews>().Stage(owner,"Combined fixture","<Site name=\"Combined fixture\" lang=\"en\" />","Microsoft.Data.Sqlite",null,null);
+        }
+        using(var scope=factory.Services.CreateScope()){
+            var review=scope.ServiceProvider.GetRequiredService<SiteReviews>();bool denied=false;
+            try{await review.Decide("admin",siteId,true,packageId,new string('0',64));}catch(System.ComponentModel.DataAnnotations.ValidationException){denied=true;}
+            Check(denied&&File.Exists(Path.Combine(root,"private",packageId+".json")),"Combined approval rejects a mismatched displayed DLL hash");
+        }
+        using(var scope=factory.Services.CreateScope()){
+            var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();var change=await db.SiteChanges.FindAsync(siteId);change.RequiredDll="Unrelated";await db.SaveChangesAsync();
+            bool denied=false;try{await scope.ServiceProvider.GetRequiredService<SiteReviews>().Decide("admin",siteId,true,packageId,sha);}catch(System.ComponentModel.DataAnnotations.ValidationException){denied=true;}
+            Check(denied&&File.Exists(Path.Combine(root,"private",packageId+".json")),"Combined approval rejects unrelated DLLs and retains the review");
+        }
+        using(var scope=factory.Services.CreateScope()){
+            var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();var change=await db.SiteChanges.FindAsync(siteId);change.RequiredDll="Microsoft.Data.Sqlite";await db.SaveChangesAsync();
+            await scope.ServiceProvider.GetRequiredService<SiteReviews>().Decide("admin",siteId,true,packageId,sha);
+            Check((await db.SiteChanges.FindAsync(siteId)).Status=="approved"&&await db.Sites.AnyAsync(x=>x.Name=="Combined fixture"),"Combined approval publishes XML and DLL together");
+            Check(!File.Exists(Path.Combine(root,"private",packageId+".json")),"Combined approval consumes the exact package review");
+        }
+    }
     Console.WriteLine($"PASS: {results.Count} security regression checks");
     var output = Environment.GetEnvironmentVariable("OV_SECURITY_RESULTS");
     if (!string.IsNullOrEmpty(output)) File.WriteAllText(output, JsonSerializer.Serialize(new { checks = results.Count, results }, new JsonSerializerOptions { WriteIndented = true }));

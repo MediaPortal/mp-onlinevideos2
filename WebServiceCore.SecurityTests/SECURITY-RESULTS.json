@@ -1,5 +1,5 @@
 {
-  "checks": 106,
+  "checks": 110,
   "results": [
     "Legacy passwords migrated to salted hashes",
     "Anonymous confirmed-broken blocked",
@@ -106,6 +106,10 @@
     "Administrator rejection removes only private pending package files",
     "Rejection retains private reviewer and package audit metadata",
     "Rejecting an update leaves the published package unchanged",
-    "Rejected packages can no longer be downloaded for inspection"
+    "Rejected packages can no longer be downloaded for inspection",
+    "Combined approval rejects a mismatched displayed DLL hash",
+    "Combined approval rejects unrelated DLLs and retains the review",
+    "Combined approval publishes XML and DLL together",
+    "Combined approval consumes the exact package review"
   ]
 }
