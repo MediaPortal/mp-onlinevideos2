@@ -261,7 +261,7 @@ try
         await LoginAs(adminBrowser,"admin","Changed-Password-Test-Only");await LoginAs(ordinaryBrowser,"other",password);
         string id,sha;using(var scope=factory.Services.CreateScope()){var db=scope.ServiceProvider.GetRequiredService<OnlineVideosDataContext>();id=await scope.ServiceProvider.GetRequiredService<PackageReview>().Stage(await db.Users.FindAsync("admin"),"Microsoft.Data.Sqlite",File.ReadAllBytes(typeof(Microsoft.Data.Sqlite.SqliteConnection).Assembly.Location));sha=JsonSerializer.Deserialize<PackageReview.Pending>(await File.ReadAllTextAsync(Path.Combine(root,"private",id+".json"))).Sha256;}
         var page=await adminBrowser.GetStringAsync("/Reviews");var token=Regex.Match(page,"name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
-        Check(page.Contains(id)&&page.Contains(sha)&&page.Contains("Approve and publish package"),"Administrators can inspect the exact pending package and hash");
+        Check(page.Contains(id)&&page.Contains(sha)&&Regex.IsMatch(page, "<form[^>]*action=\"[^\"]*handler=ApprovePackage[^\"]*\""),"Administrators can inspect the exact pending package and hash");
         Check((int)(await anonymous.GetAsync("/Reviews")).StatusCode==302,"Anonymous clients cannot open package approval");
         Check((int)(await ordinaryBrowser.GetAsync("/Reviews")).StatusCode==302,"Ordinary users cannot open package approval");
         var form=new Dictionary<string,string>{{"id",id},{"sha256",sha}};
