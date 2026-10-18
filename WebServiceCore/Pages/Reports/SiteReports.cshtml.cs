@@ -13,7 +13,7 @@ namespace WebServiceCore.Pages.Reports
         public DateTime Date { get; set; }
         [Required, EnumDataType(typeof(ReportType))]
         public ReportType Type { get; set; }
-        [Required, StringLength(2000, MinimumLength=1)]
+        [Required, StringLength(2000, MinimumLength = 1)]
         public string Message { get; set; }
     }
 
@@ -61,24 +61,24 @@ namespace WebServiceCore.Pages.Reports
         public async Task<IActionResult> OnPostSubmitReport()
         {
             if (!User.Identity.IsAuthenticated) return Unauthorized();
-            var saved=await TrySubmitReport();
+            var saved = await TrySubmitReport();
             await SetReports();
-            if(Reports==null) return NotFound();
-            if(!saved && ModelState.IsValid) return Forbid();
-            if(string.Equals(Request.Headers["X-Requested-With"],"XMLHttpRequest",StringComparison.OrdinalIgnoreCase)) return Partial("_ReportGridPartial",this);
-            return saved ? RedirectToPage(new {site=Site}) : Page();
+            if (Reports == null) return NotFound();
+            if (!saved && ModelState.IsValid) return Forbid();
+            if (string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase)) return Partial("_ReportGridPartial", this);
+            return saved ? RedirectToPage(new { site = Site }) : Page();
         }
 
         async Task<bool> TrySubmitReport()
         {
-            await using var transaction=await _context.Database.BeginTransactionAsync();
+            await using var transaction = await _context.Database.BeginTransactionAsync();
             var site = await _context.Sites.FindAsync(Site);
             if (site == null)
                 return false;
 
             // Recheck current access inside the write transaction; cookie claims can become stale.
-            var actor=await _context.Users.AsNoTracking().SingleOrDefaultAsync(u=>u.Email==User.Identity.Name);
-            if (actor==null || actor.IsDisabled || (actor.Email != site.OwnerId && !actor.IsAdmin))
+            var actor = await _context.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Email == User.Identity.Name);
+            if (actor == null || actor.IsDisabled || (actor.Email != site.OwnerId && !actor.IsAdmin))
                 return false;
 
             // Are all required fields present?
@@ -98,9 +98,9 @@ namespace WebServiceCore.Pages.Reports
             else if (report.Type is ReportType.Fixed or ReportType.RejectedBroken) site.State = SiteState.Working;
             _context.Reports.Add(report);
             await _context.SaveChangesAsync();
-            var mail=HttpContext.RequestServices.GetRequiredService<WebServiceCore.Services.Notifications>();
-            if(report.Type is ReportType.Suggestion or ReportType.Broken) await mail.Event("reports",report.Id.ToString(),"New reports");
-            else await mail.Event("own",report.Id.ToString(),"Report decision for " + site.Name + ": " + report.Type,site.OwnerId);
+            var mail = HttpContext.RequestServices.GetRequiredService<WebServiceCore.Services.Notifications>();
+            if (report.Type is ReportType.Suggestion or ReportType.Broken) await mail.Event("reports", report.Id.ToString(), "New reports");
+            else await mail.Event("own", report.Id.ToString(), "Report decision for " + site.Name + ": " + report.Type, site.OwnerId);
             await transaction.CommitAsync();
             return true;
         }

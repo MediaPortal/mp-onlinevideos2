@@ -1,9 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Net;
-using System.Net.Mail;
 using System.Xml;
-using System.ComponentModel.DataAnnotations;
 using WebServiceCore.Models;
 using WebServiceCore.Models.Dto;
 using WebServiceCore.Models.Entities;
@@ -63,8 +60,11 @@ namespace WebServiceCore.Controllers
             bool isAdult = false;
             try
             {
-                using var reader = XmlReader.Create(new StringReader(dto.SiteXml), new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 262144
+                using var reader = XmlReader.Create(new StringReader(dto.SiteXml), new XmlReaderSettings
+                {
+                    DtdProcessing = DtdProcessing.Prohibit,
+                    XmlResolver = null,
+                    MaxCharactersInDocument = 262144
                 });
                 xml.XmlResolver = null;
                 xml.Load(reader);
@@ -96,9 +96,9 @@ namespace WebServiceCore.Controllers
             // is the requiredDll available on the server?
             // An unpublished dependency may be submitted for joint administrator review.
 
-            var reviews=HttpContext.RequestServices.GetRequiredService<SiteReviews>();
-            var reviewId=await reviews.Stage(user,siteName,xml.OuterXml,dto.RequiredDll,dto.Icon,dto.Banner);
-            return Accepted(new { ReviewId=reviewId, Message="Site change queued for administrator review." });
+            var reviews = HttpContext.RequestServices.GetRequiredService<SiteReviews>();
+            var reviewId = await reviews.Stage(user, siteName, xml.OuterXml, dto.RequiredDll, dto.Icon, dto.Banner);
+            return Accepted(new { ReviewId = reviewId, Message = "Site change queued for administrator review." });
         }
 
         [HttpPost]
@@ -112,7 +112,7 @@ namespace WebServiceCore.Controllers
             if (!_packages.IsPublisher(user)) return StatusCode(403, "Publisher approval required.");
             if (!InputRules.SafeName(dto.Name)) return BadRequest("Invalid DLL name.");
             var id = await _packages.Stage(user, dto.Name, dto.Data);
-            if(_notifications != null) await _notifications.Event("packages", id, "Package awaiting review: " + dto.Name);
+            if (_notifications != null) await _notifications.Event("packages", id, "Package awaiting review: " + dto.Name);
             return Accepted(new { ReviewId = id, Message = "Package staged privately. Local operator approval is required before publication." });
         }
 
@@ -142,8 +142,9 @@ namespace WebServiceCore.Controllers
             if (moderation) site.State = dto.Type == ReportType.ConfirmedBroken ? SiteState.Broken : SiteState.Working;
             _context.Reports.Add(report);
             await _context.SaveChangesAsync();
-            if(_notifications != null) {
-                if(!moderation) await _notifications.Event("reports", report.Id.ToString(), "New reports");
+            if (_notifications != null)
+            {
+                if (!moderation) await _notifications.Event("reports", report.Id.ToString(), "New reports");
                 else await _notifications.Event("own", report.Id.ToString(), "Report decision for " + site.Name + ": " + dto.Type, site.OwnerId);
             }
             return Ok("Report successfully submitted!");

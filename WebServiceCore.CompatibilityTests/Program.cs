@@ -48,9 +48,22 @@ try
     connection.Open();
     using var context = new OnlineVideosDataContext(new DbContextOptionsBuilder<OnlineVideosDataContext>().UseSqlite(connection).Options);
     context.Database.EnsureCreated();
-    var user = new User { Email = "compatibility@example.invalid", Password = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(24)), IsAdmin = false };
+    var user = new User
+    {
+        Email = "compatibility@example.invalid",
+        Password = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(24)),
+        IsAdmin = false
+    };
     context.Users.Add(user);
-    context.Sites.Add(new Site { Name = "Compatibility", XML = "<Site />", Language = "en", Description = "Test only", Owner = user, LastUpdated = DateTime.UtcNow });
+    context.Sites.Add(new Site
+    {
+        Name = "Compatibility",
+        XML = "<Site />",
+        Language = "en",
+        Description = "Test only",
+        Owner = user,
+        LastUpdated = DateTime.UtcNow
+    });
     await context.SaveChangesAsync();
     Check(await context.Users.CountAsync() == 1, "SQLite user insert");
     Check((await context.Sites.AsNoTrackingWithIdentityResolution().Select(s => s.ToGetSiteDto()).SingleAsync()).OwnerId == user.Email, "Existing API projection");

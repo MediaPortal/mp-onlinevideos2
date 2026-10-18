@@ -74,9 +74,17 @@ namespace WebServiceCore.Pages
             Sites = await query
                 .AsNoTrackingWithIdentityResolution()
                 .Skip((PageNumber - 1) * 200).Take(201)
-                .Select(s => new Site { Name = s.Name, OwnerId = s.OwnerId, Language = s.Language,
-                    LastUpdated = s.LastUpdated, Description = s.Description, IsAdult = s.IsAdult,
-                    State = s.State, ReportCount = s.Reports.Count })
+                .Select(s => new Site
+                {
+                    Name = s.Name,
+                    OwnerId = s.OwnerId,
+                    Language = s.Language,
+                    LastUpdated = s.LastUpdated,
+                    Description = s.Description,
+                    IsAdult = s.IsAdult,
+                    State = s.State,
+                    ReportCount = s.Reports.Count
+                })
                 .ToListAsync();
             HasMore = Sites.Count > 200;
             if (HasMore) Sites.RemoveAt(200);
