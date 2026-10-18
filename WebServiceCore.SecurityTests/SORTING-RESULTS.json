@@ -1,0 +1,16 @@
+{
+  "checks": 11,
+  "results": [
+    "Name ascending",
+    "Name descending",
+    "OwnerId ascending",
+    "OwnerId descending",
+    "Language ascending",
+    "Language descending",
+    "LastUpdated ascending",
+    "LastUpdated descending",
+    "Legacy SiteGrid URL renders a full sorted page",
+    "Legacy AJAX requests retain partial-table support",
+    "Original page ascending behavior compared for all four columns"
+  ]
+}

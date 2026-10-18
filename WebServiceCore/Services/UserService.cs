@@ -1,41 +1,26 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
-using WebServiceCore.Models;
-using WebServiceCore.Models.Entities;
 
 namespace WebServiceCore.Services
 {
-    public class UserService : IUserService
+
+    public class UserService(Credentials credentials) : IUserService
     {
-        private readonly OnlineVideosDataContext _context;
-
-        public UserService(OnlineVideosDataContext context) 
-        { 
-            _context = context;
-        }
-
         public async Task<ClaimsPrincipal> TryAuthenticate(string username, string password)
         {
-            User user = await _context.Users.FindAsync(username);
-            if (user == null || !CheckUserCredentials(user, password))
+            var user = await credentials.Authenticate(username, password);
+            if (user == null)
                 return null;
 
-            var claims = new List<Claim>()
-            {
-                new Claim(ClaimTypes.Name, username),
-                new Claim(ClaimTypes.Role, "user")
-            };
+            var claims = new List<Claim> {
+                new(ClaimTypes.Name, user.Email),
+                new(ClaimTypes.Role, "user"),
+                new("credential-stamp", Credentials.Stamp(user)) };
+
             if (user.IsAdmin)
-                claims.Add(new Claim(ClaimTypes.Role, "admin"));
+                claims.Add(new(ClaimTypes.Role, "admin"));
 
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            return new ClaimsPrincipal(identity);            
-        }
-
-        bool CheckUserCredentials(User user, string password)
-        {
-            return user.Password == password;
+            return new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
         }
     }
 }

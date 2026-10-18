@@ -1,7 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Net;
-using System.Net.Mail;
 using System.Xml;
 using WebServiceCore.Models;
 using WebServiceCore.Models.Dto;
@@ -15,14 +13,20 @@ namespace WebServiceCore.Controllers
     public class OnlineVideosController : ControllerBase
     {
         private readonly OnlineVideosDataContext _context;
+        private readonly Credentials _credentials;
+        private readonly Notifications _notifications;
+        private readonly PackageReview _packages;
         private readonly IWebHostEnvironment _environment;
         private readonly IImageService _imageService;
         private readonly IConfiguration _config;
         private readonly ILogger<OnlineVideosController> _logger;
 
-        public OnlineVideosController(OnlineVideosDataContext context, IWebHostEnvironment environment, IImageService imageService, IConfiguration config, ILogger<OnlineVideosController> logger)
+        public OnlineVideosController(OnlineVideosDataContext context, IWebHostEnvironment environment, IImageService imageService, IConfiguration config, ILogger<OnlineVideosController> logger, Credentials credentials, PackageReview packages, Notifications notifications = null)
         {
             _context = context;
+            _notifications = notifications;
+            _credentials = credentials;
+            _packages = packages;
             _environment = environment;
             _imageService = imageService;
             _config = config;
@@ -34,24 +38,8 @@ namespace WebServiceCore.Controllers
         [ProducesResponseType(typeof(string), 500)]
         public async Task<ActionResult<string>> RegisterEmail(string email)
         {
-            User user = await _context.Users.FindAsync(email);
-            bool isNewUser = false;
-            if (user == null)
-            {
-                user = new User() { Email = email, IsAdmin = false, Password = RandomString(6) };
-                isNewUser = true;
-            }
-            if (await SendPasswordEmail(user))
-            {
-                if (isNewUser)
-                {
-                    _context.Users.Add(user);
-                    await _context.SaveChangesAsync();
-                }
-                return Ok("Password was sent to your Email address.");
-            }
-            else
-                return Problem("Password could not be sent to your Email address.");
+            await Task.CompletedTask;
+            return StatusCode(410, "Legacy email registration and password recovery are disabled. Contact the operator.");
         }
 
         [HttpPost]
@@ -60,6 +48,8 @@ namespace WebServiceCore.Controllers
         [ProducesResponseType(typeof(string), 401)]
         public async Task<ActionResult<string>> SubmitSite(SubmitSiteDto dto)
         {
+            var user = await _credentials.Authenticate(dto.Email, dto.Password);
+            if (user == null) return Unauthorized("Invalid credentials.");
             DateTime updateTime = DateTime.Now.ToUniversalTime(); // use universal Time when setting the current TimeStamp to the Database
 
             // is the given site xml at least valid xml?
@@ -70,7 +60,14 @@ namespace WebServiceCore.Controllers
             bool isAdult = false;
             try
             {
-                xml.LoadXml(dto.SiteXml);
+                using var reader = XmlReader.Create(new StringReader(dto.SiteXml), new XmlReaderSettings
+                {
+                    DtdProcessing = DtdProcessing.Prohibit,
+                    XmlResolver = null,
+                    MaxCharactersInDocument = 262144
+                });
+                xml.XmlResolver = null;
+                xml.Load(reader);
                 if (xml.SelectNodes("//Site").Count != 1)
                     return BadRequest("Exactly one <Site> node expected!");
 
@@ -79,7 +76,7 @@ namespace WebServiceCore.Controllers
                 desc = xml.SelectSingleNode("//Site/Description").InnerText;
                 XmlNode n = xml.SelectSingleNode("//Site/@agecheck");
                 if (n != null) isAdult = bool.Parse(n.Value);
-                // write the current server time into the xml as lastUpdated, so comparing it later with the DB field will always work on any client 
+                // write the current server time into the xml as lastUpdated, so comparing it later with the DB field will always work on any client
                 // (the submitting client might have wrong time settings)
                 XmlNode lastUpdatedNode = xml.SelectSingleNode("//Site/@lastUpdated");
                 if (lastUpdatedNode == null)
@@ -93,56 +90,15 @@ namespace WebServiceCore.Controllers
                 return BadRequest("Invalid xml for site!");
             }
 
-            User user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-            // Check user and password
-            if (user == null)
-                return BadRequest("Email not registered!");
-            if (user.Password != dto.Password)
-                return Unauthorized("Wrong password!");
-
+            if (!InputRules.SafeName(siteName) || lang.Length > 16 || desc.Length > 4000)
+                return BadRequest("Invalid site metadata.");
+            if (dto.RequiredDll != null && !InputRules.SafeName(dto.RequiredDll)) return BadRequest("Invalid DLL name.");
             // is the requiredDll available on the server?
-            if (!string.IsNullOrEmpty(dto.RequiredDll) && !await _context.Dlls.AnyAsync(d => d.Name == dto.RequiredDll))
-                return BadRequest("Required Dll not found on Server!");
+            // An unpublished dependency may be submitted for joint administrator review.
 
-            // does the site already exist?
-            Site site = await _context.Sites.Include(s => s.Owner).FirstOrDefaultAsync(s => s.Name == siteName);
-            if (site != null)
-            {
-                // need to update
-                if (site.Owner.Email == user.Email || user.IsAdmin)
-                {
-                    site.Language = lang;
-                    site.Description = desc;
-                    site.IsAdult = isAdult;
-                    site.LastUpdated = updateTime;
-                    if (site.XML != dto.SiteXml) site.XML = dto.SiteXml;
-                    if (site.DllId != dto.RequiredDll) site.DllId = dto.RequiredDll;
-                    site.State = SiteState.Working;
-                    await _context.SaveChangesAsync();
-                    return Ok("Site successfully updated!" + await SaveImages(siteName, dto.Icon, dto.Banner));
-                }
-                else
-                    return Unauthorized("Only the owner or an admin can update existing sites!");
-            }
-            else
-            {
-                // insert new site
-                site = new Site()
-                {
-                    Name = siteName,
-                    Language = lang,
-                    Description = desc,
-                    IsAdult = isAdult,
-                    LastUpdated = updateTime,
-                    XML = dto.SiteXml,
-                    DllId = dto.RequiredDll,
-                    Owner = user,
-                    State = SiteState.Working
-                };
-                _context.Sites.Add(site);
-                await _context.SaveChangesAsync();
-                return Ok("Site successfully added!" + await SaveImages(siteName, dto.Icon, dto.Banner));
-            }
+            var reviews = HttpContext.RequestServices.GetRequiredService<SiteReviews>();
+            var reviewId = await reviews.Stage(user, siteName, xml.OuterXml, dto.RequiredDll, dto.Icon, dto.Banner);
+            return Accepted(new { ReviewId = reviewId, Message = "Site change queued for administrator review." });
         }
 
         [HttpPost]
@@ -151,48 +107,13 @@ namespace WebServiceCore.Controllers
         [ProducesResponseType(typeof(string), 401)]
         public async Task<ActionResult<string>> SubmitDll(SubmitDllDto dto)
         {
-            User user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-            // Check user and password
-            if (user == null)
-                return BadRequest("Email not registered!");
-            if (user.Password != dto.Password)
-                return Unauthorized("Wrong password!");
-
-            // calc dll's MD5 hash
-            string md5String = GetMD5Hash(dto.Data);
-            // does the dll already exist?
-            Dll dll = await _context.Dlls.Include(d => d.Owner).FirstOrDefaultAsync(d => d.Name == dto.Name);
-            if (dll != null)
-            {
-                // need to update                        
-                if (dll.Owner.Email == user.Email || user.IsAdmin)
-                {
-                    dll.MD5 = md5String;
-                    dll.LastUpdated = DateTime.Now;
-                    await _context.SaveChangesAsync();
-                    // write the file
-                    await System.IO.File.WriteAllBytesAsync(GetDllPath(dto.Name), dto.Data);
-                    return Ok("Dll successfully updated!");
-                }
-                else
-                    return Unauthorized("Only the owner or an admin can update existing dlls!");
-            }
-            else
-            {
-                // insert new dll
-                Dll newDll = new Dll()
-                {
-                    MD5 = md5String,
-                    LastUpdated = DateTime.Now,
-                    Name = dto.Name,
-                    Owner = user
-                };
-                _context.Dlls.Add(newDll);
-                await _context.SaveChangesAsync();
-                // write the file
-                await System.IO.File.WriteAllBytesAsync(GetDllPath(dto.Name), dto.Data);
-                return Ok("Dll successfully added!");
-            }
+            var user = await _credentials.Authenticate(dto.Email, dto.Password);
+            if (user == null) return Unauthorized("Invalid credentials.");
+            if (!_packages.IsPublisher(user)) return StatusCode(403, "Publisher approval required.");
+            if (!InputRules.SafeName(dto.Name)) return BadRequest("Invalid DLL name.");
+            var id = await _packages.Stage(user, dto.Name, dto.Data);
+            if (_notifications != null) await _notifications.Event("packages", id, "Package awaiting review: " + dto.Name);
+            return Accepted(new { ReviewId = id, Message = "Package staged privately. Local operator approval is required before publication." });
         }
 
         [HttpPost]
@@ -204,20 +125,28 @@ namespace WebServiceCore.Controllers
             if (site == null)
                 return BadRequest("Site not found!");
 
-            Report report = new Report
+            var moderation = dto.Type is ReportType.ConfirmedBroken or ReportType.RejectedBroken or ReportType.Fixed;
+            User user = null;
+            if (moderation || dto.Email != null || dto.Password != null)
             {
-                Date = DateTime.Now,
-                Message = dto.Message,
-                Type = dto.Type,
-                Site = site,
-            };
-            if (dto.Type == ReportType.Broken && site.State == SiteState.Working) site.State = SiteState.Reported;
-            else if (dto.Type == ReportType.ConfirmedBroken) site.State = SiteState.Broken;
-            else if (dto.Type == ReportType.RejectedBroken || dto.Type == ReportType.Fixed) site.State = SiteState.Working;
-
+                user = await _credentials.Authenticate(dto.Email, dto.Password);
+                if (user == null) return Unauthorized("Invalid credentials.");
+                if (user.Email != site.OwnerId && !user.IsAdmin) return StatusCode(403, "Only the owner or an administrator may moderate reports.");
+            }
+            var recent = DateTime.UtcNow.AddDays(-1);
+            if (await _context.Reports.CountAsync() >= 100000 || await _context.Reports.CountAsync(r => r.SiteName == site.Name && r.Date >= recent) >= 50
+                || await _context.Reports.CountAsync(r => r.SiteName == site.Name) >= 1000)
+                return StatusCode(429, "Report quota exceeded.");
+            var report = new Report { Date = DateTime.UtcNow, Message = dto.Message, Type = dto.Type, Site = site };
+            // Anonymous suggestions/broken reports are unverified and never change authoritative state.
+            if (moderation) site.State = dto.Type == ReportType.ConfirmedBroken ? SiteState.Broken : SiteState.Working;
             _context.Reports.Add(report);
             await _context.SaveChangesAsync();
-            SendNewReportEmail(report);
+            if (_notifications != null)
+            {
+                if (!moderation) await _notifications.Event("reports", report.Id.ToString(), "New reports");
+                else await _notifications.Event("own", report.Id.ToString(), "Report decision for " + site.Name + ": " + dto.Type, site.OwnerId);
+            }
             return Ok("Report successfully submitted!");
         }
 
@@ -228,6 +157,7 @@ namespace WebServiceCore.Controllers
             return await _context.Reports
                 .AsNoTrackingWithIdentityResolution()
                 .Where(r => r.Site.Name == siteName)
+                .OrderByDescending(r => r.Date).Take(1000)
                 .Select(r => r.ToGetReportDto())
                 .ToListAsync();
         }
@@ -238,7 +168,7 @@ namespace WebServiceCore.Controllers
         {
             return await _context.Sites
                 .AsNoTrackingWithIdentityResolution()
-                .Select(s => s.ToGetSiteDto())
+                .OrderBy(s => s.Name).Take(10000).Select(s => s.ToGetSiteDto())
                 .ToListAsync();
         }
 
@@ -248,7 +178,7 @@ namespace WebServiceCore.Controllers
         {
             return await _context.Dlls
                 .AsNoTrackingWithIdentityResolution()
-                .Select(d => d.ToGetDllDto())
+                .OrderBy(d => d.Name).Take(10000).Select(d => d.ToGetDllDto())
                 .ToListAsync();
         }
 
@@ -319,6 +249,7 @@ namespace WebServiceCore.Controllers
         public async Task<ActionResult<byte[]>> GetDll(string name)
         {
             string path = GetDllPath(name);
+            if (!await _context.Dlls.AnyAsync(d => d.Name == name)) return NotFound();
             return await GetFile(path);
         }
 
@@ -326,6 +257,7 @@ namespace WebServiceCore.Controllers
         {
             if (!System.IO.File.Exists(path))
                 return NotFound();
+            if (new FileInfo(path).Length > InputRules.MaxDllBytes) return StatusCode(413);
             byte[] bytes = await System.IO.File.ReadAllBytesAsync(path);
             if (!string.IsNullOrEmpty(md5) && GetMD5Hash(bytes) == md5)
                 return NoContent();
@@ -333,74 +265,6 @@ namespace WebServiceCore.Controllers
         }
 
         #region Helper
-
-        static readonly char[] RandomChars = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
-        /// <summary>
-        /// Generates a random string with the given length
-        /// </summary>
-        /// <param name="size">Size of the string</param>
-        /// <returns>Random string</returns>
-        static string RandomString(int size)
-        {
-            System.Text.StringBuilder builder = new System.Text.StringBuilder();
-            Random random = new Random();
-            for (int i = 0; i < size; i++)
-            {
-                builder.Append(RandomChars[random.Next(0, RandomChars.Length)]);
-            }
-            return builder.ToString();
-        }
-
-        private SmtpClient getSmtpClient(string toAddress, out MailMessage m)
-        {
-            var smtpSettings = _config.GetSection("Smtp");
-
-            m = new MailMessage(smtpSettings.GetValue<String>("FromAddress"), toAddress);
-
-            var smtpClient = new SmtpClient();
-            smtpClient.Port = smtpSettings.GetValue<int>("Port");
-            smtpClient.EnableSsl = true;
-            smtpClient.Host = smtpSettings.GetValue<String>("Server");
-            smtpClient.Credentials = new NetworkCredential(smtpSettings.GetValue<String>("User"), smtpSettings.GetValue<String>("Password"));
-            return smtpClient;
-        }
-
-        async Task<bool> SendPasswordEmail(User user)
-        {
-            try
-            {
-                MailMessage m;
-                var smtpClient = getSmtpClient(user.Email, out m);
-                m.Subject = "Thank you for registering with MediaPortal OnlineVideos Plugin.";
-                m.Body = "Your registered password is: " + user.Password;
-                await smtpClient.SendMailAsync(m);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error sending password email");
-                return false;
-            }
-        }
-
-        bool SendNewReportEmail(Report report)
-        {
-            try
-            {
-                MailMessage m;
-                var smtpClient = getSmtpClient(report.Site.Owner.Email, out m);
-
-                m.Subject = string.Format("OnlineVideos: New Report ({0}) for {1}", report.Type.ToString(), report.Site.Name);
-                m.Body = report.Message;
-                smtpClient.Send(m);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error sending new report email");
-                return false;
-            }
-        }
 
         string GetIconPath(string siteName)
         {
@@ -419,19 +283,7 @@ namespace WebServiceCore.Controllers
 
         string GetSafeWebRootPath(string directory, string fileName, string extension)
         {
-            // Check that the filename is valid, no sanitization is performed to retain the
-            // behaviour of the previous API
-            if (Path.GetInvalidFileNameChars().Any(c => fileName.Contains(c)))
-                throw new ArgumentException($"Invalid filename '{fileName}'", nameof(fileName));
-
-            // The above check should prevent directory traversal attacks, e.g. by passing a filename starting with ..\,
-            // as path separators are not valid in filenames, however as an additional layer resolve the absolute path
-            // and confirm that it is a subdirectory of WebRootPath.
-            var subPath = Path.Combine(directory, fileName + extension);
-            string absolutePath = Path.GetFullPath(subPath, _environment.WebRootPath);
-            if (!absolutePath.StartsWith(_environment.WebRootPath))
-                throw new ArgumentException($"Invalid filename '{fileName}'", nameof(fileName));
-            return absolutePath;
+            return InputRules.AssetPath(_environment.WebRootPath, directory, fileName, extension);
         }
 
         async Task<string> SaveImages(string siteName, byte[] icon, byte[] banner)

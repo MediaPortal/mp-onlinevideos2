@@ -1,0 +1,24 @@
+@page
+@model WebServiceCore.Pages.AccountModel
+@{ViewData["Title"]="Account settings";}
+<h1>Account settings</h1>
+<p>@TempData["Notice"]</p><div asp-validation-summary="All" class="text-danger"></div>
+<p>Login: @Model.Account.Email</p>
+<h2>Email notifications</h2>
+<form method="post" asp-page-handler="Preferences">
+<label>Email address <input name="address" type="email" value="@Model.Account.ContactEmail" required maxlength="254" /></label>
+<p>@(Model.Account.EmailConfirmed?"Email verified.":"Verify your email address before notifications can be sent.")</p>
+@if(Model.Account.IsAdmin){
+<div><label><input type="checkbox" name="changes" value="true" checked="@Model.Account.NotifyChanges" /> New site changes</label></div>
+<div><label><input type="checkbox" name="packages" value="true" checked="@Model.Account.NotifyPackages" /> New packages awaiting administrator review</label></div>
+<div><label><input type="checkbox" name="reports" value="true" checked="@Model.Account.NotifyReports" /> New reports (hourly summary)</label></div>
+}
+<div><label><input type="checkbox" name="own" value="true" checked="@Model.Account.NotifyOwn" /> Decisions about my contributions</label></div>
+<button class="btn btn-primary mt-2">Save preferences</button></form>
+<h2 class="mt-4">Change password</h2>
+<form method="post" asp-page-handler="Password">
+<div><label>Current password <input name="currentPassword" type="password" autocomplete="current-password" required /></label></div>
+<div><label>New password <input name="newPassword" type="password" autocomplete="new-password" minlength="14" maxlength="256" required /></label></div>
+<div><label>Repeat new password <input name="repeatPassword" type="password" autocomplete="new-password" minlength="14" maxlength="256" required /></label></div>
+<p>Use at least 14 characters. Changing your password signs out existing sessions.</p>
+<button class="btn btn-primary">Change password</button></form>

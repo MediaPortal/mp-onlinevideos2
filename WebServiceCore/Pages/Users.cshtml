@@ -1,0 +1,31 @@
+@page
+@model WebServiceCore.Pages.UsersModel
+@{ ViewData["Title"]="Users"; }
+<h1>Users</h1>
+<p>@TempData["Notice"]</p>
+<div asp-validation-summary="All" class="text-danger"></div>
+<form method="get" class="mb-3"><label>Search login or email <input name="Search" value="@Model.Search" maxlength="100" /></label> <button class="btn btn-secondary">Search</button></form>
+<h2>Invite a user</h2>
+<form method="post" asp-page-handler="Invite" class="mb-4">
+<label>Login name <input name="login" required maxlength="100" /></label>
+<label>Email <input name="address" type="email" required maxlength="254" /></label>
+<button class="btn btn-primary">Send invitation</button>
+<p>The user sets their own password using a link valid for 24 hours. New accounts have the User role.</p>
+</form>
+<div class="table-responsive"><table class="table"><thead><tr><th>Login</th><th>Email</th><th>Access</th><th>Delete account</th></tr></thead><tbody>
+@foreach(var u in Model.Accounts) {
+<tr><td>@u.Email</td><td>@u.ContactEmail<br />@(u.EmailConfirmed?"Verified":"Not verified")
+<details><summary>Change email</summary><form method="post" asp-page-handler="Email"><input type="hidden" name="target" value="@u.Email" /><label>New email for @u.Email <input name="address" type="email" value="@u.ContactEmail" maxlength="254" required /></label><p>The new address requires confirmation. Disabled accounts remain disabled.</p><button class="btn btn-sm btn-primary">Save email</button></form></details></td><td>
+@if(u.Email==User.Identity.Name){<span>Administrator (your account)</span>}
+else {
+<form method="post" asp-page-handler="Edit"><input type="hidden" name="target" value="@u.Email" />
+<select name="role" aria-label="Role for @u.Email"><option value="user" selected="@(!u.IsAdmin&&!u.IsPublisher)">User</option><option value="publisher" selected="@(!u.IsAdmin&&u.IsPublisher)">Publisher</option><option value="admin" selected="@(u.IsAdmin)">Administrator</option></select>
+<label><input type="checkbox" name="disabled" value="true" checked="@u.IsDisabled" /> Disabled</label><button class="btn btn-sm btn-primary">Save access</button></form>
+}
+</td><td>
+@if(u.Email!=User.Identity.Name){<details><summary>Delete</summary><p>Contributions are preserved. Enter the exact login name to permanently delete this account.</p><form method="post" asp-page-handler="Delete"><input type="hidden" name="target" value="@u.Email" /><input name="confirmation" aria-label="Confirm deletion of @u.Email" required /><button class="btn btn-sm btn-danger">Delete account</button></form></details>}
+</td></tr>
+}
+</tbody></table></div>
+@if(Model.PageNumber>1){<a asp-page="/Users" asp-route-Search="@Model.Search" asp-route-PageNumber="@(Model.PageNumber-1)">Previous</a>}
+@if(Model.More){<a asp-page="/Users" asp-route-Search="@Model.Search" asp-route-PageNumber="@(Model.PageNumber+1)">Next</a>}

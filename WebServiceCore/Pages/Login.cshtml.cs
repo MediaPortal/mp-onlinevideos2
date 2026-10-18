@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
@@ -24,6 +24,7 @@ namespace WebServiceCore.Pages
 
         public async Task<IActionResult> OnPostLogin(string username, string password)
         {
+            if (string.IsNullOrWhiteSpace(username) || username.Length > 254 || string.IsNullOrEmpty(password) || password.Length > 256) return Page();
             ClaimsPrincipal principal = await _userService.TryAuthenticate(username, password);
             if (principal == null)
                 return Page();

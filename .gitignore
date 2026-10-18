@@ -22,3 +22,6 @@ ipch/*
 *sdf
 /*.db
 /.vs
+/WebServiceCore/private-data/
+**/obj/
+**/bin/

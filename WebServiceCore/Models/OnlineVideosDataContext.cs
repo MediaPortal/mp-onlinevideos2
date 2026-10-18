@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using WebServiceCore.Models.Entities;
 
 namespace WebServiceCore.Models
@@ -10,6 +10,9 @@ namespace WebServiceCore.Models
         {
         }
 
+        public DbSet<SiteChange> SiteChanges { get; set; }
+        public DbSet<AccountToken> AccountTokens { get; set; }
+        public DbSet<MailJob> MailJobs { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Site> Sites { get; set; }
         public DbSet<Dll> Dlls { get; set; }

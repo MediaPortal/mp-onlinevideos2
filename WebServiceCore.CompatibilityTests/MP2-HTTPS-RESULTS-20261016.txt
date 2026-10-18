@@ -1,0 +1,14 @@
+MP2 integration types loaded: 96
+Resources: OnlineVideos.Properties.Resources.resources,OnlineVideos.3rdParty.RssToolkit.Resources.Rss20.xsd,OnlineVideos.3rdParty.RssToolkit.Resources.AtomToRss20.xsl,OnlineVideos.3rdParty.RssToolkit.Resources.RdfToRss20.xsl,OnlineVideos.3rdParty.RssToolkit.Resources.Rss20ToAtom.xsl,OnlineVideos.3rdParty.RssToolkit.Resources.Rss20ToOpml.xsl,OnlineVideos.3rdParty.RssToolkit.Resources.Rss20ToRdf.xsl,OnlineVideos.OnlineVideoSites.xml
+Embedded bitmap loaded: 16x16
+Installed client assembly version: 2.4.0.1
+Test endpoint: [deployment address removed]
+Deserialized sites: 16; DLLs: 3
+Site XML parsed: Site
+Site icon: 512x512; 7940 bytes
+Site banner: 1200x400; 169404 bytes
+Reports deserialized: 2
+DLL received as bytes (not executed): 134656
+Updater online version: 2.9.2.0
+Updater compatible: False
+PASS: installed MP2 2.4.0.1 integration against HTTPS test server, instance endpoint overridden in memory
