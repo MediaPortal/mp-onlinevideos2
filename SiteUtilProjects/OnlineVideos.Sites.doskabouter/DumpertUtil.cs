@@ -28,8 +28,6 @@ namespace OnlineVideos.Sites
             foreach (var item in items)
             {
                 var media_type = item.Value<string>("media_type");
-                if (media_type != "VIDEO")
-                    continue;
                 VideoInfo videoInfo = CreateVideoInfo();
                 videoInfo.Title = item.Value<string>("title");
                 var media = item.Value<JArray>("media");
